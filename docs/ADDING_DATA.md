@@ -4,11 +4,18 @@ Three ways to add data, matched to what you have. All three pass through the sam
 validation contract (`pipeline/models.py`), so they combine automatically — the same
 person from different sources resolves to one node (see [Deduping](#deduping--merging)).
 
+> **Starting from a raw file instead of text?** A PDF report, a news video, an audio
+> recording — ingest it first: `python -m pipeline.ingest <file-or-Files/>` converts it
+> to an extraction-ready `real_data/*.txt` (opendataloader-pdf for PDFs,
+> whisper-small-sinhala for Sinhala speech). Full guide: [`INGESTION.md`](INGESTION.md).
+> Then continue below — ingested prose is path **C**, an ingested arrest annex is path **B**.
+
 | You have… | Use | Effort | Confidence it produces |
 |---|---|---|---|
 | A verified, citable fact | **A. Curated** (edit `real_dataset.py`) | low | you choose (typically EXTRACTED/INFERRED) |
 | A numbered arrest/remand list | **B. Structural** (regex) | low | EXTRACTED (deterministic) |
 | A narrative report (prose) | **C. Semantic** (LLM) | zero-code | LLM chooses per the honesty rules |
+| A raw PDF / video / audio file | **Ingest first** ([`INGESTION.md`](INGESTION.md)) | one command | n/a — produces text for B or C |
 
 > Concepts and the field-by-field contract: [`../ARCHITECTURE.md`](../ARCHITECTURE.md) §4.
 
@@ -180,11 +187,16 @@ validated against the same schema, dangling edges are pruned, and the result is 
 
 ### Processing a PDF instead of a `.txt`
 
+Preferred: `python -m pipeline.ingest report.pdf` — structure-aware extraction with an
+audit copy, straight into `real_data/` (see [`INGESTION.md`](INGESTION.md)). Registered
+documents of any size are safe: `build_real_graph.py --semantic` chunks long texts
+(~12k chars per LLM call) and merges the results. The manual API:
+
 ```python
-from pipeline.pdf_loader import load_pdf_text, split_paragraphs
+from pipeline.pdf_ingest import convert_pdf
 from pipeline.semantic_pass import extract_semantic
 
-text = load_pdf_text("report.pdf")
+text = convert_pdf("report.pdf")                       # markdown (pdfplumber fallback)
 result = extract_semantic(text, "report.pdf")          # or loop split_paragraphs(text) for long docs
 ```
 

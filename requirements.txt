@@ -20,7 +20,19 @@ python-igraph>=0.11
 leidenalg>=0.10
 
 # Document handling
-pdfplumber>=0.11
+pdfplumber>=0.11              # plain-text fallback loader (pipeline/pdf_loader.py)
+
+# --- Ingestion layer (see docs/INGESTION.md; one-time: scripts/setup_ingestion.sh) ---
+# Structured PDF extraction. Runs a bundled Java CLI — needs Java 11+; the setup
+# script installs a project-local Temurin JRE into .tools/jre when none is found.
+opendataloader-pdf>=2.4
+# Sinhala speech-to-text: Lingalingeswaran/whisper-small-sinhala (~1 GB download on
+# first use). CPU-only torch is enough; install it from the CPU wheel index to avoid
+# the multi-GB CUDA download:  pip install torch --index-url https://download.pytorch.org/whl/cpu
+torch>=2.6
+transformers>=4.48
+numpy>=1.26
+imageio-ffmpeg>=0.5           # bundled static ffmpeg — no system ffmpeg needed
 
 # Neo4j driver (only needed for --push; the .cypher export works without it)
 neo4j>=5.23

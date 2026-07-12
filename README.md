@@ -52,6 +52,9 @@ into the curated graph. Failures are non-fatal — the curated graph stands on i
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** — full guided tour: the mental model, the system
   diagram, a component-by-component reference, how data flows end-to-end, the confidence &
   ethics rubric, and the exact steps used to build this. Start here to understand the system.
+- **[docs/INGESTION.md](docs/INGESTION.md)** — turn raw source material (PDF reports,
+  video/audio in Sinhala, pasted text) into extraction-ready documents: opendataloader-pdf
+  structured parsing + whisper-small-sinhala speech-to-text, one command.
 - **[docs/RUNNING.md](docs/RUNNING.md)** — every command, flag, and expected output.
 - **[docs/ADDING_DATA.md](docs/ADDING_DATA.md)** — copy-paste recipes to add your own data
   the three ways (curated fact · structured list · narrative document).
@@ -60,11 +63,22 @@ into the curated graph. Failures are non-fatal — the curated graph stands on i
 ## Architecture
 
 ```
+Files/ (raw drop zone: PDF / MP4 / MP3 / WAV / TXT)
+             │
+             └─> pipeline/ingest.py   one-command ingestion (docs/INGESTION.md)
+                   ├─ .pdf   → pdf_ingest.py   opendataloader-pdf structured markdown
+                   │                           (Java CLI; pdfplumber fallback)
+                   ├─ media  → transcribe.py   whisper-small-sinhala speech-to-text
+                   └─ .txt   → provenance-headed copy
+                              │
+                    real_data/<slug>.txt   (review → register in NARRATIVE_DOCS)
+                              │
 PDFs / text ─┬─> structural_pass.py   regex on structured lists (arrest annexes)
              │      └─ EXTRACTED nodes + deterministic PRISON_CO_LOCATION edges
              │
              └─> semantic_pass.py     LangChain init_chat_model() on narrative text
                     └─ LLM output validated against the same Pydantic schema
+                       (long docs auto-chunked ~12k chars/call, results merged)
                               │
                     models.py  ExtractionResult.merge()  (dedup by node_id)
                               │
@@ -129,12 +143,29 @@ confidence-weighted paths, detected cells, and cross-layer brokers.
 
 ## Processing real documents
 
+Raw source material — PDF reports, Sinhala video/audio, pasted text — is ingested with
+one command (full guide: [docs/INGESTION.md](docs/INGESTION.md)):
+
+```bash
+./scripts/setup_ingestion.sh              # one-time: venv + packages + local JRE (no root)
+.venv/bin/python -m pipeline.ingest       # ingest everything new in Files/
+```
+
+PDFs go through **opendataloader-pdf** (structure-aware markdown + JSON layout audit
+copies in `output/ingest/`), media through **whisper-small-sinhala** (timestamped Sinhala
+transcript; slow on CPU — use `--max-minutes 2` to test first). Everything lands in
+`real_data/` with a provenance header, ready to register in `NARRATIVE_DOCS`
+(`build_real_graph.py`) for the semantic pass — long documents are chunked automatically.
+
+The lower-level API remains available:
+
 ```python
-from pipeline.pdf_loader import load_pdf_text, split_paragraphs
+from pipeline.pdf_ingest import convert_pdf
+from pipeline.pdf_loader import split_paragraphs
 from pipeline.structural_pass import extract_structural
 from pipeline.semantic_pass import extract_semantic
 
-text = load_pdf_text("pcoi_report.pdf")
+text = convert_pdf("pcoi_report.pdf")     # structured markdown (pdfplumber fallback)
 result = extract_structural(text, "pcoi_report.pdf")
 for para in split_paragraphs(text):
     result = result.merge(extract_semantic(para, "pcoi_report.pdf"))
@@ -153,7 +184,12 @@ pipeline/
   semantic_pass.py    LangChain LLM pass (Gemini/Anthropic/OpenAI/Ollama) + offline mock
   clustering.py       Leiden multiplex community detection (Louvain fallback)
   neo4j_export.py     Cypher generation + parameterized driver push
-  pdf_loader.py       pdfplumber text extraction
+  ingest.py           one-command raw-file ingestion: PDF/media/text → real_data/*.txt
+  pdf_ingest.py       opendataloader-pdf structured extraction (Java; audit JSON+MD)
+  transcribe.py       Sinhala speech-to-text (whisper-small-sinhala, bundled ffmpeg)
+  pdf_loader.py       pdfplumber text extraction (fallback loader)
+scripts/
+  setup_ingestion.sh  one-time no-root setup: venv, packages, project-local JRE 21
 app/
   server.py           FastAPI backend: serves the UI + /api/graph, /api/stats, /api/query/*
   static/index.html   Cytoscape.js explorer (layers, confidence, temporal slider, cells, sources)

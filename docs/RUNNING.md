@@ -5,6 +5,7 @@ on macOS/Linux replace `.venv\Scripts\` with `.venv/bin/`.
 
 > Big picture and concepts: [`../ARCHITECTURE.md`](../ARCHITECTURE.md).
 > Adding your own data: [`ADDING_DATA.md`](ADDING_DATA.md).
+> Ingesting raw files (PDF/video/audio → text): [`INGESTION.md`](INGESTION.md).
 
 ---
 
@@ -18,6 +19,12 @@ python -m venv .venv
 
 This installs: Pydantic, LangChain (+ `langchain-google-genai` for Gemini), NetworkX,
 python-igraph + leidenalg (true Leiden), pdfplumber, the Neo4j driver, and FastAPI + uvicorn.
+
+**Ingestion stack (optional — for raw PDFs and Sinhala video/audio).** On Linux/macOS
+run `./scripts/setup_ingestion.sh` once: it creates the venv if needed, installs CPU
+torch + the packages above, and puts a project-local Java runtime in `.tools/jre` for
+the opendataloader-pdf parser (no root). Then ingest with
+`.venv/bin/python -m pipeline.ingest` — see [`INGESTION.md`](INGESTION.md).
 
 **Configure the LLM key (optional, only for the live semantic pass).** `.env` already holds:
 
@@ -150,6 +157,8 @@ machinery — it is **not** the real dataset.
 | Goal | Command |
 |---|---|
 | Install | `.venv\Scripts\pip install -r requirements.txt` |
+| Ingestion setup (Linux/macOS, no root) | `./scripts/setup_ingestion.sh` |
+| Ingest raw files (PDF/video/audio) | `.venv\Scripts\python -m pipeline.ingest` |
 | Build real graph (offline) | `.venv\Scripts\python build_real_graph.py` |
 | Build + live Gemini | `.venv\Scripts\python build_real_graph.py --semantic` |
 | Build + push to Neo4j | `.venv\Scripts\python build_real_graph.py --semantic --push` |

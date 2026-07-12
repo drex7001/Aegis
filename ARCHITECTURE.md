@@ -138,6 +138,12 @@ passes*. Everything they produce is forced through one **validation contract**
 **outputs**: a JSON graph (which the **web UI** and any downstream analysis read) and a
 **Cypher** file (which loads the same graph into **Neo4j**).
 
+**Upstream of this diagram** sits the ingestion layer ([`docs/INGESTION.md`](docs/INGESTION.md)):
+raw source files dropped in `Files/` — PDF reports, Sinhala video/audio, pasted text —
+are converted by `pipeline/ingest.py` into the `real_data/*.txt` narrative inputs shown
+on the left (opendataloader-pdf structured parsing for PDFs, whisper-small-sinhala
+speech-to-text for media, provenance headers on everything).
+
 ---
 
 ## 4. The data contract
@@ -210,8 +216,12 @@ Then, independently:
 | `pipeline/semantic_pass.py` | Provider-agnostic LLM extraction from prose (Gemini/Claude/OpenAI/Ollama) + offline mock | `SYSTEM_PROMPT`, `resolve_model_name()`, `extract_semantic()`, `mock_extraction_result()` |
 | `pipeline/clustering.py` | Community detection: Leiden multiplex (igraph+leidenalg), NetworkX Louvain fallback | `detect_cells()` |
 | `pipeline/neo4j_export.py` | Graph → literal Cypher file, or parameterized driver push | `generate_cypher()`, `push_to_neo4j()` |
-| `pipeline/pdf_loader.py` | Extract text from PDFs, split into paragraphs | `load_pdf_text()`, `split_paragraphs()` |
-| `build_real_graph.py` | **Orchestrator** for the real graph (curated + optional semantic → cluster → export) | `main()`, `run_semantic_passes()` |
+| `pipeline/pdf_loader.py` | Extract text from PDFs, split into paragraphs (fallback loader) | `load_pdf_text()`, `split_paragraphs()` |
+| `pipeline/ingest.py` | One-command ingestion router: raw PDF/media/text → provenance-headed `real_data/*.txt` | `ingest_file()`, `target_for()`, `main()` |
+| `pipeline/pdf_ingest.py` | Structure-aware PDF extraction via opendataloader-pdf (Java CLI, project-local JRE), audit copies in `output/ingest/` | `convert_pdf()`, `find_java()` |
+| `pipeline/transcribe.py` | Sinhala speech-to-text (whisper-small-sinhala + bundled ffmpeg), 10-min blocks with incremental writes | `transcribe_media()`, `transcribe_to_file()`, `load_audio()` |
+| `scripts/setup_ingestion.sh` | One-time, no-root setup of the ingestion stack (venv, CPU torch, local JRE 21) | — |
+| `build_real_graph.py` | **Orchestrator** for the real graph (curated + optional semantic → cluster → export); long docs chunked | `main()`, `run_semantic_passes()`, `extract_semantic_chunked()` |
 | `app/server.py` | FastAPI backend: serves the UI and JSON API | `/api/graph`, `/api/stats`, `/api/cells`, `/api/query/{name}` |
 | `app/static/index.html` | The Cytoscape.js single-page explorer | (all client-side) |
 | `demo.py` | End-to-end run on the **fictional** sample (mechanism proof) | `prove_guardrails()`, `main()` |
@@ -292,7 +302,13 @@ derives `PRISON_CO_LOCATION` edges from overlapping remand windows at the same f
 Drop a `.txt` report in `real_data/`, add its filename to `NARRATIVE_DOCS` in
 `build_real_graph.py`, and run `--semantic`. The model follows the honesty rules in
 `SYSTEM_PROMPT` (never invent an edge; tag weak links AMBIGUOUS; quote the source sentence;
-put place names in `location`, not as nodes).
+put place names in `location`, not as nodes). Long documents are chunked automatically
+(~12k chars per call) and the results merged.
+
+**D. Raw files (PDF / video / audio) — ingest first.**
+`python -m pipeline.ingest <file-or-Files/>` converts raw source material into
+extraction-ready `real_data/*.txt` (structured PDF parsing, Sinhala speech-to-text,
+provenance headers), then feed the result to pass B or C. Guide: [`docs/INGESTION.md`](docs/INGESTION.md).
 
 **Deduping tip:** use each entity's *common* name as the primary `name` and put formal
 names in `aliases`, so the same person from different passes resolves to the same

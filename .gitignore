@@ -71,6 +71,17 @@ temp_pdfs/
 .venv/
 *.pip-cache
 
+# Project-local tool runtimes (JRE for opendataloader-pdf — scripts/setup_ingestion.sh)
+.tools/
+
+# Raw source-material drop zone (large PDFs/videos; ingested text goes to real_data/)
+Files/
+*.mp4
+*.mkv
+*.mp3
+*.wav
+*.m4a
+
 # OS files
 .DS_Store
 Thumbs.db
@@ -91,3 +102,5 @@ launch.json
 # Keep sample data but ignore large local datasets
 real_data/*.txt
 !real_data/README.md
+
+Files/videoplayback.mp4

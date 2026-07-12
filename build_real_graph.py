@@ -26,6 +26,7 @@ from dotenv import load_dotenv
 from pipeline.clustering import detect_cells
 from pipeline.models import ExtractionResult
 from pipeline.neo4j_export import generate_cypher, push_to_neo4j
+from pipeline.pdf_loader import split_paragraphs
 from pipeline.real_dataset import build_curated_network, sources_for_meta
 from pipeline.semantic_pass import extract_semantic, resolve_model_name
 
@@ -46,6 +47,29 @@ DISCLAIMER = (
 )
 
 
+# Documents longer than this are split into ~chunk-sized paragraph groups, one LLM
+# call each, and the results merged — one-shot extraction over a 200-page ingested
+# report would blow past output limits and miss most edges.
+SEMANTIC_CHUNK_CHARS = 12_000
+
+
+def extract_semantic_chunked(text: str, source: str) -> ExtractionResult:
+    """LLM pass over a document of any length: short docs in one call, long docs
+    per ~SEMANTIC_CHUNK_CHARS paragraph group (failed chunks are skipped)."""
+    if len(text) <= SEMANTIC_CHUNK_CHARS:
+        return extract_semantic(text, source)
+    chunks = split_paragraphs(text, min_chars=SEMANTIC_CHUNK_CHARS)
+    print(f"    {len(text):,} chars → {len(chunks)} chunks")
+    merged = ExtractionResult()
+    for i, chunk in enumerate(chunks, 1):
+        try:
+            merged = merged.merge(extract_semantic(chunk, source))
+            print(f"    chunk {i}/{len(chunks)}: total {len(merged.nodes)} nodes, {len(merged.edges)} edges")
+        except Exception as exc:  # noqa: BLE001 - a bad chunk shouldn't sink the document
+            print(f"    chunk {i}/{len(chunks)}: skipped ({type(exc).__name__}: {exc})")
+    return merged
+
+
 def run_semantic_passes(base: ExtractionResult) -> ExtractionResult:
     """Merge in the live LLM pass over each real narrative document. Failures are
     non-fatal: the curated graph is already complete without them."""
@@ -55,7 +79,7 @@ def run_semantic_passes(base: ExtractionResult) -> ExtractionResult:
     for name in NARRATIVE_DOCS:
         path = REAL / name
         try:
-            result = extract_semantic(path.read_text(encoding="utf-8"), f"real_data/{name}")
+            result = extract_semantic_chunked(path.read_text(encoding="utf-8"), f"real_data/{name}")
             print(f"  [ok] {name}: +{len(result.nodes)} nodes, +{len(result.edges)} edges from the LLM")
             merged = merged.merge(result)
         except Exception as exc:  # noqa: BLE001 - report and continue with the curated graph
