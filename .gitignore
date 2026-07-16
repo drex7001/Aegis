@@ -63,6 +63,7 @@ output/
 # .runtime.env holds bootstrap-generated ids (never commit)
 !infra/**/*.json
 infra/.runtime.env
+.aegis/
 
 # Neo4j and database
 neo4j_output/

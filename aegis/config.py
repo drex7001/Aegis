@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -32,6 +33,13 @@ class Settings(BaseSettings):
     minio_endpoint: str = Field(default="localhost:9000", validation_alias="MINIO_ENDPOINT")
     minio_access_key: str = Field(default="aegis", validation_alias="MINIO_ROOT_USER")
     minio_secret_key: str = Field(default="aegis-minio-dev", validation_alias="MINIO_ROOT_PASSWORD")
+    minio_bucket: str = Field(default="evidence", validation_alias="MINIO_EVIDENCE_BUCKET")
+    minio_secure: bool = Field(default=False, validation_alias="MINIO_SECURE")
+
+    vault_backend: Literal["minio", "filesystem"] = Field(
+        default="minio", validation_alias="AEGIS_VAULT_BACKEND"
+    )
+    vault_local_path: str = Field(default=".aegis/vault", validation_alias="AEGIS_VAULT_PATH")
 
 
 @lru_cache

@@ -52,6 +52,9 @@ def run_migrations_online() -> None:
     connectable = create_engine(get_settings().database_url)
     with connectable.connect() as connection:
         extension_relations = _extension_relation_names(connection)
+        # SQLAlchemy autobegins a transaction for the catalog SELECT above.  End
+        # that read transaction so Alembic owns (and commits) the migration one.
+        connection.commit()
 
         def include_object(object_, name, type_, reflected, compare_to):
             del object_, compare_to

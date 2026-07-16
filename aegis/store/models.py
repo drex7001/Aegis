@@ -264,13 +264,86 @@ class AuthzOutbox(Base):
     last_error: Mapped[str | None] = mapped_column(Text)
 
 
+class EvidenceItem(Base):
+    __tablename__ = "evidence_item"
+    __table_args__ = (
+        Index("ix_evidence_item_content_hash", "content_hash"),
+        Index("ix_evidence_item_case_id", "case_id"),
+    )
+
+    evidence_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    case_id: Mapped[str | None] = mapped_column(ForeignKey("case_file.case_id"))
+    record_id: Mapped[str | None] = mapped_column(ForeignKey("source_record.record_id"))
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    content_hash: Mapped[str | None] = mapped_column(Text)
+    storage_uri: Mapped[str | None] = mapped_column(Text)
+    acquired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    acquired_by: Mapped[str | None] = mapped_column(Text)
+    legal_basis: Mapped[str | None] = mapped_column(Text)
+    handling_code: Mapped[str] = mapped_column(
+        Text, nullable=False, server_default=text("'restricted'")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+
+
+class Derivative(Base):
+    __tablename__ = "derivative"
+    __table_args__ = (
+        CheckConstraint(
+            "parent_evidence IS NOT NULL OR parent_record IS NOT NULL",
+            name="ck_derivative_has_parent",
+        ),
+        Index("ix_derivative_content_hash", "content_hash"),
+    )
+
+    derivative_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    parent_evidence: Mapped[str | None] = mapped_column(
+        ForeignKey("evidence_item.evidence_id")
+    )
+    parent_record: Mapped[str | None] = mapped_column(ForeignKey("source_record.record_id"))
+    kind: Mapped[str] = mapped_column(Text, nullable=False)
+    tool: Mapped[str] = mapped_column(Text, nullable=False)
+    tool_version: Mapped[str] = mapped_column(Text, nullable=False)
+    params: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+    operator: Mapped[str] = mapped_column(Text, nullable=False)
+    content_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    storage_uri: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+
+
+class CustodyEvent(Base):
+    __tablename__ = "custody_event"
+
+    evidence_id: Mapped[str] = mapped_column(
+        ForeignKey("evidence_item.evidence_id"), primary_key=True
+    )
+    seq: Mapped[int] = mapped_column(Integer, primary_key=True)
+    from_actor: Mapped[str | None] = mapped_column(Text)
+    to_actor: Mapped[str] = mapped_column(Text, nullable=False)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    purpose: Mapped[str] = mapped_column(Text, nullable=False)
+    hash_checked: Mapped[bool] = mapped_column(
+        nullable=False, server_default=text("false")
+    )
+    note: Mapped[str | None] = mapped_column(Text)
+
+
 __all__ = [
     "AuthzOutbox",
     "CaseFile",
     "CaseMember",
     "Claim",
     "ClaimRelation",
+    "CustodyEvent",
+    "Derivative",
     "Entity",
+    "EvidenceItem",
     "ReviewQueue",
     "Source",
     "SourceRecord",
