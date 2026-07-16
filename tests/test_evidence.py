@@ -176,7 +176,7 @@ def test_minio_vault_uses_same_keys_and_deduplicates(provenance: ProvenanceEnvel
 
 
 def test_evidence_metadata_matches_spec() -> None:
-    assert set(Base.metadata.tables) == T4_TABLES | EVIDENCE_TABLES
+    assert T4_TABLES | EVIDENCE_TABLES <= set(Base.metadata.tables)
     derivative_checks = {
         constraint.name: str(constraint.sqltext)
         for constraint in Base.metadata.tables["derivative"].constraints

@@ -152,7 +152,9 @@ class Claim(Base):
     subject_id: Mapped[str] = mapped_column(ForeignKey("entity.entity_id"), nullable=False)
     predicate: Mapped[str] = mapped_column(Text, nullable=False)
     object_id: Mapped[str | None] = mapped_column(ForeignKey("entity.entity_id"))
-    object_value: Mapped[Any | None] = mapped_column(JSONB)
+    # ``none_as_null`` is essential to the object XOR invariant: Python ``None``
+    # means SQL NULL here, not the distinct JSON scalar ``null``.
+    object_value: Mapped[Any | None] = mapped_column(JSONB(none_as_null=True))
     assertion_type: Mapped[str] = mapped_column(Text, nullable=False)
     record_id: Mapped[str] = mapped_column(
         ForeignKey("source_record.record_id"), nullable=False
@@ -334,7 +336,35 @@ class CustodyEvent(Base):
     note: Mapped[str | None] = mapped_column(Text)
 
 
+class AuditLog(Base):
+    __tablename__ = "audit_log"
+    __table_args__ = (
+        CheckConstraint("decision IN ('allow', 'deny')", name="ck_audit_log_decision"),
+        Index("ix_audit_log_at", "at"),
+        Index("ix_audit_log_actor_at", "actor", "at"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+    actor: Mapped[str] = mapped_column(Text, nullable=False)
+    session_id: Mapped[str | None] = mapped_column(Text)
+    purpose: Mapped[str | None] = mapped_column(Text)
+    case_id: Mapped[str | None] = mapped_column(Text)
+    action: Mapped[str] = mapped_column(Text, nullable=False)
+    resource_type: Mapped[str | None] = mapped_column(Text)
+    resource_id: Mapped[str | None] = mapped_column(Text)
+    decision: Mapped[str] = mapped_column(Text, nullable=False)
+    detail: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+    prev_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    entry_hash: Mapped[str] = mapped_column(Text, nullable=False)
+
+
 __all__ = [
+    "AuditLog",
     "AuthzOutbox",
     "CaseFile",
     "CaseMember",

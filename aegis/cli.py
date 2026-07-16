@@ -1,5 +1,4 @@
-"""The `aegis` CLI (speckit T2): db migrations, ontology validation, and stubs for
-audit verification (T6) and projection rebuild (T10)."""
+"""The ``aegis`` platform command line."""
 
 from __future__ import annotations
 
@@ -92,9 +91,23 @@ def ontology_validate(
 
 @audit_app.command("verify")
 def audit_verify() -> None:
-    """Verify the audit hash chain. Implemented in T6."""
-    typer.secho("audit verify: not implemented yet (speckit task T6)", fg=typer.colors.YELLOW, err=True)
-    raise typer.Exit(code=2)
+    """Recompute the audit hash chain and fail at the first altered row."""
+    from aegis.audit import verify
+    from aegis.store import get_sessionmaker
+
+    with get_sessionmaker()() as session:
+        report = verify(session)
+    if not report.valid:
+        typer.secho(
+            f"INVALID: audit chain failed at row {report.failed_id} after "
+            f"{report.checked} verified row(s): {report.reason}",
+            fg=typer.colors.RED,
+            err=True,
+        )
+        raise typer.Exit(code=1)
+    typer.secho(
+        f"OK: audit chain valid ({report.checked} row(s))", fg=typer.colors.GREEN
+    )
 
 
 @projections_app.command("rebuild")

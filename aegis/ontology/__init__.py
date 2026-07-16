@@ -1,6 +1,7 @@
 """Ontology loader, validator, and registry (speckit spec 01, Article XI)."""
 
 from aegis.ontology.loader import (
+    KNOWN_ROLES,
     ActionSpec,
     CategorySpec,
     GradingSpec,
@@ -15,6 +16,7 @@ from aegis.ontology.loader import (
 )
 
 __all__ = [
+    "KNOWN_ROLES",
     "ActionSpec",
     "CategorySpec",
     "GradingSpec",
