@@ -1,0 +1,155 @@
+# Aegis ontology — THE declarative domain artifact (speckit Article XI, spec 01).
+# Validators, FGA types, and UI screens derive from this file; DB vocabulary is
+# validated against it at write time, never as DDL (ADR-013).
+# Versioning: patch = display/docs, minor = additive, major = rename/remove
+# (requires migration + copy in ontology/history/).
+#
+# Design rules (ADR-016): predicate names are timeless domain vocabulary —
+#   · no place names        (location belongs on the claim)
+#   · no compound relations (record two claims instead)
+#   · no credibility words like "suspected_" (grading carries the doubt)
+# Dataset-specific verb mappings live in the migration adapter, not here.
+
+version: 0.2.0
+namespace: aegis.lk
+
+# Ordered low → high; index = clearance level required (spec 03).
+handling_codes: [open, restricted, sensitive]
+
+source_types:
+  - open_source          # press, Wikipedia, public web
+  - court_record         # judgments, remand lists
+  - commission_report    # PCoI and similar
+  - government_system    # registries, official databases (future, authorized)
+  - human                # human source reporting (future; informant compartment rules apply)
+  - sensor               # camera/technical collection (future, authorized)
+  - investigator         # direct investigator observation / curated entry
+  - algorithmic          # model output — may only source *suggestions* (Article VII)
+
+grading:
+  reliability:            # of the source (graded on the source, not per claim)
+    normalized: [reliable, generally_reliable, unknown, unreliable]
+  credibility:            # of the information (per claim)
+    normalized: [confirmed, probably_true, possibly_true, doubtful, improbable, cannot_judge]
+  verification: [unverified, partially_corroborated, corroborated, record_confirmed, refuted]
+  analytic_confidence: [low, moderate, high]
+  schemes:                # external grading vocabularies normalized on ingest (ADR-011)
+    admiralty:
+      A: {reliability: reliable}
+      B: {reliability: generally_reliable}
+      C: {reliability: generally_reliable}
+      F: {reliability: unknown}
+
+# Predicate categories — UI grouping/color hints; extensible without code.
+categories:
+  ideological:        {label: Ideological,          color: "#7c4dff"}
+  financial:          {label: Financial/enterprise, color: "#00897b"}
+  prison_co_location: {label: Prison co-location,   color: "#ef6c00"}
+  transnational:      {label: Transnational,        color: "#3949ab"}
+  kinship:            {label: Kinship/personal,     color: "#6d4c41"}
+
+object_types:
+  person:
+    label: Person
+    properties:
+      name:          {type: text, required: true}
+      aliases:       {type: text, many: true}
+      nic:           {type: identifier, sensitivity: restricted}   # omitted for real people (ethics rubric)
+      date_of_birth: {type: date, conflicts: preserve}             # two DOBs may coexist (Rule 5)
+      notes:         {type: text}
+    display: {title: name, subtitle: aliases}
+
+  organization:
+    label: Organization
+    properties:
+      name:    {type: text, required: true}
+      aliases: {type: text, many: true}
+      notes:   {type: text}
+    display: {title: name, subtitle: aliases}
+    # "criminal organization" is never a subtype — it is an assessment claim
+    # (GOAL.md §7.1); use predicate `assessed_as_criminal_organization` when needed,
+    # with jurisdiction + designating source.
+
+  location:            # Phase 4 gains geometry; declared now so claims can reference it
+    label: Location
+    properties:
+      name:      {type: text, required: true}
+      precision: {type: text}     # exact|centroid|area|city|country (spec — GOAL.md §16.4)
+    display: {title: name}
+
+  vehicle:
+    label: Vehicle
+    properties:
+      registration: {type: identifier}
+      description:  {type: text, required: true}
+    display: {title: description, subtitle: registration}
+
+  phone_number:        # identifiers are entities: ownership/assignment history (GOAL.md §7.2)
+    label: Phone number
+    properties:
+      number: {type: identifier, required: true, sensitivity: restricted}
+    display: {title: number}
+
+predicates:
+  # ── generic / structural ──────────────────────────────────────────────
+  known_as:            {subject: [person, organization], object: literal}
+  affiliated_with:     {subject: [person], object: [organization], category: ideological}
+  merged_into:         {subject: [person, organization, vehicle, phone_number, location],
+                        object: [person, organization, vehicle, phone_number, location],
+                        category: kinship, system: true}   # written only by adjudication actions
+  assessed_as_criminal_organization:
+                       {subject: [organization], object: literal, category: ideological}
+
+  # ── ideological alignment & attack collaboration ─────────────────────
+  member_of:                       {subject: [person], object: [organization], category: ideological}
+  founded:                         {subject: [person], object: [organization], category: ideological}
+  pledged_allegiance_to:           {subject: [person, organization], object: [organization], category: ideological}
+  splinter_affiliate_of:           {subject: [organization], object: [organization], category: ideological}
+  conspired_with:                  {subject: [person], object: [person], category: ideological, symmetric: true}
+  masterminded_attack_with:        {subject: [person], object: [person], category: ideological, symmetric: true}
+  co_attacker_with:                {subject: [person], object: [person], category: ideological, symmetric: true}
+  provided_military_training_to:   {subject: [person], object: [organization, person], category: ideological}
+  successor_leader_of:             {subject: [person], object: [organization], category: ideological}
+
+  # ── criminal enterprise & underworld relations ────────────────────────
+  allied_with:                     {subject: [person], object: [person], category: financial, symmetric: true}
+  partnered_with:                  {subject: [person], object: [person], category: financial, symmetric: true}
+  close_associate_of:              {subject: [person], object: [person], category: financial, symmetric: true}
+  rival_of:                        {subject: [person], object: [person], category: financial, symmetric: true}
+  conspired_against:               {subject: [person], object: [person], category: financial}
+  ordered_killing_of:              {subject: [person], object: [person], category: financial}
+  killed_family_of:                {subject: [person], object: [person], category: financial}
+  tipped_off_police_on:            {subject: [person], object: [person], category: financial}
+  financed_and_supplied_materiel_to: {subject: [person], object: [organization], category: financial}
+
+  # ── prison co-location (computed) ─────────────────────────────────────
+  co_located_in_prison_with:       {subject: [person], object: [person],
+                                    category: prison_co_location, symmetric: true,
+                                    computed: true}   # remand-window overlap rule (structural pass)
+
+  # ── transnational operations ──────────────────────────────────────────
+  co_arrested_with:                {subject: [person], object: [person], category: transnational, symmetric: true}
+  communicated_with:               {subject: [person], object: [person], category: transnational, symmetric: true}
+  helped_establish_operations_of:  {subject: [person], object: [person], category: transnational}
+  trafficked_narcotics_with:       {subject: [person], object: [person], category: transnational, symmetric: true}
+  foreign_contact_of:              {subject: [person], object: [organization], category: transnational}
+
+  # ── kinship / personal ────────────────────────────────────────────────
+  sibling_of:                      {subject: [person], object: [person], category: kinship, symmetric: true}
+  spouse_of:                       {subject: [person], object: [person], category: kinship, symmetric: true}
+
+event_types: {}        # Phase 4: meeting, arrest, travel, observation (GOAL.md §7.3)
+
+actions:
+  record_claim:        {roles: [analyst, investigator], audit: true}
+  retract_claim:       {roles: [analyst, supervisor],   audit: true}
+  link_claims:         {roles: [analyst],               audit: true}   # corroborates/contradicts
+  submit_suggestion:   {roles: [analyst, investigator], audit: true}   # also used by pipeline producers
+  review_suggestion:   {roles: [analyst],               audit: true}
+  adjudicate_identity: {roles: [analyst],               audit: true, dual_control_for: [protected_person]}
+  register_evidence:   {roles: [analyst, investigator, evidence_officer], audit: true}
+  transfer_custody:    {roles: [evidence_officer, investigator],          audit: true}
+  open_case:           {roles: [analyst, investigator], audit: true}
+  assign_case_member:  {roles: [supervisor],            audit: true}
+  release_quarantine:  {roles: [supervisor],            audit: true}
+  seal_record:         {roles: [supervisor],            audit: true}   # Phase 6

@@ -59,6 +59,11 @@ python_env/
 output/
 *.log
 
+# Aegis infra (speckit T1): tracked JSON configs are exceptions to *.json above;
+# .runtime.env holds bootstrap-generated ids (never commit)
+!infra/**/*.json
+infra/.runtime.env
+
 # Neo4j and database
 neo4j_output/
 *.db

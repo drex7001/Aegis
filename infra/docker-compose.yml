@@ -1,0 +1,124 @@
+# Aegis Phase 1 dev infrastructure (speckit T1, ADR-010).
+# Usage from repo root:  make up  ·  make bootstrap  ·  make down
+# All credentials below are DEV DEFAULTS — override via repo-root .env for anything
+# beyond localhost.
+
+name: aegis
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-aegis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aegis-dev}
+      POSTGRES_DB: ${POSTGRES_DB:-aegis}
+    ports:
+      - "127.0.0.1:5433:5432"   # 5433 to avoid clashing with a host postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init-openfga-db.sh:/docker-entrypoint-initdb.d/20-openfga-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-aegis}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-aegis-minio-dev}
+    ports:
+      - "127.0.0.1:9000:9000"   # S3 API
+      - "127.0.0.1:9001:9001"   # console
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  # One-shot bucket/versioning setup; runs only via `make bootstrap` (profile: tools).
+  minio-init:
+    image: minio/mc
+    profiles: ["tools"]
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        mc alias set local http://minio:9000 "$${MINIO_ROOT_USER:-aegis}" "$${MINIO_ROOT_PASSWORD:-aegis-minio-dev}"
+        mc mb --ignore-existing local/raw-landing local/evidence local/exports
+        mc version enable local/raw-landing || echo "WARN: versioning unavailable on raw-landing"
+        mc version enable local/evidence    || echo "WARN: versioning unavailable on evidence"
+        echo "minio buckets ready: raw-landing, evidence, exports"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-aegis}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-aegis-minio-dev}
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "127.0.0.1:8180:8080"
+    volumes:
+      # volume must target /opt/keycloak/data (exists in image, keycloak-owned) —
+      # a deeper path gets created root-owned and H2 fails with AccessDenied
+      - keycloak-data:/opt/keycloak/data
+      - ./keycloak:/opt/keycloak/data/import:ro
+    healthcheck:
+      # health endpoint lives on the management port (9000); image has no curl,
+      # so use bash /dev/tcp
+      test:
+        [
+          "CMD-SHELL",
+          "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"status\": \"UP\"' <&3",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+
+  openfga-migrate:
+    image: openfga/openfga:latest
+    command: migrate
+    restart: "no"
+    environment:
+      OPENFGA_DATASTORE_ENGINE: postgres
+      OPENFGA_DATASTORE_URI: postgres://${POSTGRES_USER:-aegis}:${POSTGRES_PASSWORD:-aegis-dev}@postgres:5432/openfga?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  openfga:
+    image: openfga/openfga:latest
+    command: run
+    environment:
+      OPENFGA_DATASTORE_ENGINE: postgres
+      OPENFGA_DATASTORE_URI: postgres://${POSTGRES_USER:-aegis}:${POSTGRES_PASSWORD:-aegis-dev}@postgres:5432/openfga?sslmode=disable
+      OPENFGA_PLAYGROUND_ENABLED: "false"
+    ports:
+      - "127.0.0.1:8082:8080"   # HTTP API
+      - "127.0.0.1:8083:8081"   # gRPC
+    depends_on:
+      openfga-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/grpc_health_probe", "-addr=127.0.0.1:8081"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+volumes:
+  pgdata:
+  minio-data:
+  keycloak-data:

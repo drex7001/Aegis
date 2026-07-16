@@ -1,0 +1,101 @@
+{
+  "schema_version": "1.1",
+  "type_definitions": [
+    { "type": "user" },
+    {
+      "type": "case",
+      "relations": {
+        "supervisor": { "this": {} },
+        "investigator": { "this": {} },
+        "analyst": { "this": {} },
+        "auditor_grant": { "this": {} },
+        "member": {
+          "union": {
+            "child": [
+              { "computedUserset": { "relation": "investigator" } },
+              { "computedUserset": { "relation": "analyst" } },
+              { "computedUserset": { "relation": "supervisor" } }
+            ]
+          }
+        },
+        "can_view": {
+          "union": {
+            "child": [
+              { "computedUserset": { "relation": "member" } },
+              { "computedUserset": { "relation": "auditor_grant" } }
+            ]
+          }
+        },
+        "can_edit": {
+          "union": {
+            "child": [
+              { "computedUserset": { "relation": "investigator" } },
+              { "computedUserset": { "relation": "analyst" } },
+              { "computedUserset": { "relation": "supervisor" } }
+            ]
+          }
+        },
+        "can_approve": { "computedUserset": { "relation": "supervisor" } }
+      },
+      "metadata": {
+        "relations": {
+          "supervisor": { "directly_related_user_types": [{ "type": "user" }] },
+          "investigator": { "directly_related_user_types": [{ "type": "user" }] },
+          "analyst": { "directly_related_user_types": [{ "type": "user" }] },
+          "auditor_grant": { "directly_related_user_types": [{ "type": "user" }] },
+          "member": { "directly_related_user_types": [] },
+          "can_view": { "directly_related_user_types": [] },
+          "can_edit": { "directly_related_user_types": [] },
+          "can_approve": { "directly_related_user_types": [] }
+        }
+      }
+    },
+    {
+      "type": "compartment",
+      "relations": {
+        "member": { "this": {} },
+        "can_view": { "computedUserset": { "relation": "member" } }
+      },
+      "metadata": {
+        "relations": {
+          "member": { "directly_related_user_types": [{ "type": "user" }] },
+          "can_view": { "directly_related_user_types": [] }
+        }
+      }
+    },
+    {
+      "type": "evidence_item",
+      "relations": {
+        "case": { "this": {} },
+        "custodian": { "this": {} },
+        "can_view": {
+          "tupleToUserset": {
+            "tupleset": { "relation": "case" },
+            "computedUserset": { "relation": "can_view" }
+          }
+        },
+        "can_transfer": {
+          "union": {
+            "child": [
+              { "computedUserset": { "relation": "custodian" } },
+              {
+                "tupleToUserset": {
+                  "tupleset": { "relation": "case" },
+                  "computedUserset": { "relation": "can_approve" }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "metadata": {
+        "relations": {
+          "case": { "directly_related_user_types": [{ "type": "case" }] },
+          "custodian": { "directly_related_user_types": [{ "type": "user" }] },
+          "can_view": { "directly_related_user_types": [] },
+          "can_transfer": { "directly_related_user_types": [] }
+        }
+      }
+    }
+  ]
+}

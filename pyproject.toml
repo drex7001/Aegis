@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "aegis"
+version = "0.1.0"
+description = "Aegis — governed, claims-based intelligence platform core (see speckit/)"
+requires-python = ">=3.12"
+dependencies = [
+    "typer>=0.12",
+    "structlog>=24.1",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "psycopg[binary]>=3.1",
+    "pyyaml>=6",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+aegis = "aegis.cli:app"
+
+# Only the platform core is packaged; the legacy extraction prototype (pipeline/)
+# and UI (app/) keep living beside it until their Phase-1 rewiring (tasks T9/T14).
+[tool.hatch.build.targets.wheel]
+packages = ["aegis"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

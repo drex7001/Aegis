@@ -1,0 +1,33 @@
+# Aegis authorization model — human-readable DSL source (speckit spec 03 §3).
+# The API-consumable form is model.json (kept in sync BY HAND until the openfga
+# CLI is adopted; if you edit this file, regenerate/update model.json to match:
+#   fga model transform --file infra/fga/model.fga > infra/fga/model.json
+# `make bootstrap` pushes model.json to the local OpenFGA store).
+
+model
+  schema 1.1
+
+type user
+
+type case
+  relations
+    define supervisor: [user]
+    define investigator: [user]
+    define analyst: [user]
+    define auditor_grant: [user]
+    define member: investigator or analyst or supervisor
+    define can_view: member or auditor_grant
+    define can_edit: investigator or analyst or supervisor
+    define can_approve: supervisor
+
+type compartment
+  relations
+    define member: [user]
+    define can_view: member
+
+type evidence_item
+  relations
+    define case: [case]
+    define custodian: [user]
+    define can_view: can_view from case
+    define can_transfer: custodian or can_approve from case

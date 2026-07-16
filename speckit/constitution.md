@@ -1,0 +1,133 @@
+# Aegis Constitution
+
+Non-negotiable principles. Every phase, every feature, every schema change is checked
+against these articles. They condense GOAL.md §3 (design rules) and §41 (product
+decisions) into testable rules. If a proposed change violates an article, the change is
+wrong — not the article — unless the article itself is amended here, with a recorded
+reason.
+
+## Article I — Claims, not facts
+
+The atomic knowledge unit is a **claim**: subject, predicate, object, source,
+assertion type, grading, time, handling. Entities are stable identifiers that claims
+attach to — they carry no asserted properties of their own beyond a display label
+rebuilt from claims. Two sources may contradict each other without either being
+deleted. (GOAL.md Rule 2, §7.4)
+
+**Test:** no table or API accepts a relationship or attribute without a source record
+reference.
+
+## Article II — No inherent criminality
+
+There is no `Criminal` entity type, no global "criminal risk score", and no permanent
+criminal label. Roles (suspect, witness, victim, informant) are case-scoped, time-bounded
+claims. Judicial states (charged, convicted, acquitted, sealed) are explicit and current.
+(GOAL.md Rule 1, §22, §25)
+
+**Test:** grep the ontology — no object type or unqualified property implies guilt.
+
+## Article III — Source and information graded separately
+
+Source reliability and information credibility are separate fields, preserved in their
+original scheme plus a normalized internal form. A single collapsed confidence number is
+never stored — display scores are *derived* and their components always inspectable.
+(GOAL.md §1.2; already enforced in spirit by `weight`-derivation in `pipeline/models.py`)
+
+**Test:** every claim exposes `reliability`, `credibility`, `verification_status`
+independently; UI detail panels show all three.
+
+## Article IV — Evidence is not intelligence
+
+Original evidence is immutable, content-addressed, and hash-ledgered. Derivatives
+(transcripts, translations, extracts) record parent, tool, version, parameters, hash.
+Intelligence (reports, claims, assessments) never silently becomes evidence.
+(GOAL.md §1.5, §5.1, §20)
+
+**Test:** no code path mutates an object in the evidence store; every derivative row has
+a parent reference.
+
+## Article V — Reversible identity
+
+Entity merges are never destructive. Identity is a versioned cluster of source mentions;
+analysts can confirm, reject, split, and merge with recorded evidence. Name slugs are
+*mention keys*, never identity. (GOAL.md §10)
+
+**Test:** any merge can be undone by a cluster edit; no `UPDATE ... SET entity_id` that
+loses the prior mapping.
+
+## Article VI — Authorization at query time
+
+Every read and write is authorized against role + relationship (case assignment,
+handler-of) + handling code, **in the backend**, before data leaves the store. There is
+no unrestricted global graph view. The policy engine is a first-class dependency from
+Phase 1 — retrofitting access control is forbidden by this constitution.
+(GOAL.md Rule 6, §23)
+
+**Test:** every API route has an explicit authorization dependency; direct DB access in
+handlers without the policy filter fails code review.
+
+## Article VII — AI suggests, humans decide
+
+Model output (LLM extraction, ER candidates, link prediction, alerts) enters a
+**review queue** as suggestions with explanations. Nothing algorithmic writes to the
+canonical claim store, identity clusters, or evidence without human adjudication.
+An AI model is a source of *analytic suggestions*, never of observed fact.
+(GOAL.md §7.6, §26)
+
+**Test:** the only writer to canonical tables from extraction code paths is the
+adjudication action, executed by a human actor recorded in audit.
+
+## Article VIII — Disagreement is preserved
+
+Conflicting claims, retractions, and exculpatory information stay visible. Conflict
+resolution produces an *assessment* claim referencing what it weighs — it never deletes
+or hides the losing side. (GOAL.md Rule 5)
+
+**Test:** retraction sets `retracted_at`; nothing hard-deletes a recorded claim.
+
+## Article IX — Association is not guilt
+
+Network metrics ship with interpretation warnings. "Most connected" is never rendered as
+"leader". Analytic findings (`possible_association`) are a distinct type from asserted
+relationships. (GOAL.md §1.6, §13.2)
+
+**Test:** every metric endpoint/UI panel includes its caveat text; findings and claims
+are different tables.
+
+## Article X — Everything is audited
+
+Every read of sensitive data, every write, every export, every policy decision produces
+an append-only, hash-chained audit event with actor, purpose, case, resource, decision.
+Auditors are a role that administrators cannot silently bypass. (GOAL.md §39)
+
+**Test:** audit rows are insert-only (no UPDATE/DELETE grants); chain verification job
+passes.
+
+## Article XI — The ontology is the single source of domain truth
+
+Object types, properties, predicates, event types, grading schemes, handling codes, and
+actions are declared in `ontology/aegis.yaml` (versioned). Pydantic models, DB
+constraints, API routes, authorization object types, and UI screens derive from it.
+Hand-written domain types that bypass the ontology are defects.
+
+**Test:** CI validates the ontology; adding an entity type requires only an ontology
+change plus a migration, not new bespoke screens.
+
+## Article XII — Adopt before build
+
+Use proven open source for every non-domain concern: identity (Keycloak), authorization
+(OpenFGA), record linkage (Splink), storage (PostgreSQL/PostGIS/MinIO), search (Postgres
+FTS → OpenSearch), orchestration (Dagster when needed). We hand-build only the domain
+core: ontology, claim store, adjudication, projections.
+
+**Test:** any "let's implement our own X" proposal needs an ADR explaining why the
+shelf tool fails.
+
+## Article XIII — Projections are caches
+
+The claim store (PostgreSQL) is the source of truth. Graph views, search indexes,
+Neo4j exports, and the UI's graph JSON are rebuildable projections. Losing every
+projection loses nothing. (GOAL.md §8.3, §28)
+
+**Test:** `rebuild-projections` command regenerates all derived stores from canonical
+tables alone.
