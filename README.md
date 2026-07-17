@@ -1,214 +1,111 @@
-# Sri Lanka Illicit Networks — Temporal Multiplex Graph
+# Aegis
 
-Extraction + ingestion pipeline **and interactive web UI** that turns unstructured Sri
-Lankan legal/intelligence documents (PCoI reports, B-Reports, judgments, news) into a
-**Neo4j-ready dynamic temporal multiplex graph** for lawful criminal-network analysis.
-The architecture mirrors the open-source **Graphify** pattern: a cheap deterministic pass
-plus an LLM pass, with an honest per-edge audit trail.
+[![ci](https://github.com/drex7001/Aegis/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/drex7001/Aegis/actions/workflows/ci.yml)
 
-It ships with a **real, fully-cited OSINT dataset** of ~41 documented figures across three
-Sri Lankan networks (historical Colombo underworld · modern transnational narcotics · the
-2019 Easter Sunday / NTJ extremist network) and a browser explorer to navigate it.
+**Aegis is an ontology-driven, governed intelligence platform.** A single
+declared ontology — object types, properties, links, events, actions, and
+governance rules ([`ontology/aegis.yaml`](ontology/aegis.yaml)) — powers every
+analytical domain built on the platform. **Criminal-network analysis over a
+Sri Lankan OSINT corpus is the first application domain, not the platform's
+identity** (ADR-023). Comparable in concept to Palantir's ontology-centred
+systems, but open-stack, independently auditable, and built for Sri Lanka's
+legal and trilingual (Sinhala / Tamil / English) context.
 
-> **Two data tracks.** `sample_data/` is **fictional** (exercises the regex pass).
-> `real_data/` + `pipeline/real_dataset.py` is a **real** open-source model compiled only
-> from public reporting — every node/edge carries a citation and an honest confidence tag
-> (AMBIGUOUS = alleged/contested). It is **not a determination of guilt**; see
-> [`real_data/README.md`](real_data/README.md).
+The core principle:
 
-> **Where this is going.** This prototype is being **replaced** by **Aegis**, an
-> ontology-driven, governed intelligence platform ([`GOAL.md`](GOAL.md)) in which
-> criminal-network analysis is the first application domain — not the platform's
-> identity (ADR-023). The build path — constitution, roadmap, ADRs, detailed specs,
-> and the declarative ontology — lives in [`speckit/`](speckit/README.md) and
-> [`ontology/aegis.yaml`](ontology/aegis.yaml). The prototype documented below is
-> legacy scaffolding: kept running until Aegis replaces it, never extended.
+> **Entities are not facts. Relationships are not facts. Intelligence consists
+> of claims supported, contradicted, or contextualized by evidence and
+> sources.**
 
-## Quickstart — real graph + web UI
+| | |
+|---|---|
+| Vision (north star) | [`GOAL.md`](GOAL.md) |
+| Constitution | [`speckit/constitution.md`](speckit/constitution.md) — 14 non-negotiable articles |
+| Build path | [`speckit/`](speckit/README.md) — roadmap v2 (P0–P9), phase charters, ADRs, detailed specs |
+| Domain artifact | [`ontology/aegis.yaml`](ontology/aegis.yaml) — the single source of domain truth (Article XI) |
+| Contributing | [`docs/GIT_WORKFLOW.md`](docs/GIT_WORKFLOW.md) — GitHub Flow: branch → PR → green CI → squash |
 
-```powershell
-python -m venv .venv
-.venv\Scripts\pip install -r requirements.txt
+## What exists today
 
-.venv\Scripts\python build_real_graph.py     # build output/real_graph.json (curated, offline)
-.venv\Scripts\python -m app.server           # serve the explorer at http://127.0.0.1:8000
-```
+**Milestone I (Phases 0–1) is complete** — the governed foundation:
 
-Open **http://127.0.0.1:8000**. The explorer (Cytoscape.js + FastAPI) gives you:
+- **Claim store** (PostgreSQL + PostGIS): every relationship and attribute is a
+  claim with source, grading, time window, and handling code — never a bare fact.
+- **Evidence vault** (MinIO): content-addressed originals, hash ledger,
+  derivative tracking (Article IV).
+- **AuthN/AuthZ**: Keycloak OIDC + OpenFGA ReBAC + handling-code row filters;
+  every API route carries an authorization dependency (Article VI).
+- **Audit**: append-only, hash-chained event log with chain verification
+  (Article X).
+- **Governed extraction**: the LLM/structural extraction passes emit *suggested
+  claims* into a review queue — humans adjudicate; nothing algorithmic writes
+  to canon (Article VII).
+- **Projections**: rebuildable caches (Article XIII) that currently also feed
+  the legacy explorer UI.
+- **API v1 + `aegis` CLI**, migrations, backup/restore runbook.
 
-- **Multiplex layer toggles** (Ideological / Financial / Prison co-location / Transnational) — edges coloured per layer.
-- **Confidence filter** — Extracted / Inferred / Ambiguous, rendered as solid / dashed / dotted links.
-- **Temporal slider** — drag left for an _as-of-date_ snapshot (relationships active on that date), rightmost = full all-time network; **Play** animates the timeline.
-- **Detected cells** — Leiden communities, colour-coded, with isolated cells flagged; every node/edge detail card shows its **source citation and the supporting excerpt**.
-- **Analyst queries** — cross-layer brokers, ambiguous-review queue, hard-facts-only, ongoing-now — mirroring the Cypher analyst queries and the `/api/query/*` endpoints.
-
-### Live LLM (Gemini) semantic pass
-
-The semantic pass is provider-agnostic (`init_chat_model`). A `GEMINI_API_KEY` in `.env`
-defaults it to `google_genai:gemini-2.5-flash-lite`:
-
-```powershell
-.venv\Scripts\python build_real_graph.py --semantic   # merge a live LLM pass over the real narratives
-```
-
-`build_real_graph.py --semantic` runs Gemini over the `real_data/*.txt` narratives, validates
-its JSON against the same Pydantic schema, prunes any dangling edges, and merges the result
-into the curated graph. Failures are non-fatal — the curated graph stands on its own.
-
-## Documentation
-
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** — full guided tour: the mental model, the system
-  diagram, a component-by-component reference, how data flows end-to-end, the confidence &
-  ethics rubric, and the exact steps used to build this. Start here to understand the system.
-- **[docs/INGESTION.md](docs/INGESTION.md)** — turn raw source material (PDF reports,
-  video/audio in Sinhala, pasted text) into extraction-ready documents: opendataloader-pdf
-  structured parsing + whisper-small-sinhala speech-to-text, one command.
-- **[docs/RUNNING.md](docs/RUNNING.md)** — every command, flag, and expected output.
-- **[docs/ADDING_DATA.md](docs/ADDING_DATA.md)** — copy-paste recipes to add your own data
-  the three ways (curated fact · structured list · narrative document).
-- **[real_data/README.md](real_data/README.md)** — data provenance, source list, and ethics.
-
-## Architecture
-
-```
-Files/ (raw drop zone: PDF / MP4 / MP3 / WAV / TXT)
-             │
-             └─> pipeline/ingest.py   one-command ingestion (docs/INGESTION.md)
-                   ├─ .pdf   → pdf_ingest.py   opendataloader-pdf structured markdown
-                   │                           (Java CLI; pdfplumber fallback)
-                   ├─ media  → transcribe.py   whisper-small-sinhala speech-to-text
-                   └─ .txt   → provenance-headed copy
-                              │
-                    real_data/<slug>.txt   (review → register in NARRATIVE_DOCS)
-                              │
-PDFs / text ─┬─> structural_pass.py   regex on structured lists (arrest annexes)
-             │      └─ EXTRACTED nodes + deterministic PRISON_CO_LOCATION edges
-             │
-             └─> semantic_pass.py     LangChain init_chat_model() on narrative text
-                    └─ LLM output validated against the same Pydantic schema
-                       (long docs auto-chunked ~12k chars/call, results merged)
-                              │
-                    models.py  ExtractionResult.merge()  (dedup by node_id)
-                              │
-                    clustering.py  Leiden (leidenalg.find_partition_multiplex
-                              │            across layers; Louvain fallback)
-                              │
-             ┌────────────────┴────────────────┐
-     output/graph.json              output/ingest_generated.cypher
-     (GraphRAG/driver-ready)        (runs in Neo4j Browser as-is)
-```
-
-## Edge contract (Graphify-style)
-
-Every edge carries all of the following — the Pydantic layer enforces it:
-
-| Field                            | Rule                                                                                                                            |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `confidence`                     | `EXTRACTED` (hard fact: judgments, official lists) / `INFERRED` (probable, from context) / `AMBIGUOUS` (suspected, unconfirmed) |
-| `weight`                         | **Derived** from the tag: 1.0 / 0.7 / 0.4. A hand-set value is overwritten.                                                     |
-| `layer`                          | `IDEOLOGICAL` \| `FINANCIAL` \| `PRISON_CO_LOCATION` \| `TRANSNATIONAL` — also the Neo4j relationship type                      |
-| `start_date` / `end_date`        | ISO dates; `end_date = null` means ongoing. `end < start` is rejected.                                                          |
-| `source_file` / `source_excerpt` | Provenance: the document and the verbatim supporting sentence                                                                   |
-| `extraction_method`              | `STRUCTURAL` (regex) or `SEMANTIC` (LLM)                                                                                        |
-
-Honesty rule inherited from Graphify: **never invent an edge — if unsure, tag it
-AMBIGUOUS rather than omit it**, so weak links enter the analyst review queue
-(`cypher/ingest.cypher` Q4) instead of silently disappearing.
+**Active phase: Phase 2 — the ★ MVP gate** (identity resolution, provenance
+panels, review-queue UI, basic search; see
+[`speckit/tasks-phase-2.md`](speckit/tasks-phase-2.md)). The full roadmap to
+production is [`speckit/roadmap.md`](speckit/roadmap.md).
 
 ## Quickstart
 
-```powershell
-python -m venv .venv
-.venv\Scripts\pip install -r requirements.txt
-
-# fully offline end-to-end run (canned LLM response):
-.venv\Scripts\python demo.py --mock
-
-# live LLM run: copy .env.example to .env, set EXTRACTION_MODEL + API key
-.venv\Scripts\python demo.py
-```
-
-`demo.py` runs both passes on the samples, proves the validation guardrails, merges,
-detects cells with Leiden, and writes `output/graph.json` + `output/ingest_generated.cypher`.
-
-## Neo4j
-
-```powershell
-docker run -d --name neo4j -p 7474:7474 -p 7687:7687 -e NEO4J_AUTH=neo4j/yourpassword neo4j:5
-```
-
-Then either paste `output/ingest_generated.cypher` into Neo4j Browser (no plugins
-needed — relationship types are inlined per layer), or push via the driver:
-
-```powershell
-.venv\Scripts\python -m pipeline.neo4j_export --push   # reads NEO4J_* from .env
-```
-
-`cypher/ingest.cypher` additionally documents the parameterized `UNWIND` ingest
-(APOC and no-APOC variants) and eight analyst queries: temporal as-of snapshots,
-per-layer projections, hard-facts-only and AMBIGUOUS-review filters,
-confidence-weighted paths, detected cells, and cross-layer brokers.
-
-## Processing real documents
-
-Raw source material — PDF reports, Sinhala video/audio, pasted text — is ingested with
-one command (full guide: [docs/INGESTION.md](docs/INGESTION.md)):
+Prerequisites: Docker + Compose v2, Python 3.12, [`uv`](https://docs.astral.sh/uv/)
+(optional — plain `pip` works).
 
 ```bash
-./scripts/setup_ingestion.sh              # one-time: venv + packages + local JRE (no root)
-.venv/bin/python -m pipeline.ingest       # ingest everything new in Files/
+make up && make bootstrap        # compose stack: postgres+postgis, minio, keycloak, openfga
+python3.12 -m venv .venv && make install   # aegis package + dev deps (uv; or .venv/bin/pip install -e ".[dev]")
+.venv/bin/aegis db upgrade       # alembic migrations
+.venv/bin/aegis migrate-legacy   # one-time: import the curated OSINT corpus as claims
+.venv/bin/aegis projections rebuild
+.venv/bin/aegis serve            # API (+ legacy explorer) at http://127.0.0.1:8000 — /docs for OpenAPI
 ```
 
-PDFs go through **opendataloader-pdf** (structure-aware markdown + JSON layout audit
-copies in `output/ingest/`), media through **whisper-small-sinhala** (timestamped Sinhala
-transcript; slow on CPU — use `--max-minutes 2` to test first). Everything lands in
-`real_data/` with a provenance header, ready to register in `NARRATIVE_DOCS`
-(`build_real_graph.py`) for the semantic pass — long documents are chunked automatically.
+Verify the build the way CI does:
 
-The lower-level API remains available:
-
-```python
-from pipeline.pdf_ingest import convert_pdf
-from pipeline.pdf_loader import split_paragraphs
-from pipeline.structural_pass import extract_structural
-from pipeline.semantic_pass import extract_semantic
-
-text = convert_pdf("pcoi_report.pdf")     # structured markdown (pdfplumber fallback)
-result = extract_structural(text, "pcoi_report.pdf")
-for para in split_paragraphs(text):
-    result = result.merge(extract_semantic(para, "pcoi_report.pdf"))
+```bash
+make test              # pytest (integration tests need the compose test DB)
+make lint-ontology     # aegis ontology validate — the Article XI gate
 ```
 
-Adjust `ARREST_LINE_RE` in `pipeline/structural_pass.py` to the exact annex format
-of the documents you hold; everything downstream is format-agnostic.
+## Repository map
 
-## Layout
+| Path | What |
+|---|---|
+| `aegis/` | Platform core package: ontology loader/codegen, actions, queries, authz, audit, API, projections, one-time migration adapters |
+| `ontology/aegis.yaml` | The versioned domain artifact everything derives from (Article XI) |
+| `speckit/` | Constitution, spec, plan, decisions (ADRs), roadmap, phase charters, detailed specs |
+| `infra/` | Compose stack + bootstrap (PostgreSQL/PostGIS, MinIO, Keycloak, OpenFGA) |
+| `tests/` | Unit + integration suites (CI runs both) |
+| `docs/` | Runbooks: git workflow, backup/restore, ingestion toolchain |
+| `real_data/` | Real OSINT corpus (public reporting only) + provenance/ethics rules — **read [`real_data/README.md`](real_data/README.md) first** |
+| `sample_data/` | Fictional test data |
+| `Files/` | Raw drop zone for ingestion (PDF / video / audio / text) |
+| `pipeline/`, `app/`, `build_real_graph.py`, `demo.py`, `cypher/`, `output/` | **Legacy prototype** — see below |
 
-```
-pipeline/
-  models.py           Pydantic schema: CriminalNode, TemporalEdge, ExtractionResult
-  real_dataset.py     REAL curated OSINT graph (cited nodes/edges) — the deterministic layer
-  structural_pass.py  regex pass (EXTRACTED only, deterministic co-location)
-  semantic_pass.py    LangChain LLM pass (Gemini/Anthropic/OpenAI/Ollama) + offline mock
-  clustering.py       Leiden multiplex community detection (Louvain fallback)
-  neo4j_export.py     Cypher generation + parameterized driver push
-  ingest.py           one-command raw-file ingestion: PDF/media/text → real_data/*.txt
-  pdf_ingest.py       opendataloader-pdf structured extraction (Java; audit JSON+MD)
-  transcribe.py       Sinhala speech-to-text (whisper-small-sinhala, bundled ffmpeg)
-  pdf_loader.py       pdfplumber text extraction (fallback loader)
-scripts/
-  setup_ingestion.sh  one-time no-root setup: venv, packages, project-local JRE 21
-app/
-  server.py           FastAPI backend: serves the UI + /api/graph, /api/stats, /api/query/*
-  static/index.html   Cytoscape.js explorer (layers, confidence, temporal slider, cells, sources)
-real_data/            REAL narrative docs (semantic-pass input) + provenance/ethics README
-cypher/ingest.cypher  parameterized ingest + analyst queries
-sample_data/          FICTIONAL PCoI arrest list + B-Report excerpt (regex-pass demo only)
-build_real_graph.py   real-graph orchestrator  ->  output/real_graph.json + output/real_ingest.cypher
-demo.py               fictional end-to-end orchestrator (mechanism proof)
-output/               generated graph JSON + Cypher (real_graph.json powers the UI)
-```
+## Data & ethics
 
-## UI
+Two strictly separated tracks: `sample_data/` is **fictional**; `real_data/` is
+compiled **only from public reporting** about documented cases, every claim
+cited. The platform never stores national-ID numbers for real persons, never
+renders association as guilt (Article IX), and never lets AI output become fact
+without human adjudication (Article VII). Rules and source list:
+[`real_data/README.md`](real_data/README.md).
 
-![alt text](image.png)
+## Legacy prototype
+
+Aegis grew out of a prototype — *"Sri Lanka Illicit Networks — Temporal
+Multiplex Graph"*: a regex + LLM extraction pipeline and a Cytoscape.js
+explorer over a static graph JSON. Per **ADR-023 it is replaced, never
+extended**: it now runs only as scaffolding (the explorer is served by
+`aegis serve` from a rebuildable projection) until the Phase 4 workspace
+deletes it. Its documentation is kept for reference:
+[`ARCHITECTURE.md`](ARCHITECTURE.md) (component tour) ·
+[`docs/RUNNING.md`](docs/RUNNING.md) (commands) ·
+[`docs/ADDING_DATA.md`](docs/ADDING_DATA.md) (data recipes) ·
+[`docs/INGESTION.md`](docs/INGESTION.md) (raw-file ingestion — this toolchain
+remains the front end of the governed landing zone).
+
+![Legacy explorer screenshot](image.png)

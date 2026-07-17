@@ -1,4 +1,10 @@
-# Adding data — exact steps
+# Adding data — exact steps (legacy prototype track)
+
+> **⚠️ Legacy recipes.** These paths feed the **pre-Aegis prototype** (curated
+> code, regex pass, LLM pass → static graph JSON). In Aegis the same material
+> enters through the governed landing zone as *sources → suggested claims →
+> review queue* (speckit specs/04); the prototype track is kept only until the
+> platform replaces it (ADR-023).
 
 Three ways to add data, matched to what you have. All three pass through the same
 validation contract (`pipeline/models.py`), so they combine automatically — the same

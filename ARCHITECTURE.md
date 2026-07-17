@@ -1,6 +1,14 @@
-# Architecture — Sri Lanka Illicit Networks Temporal Multiplex Graph
+# Architecture — legacy prototype ("Sri Lanka Illicit Networks Temporal Multiplex Graph")
 
-A guided tour of the whole system: what it is, how the pieces fit, how data flows through
+> **⚠️ Legacy document.** This describes the **pre-Aegis prototype** — the static
+> extraction pipeline and Cytoscape explorer. Per ADR-023 the prototype is
+> **replaced, never extended**: it survives only as scaffolding (the explorer is
+> served by `aegis serve` off a rebuildable projection) until the Phase 4
+> workspace deletes it. The platform's architecture lives in
+> [`GOAL.md`](GOAL.md) and [`speckit/`](speckit/README.md); this file is kept as
+> a reference for the legacy code still in the tree.
+
+A guided tour of the prototype: what it is, how the pieces fit, how data flows through
 it, how to run it, how to add data, and the exact steps used to build it. Written to be
 readable by a non-specialist first, with the technical detail underneath.
 

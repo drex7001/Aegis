@@ -1,5 +1,10 @@
 # Ingesting raw data — PDFs, video, audio, text
 
+> **Note.** This toolchain (opendataloader-pdf, whisper-small-sinhala) predates
+> Aegis but is **not** legacy-only: it remains the front end of the governed
+> landing zone (speckit specs/04) — ingested text becomes *sources* whose
+> extraction output lands in the review queue.
+
 How to take **raw source material** (a scanned commission report, a news video, an
 interview recording, a pasted article) and get it into the extraction pipeline. This is
 the step *before* [`ADDING_DATA.md`](ADDING_DATA.md): ingestion produces the

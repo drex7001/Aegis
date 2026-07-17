@@ -35,7 +35,7 @@ Its core principle should be:
 
 > **Entities are not facts. Relationships are not facts. Intelligence consists of claims supported, contradicted, or contextualized by evidence and sources.**
 
-I will use the working name **Aegis**.
+The platform is named **Aegis**.
 
 ---
 

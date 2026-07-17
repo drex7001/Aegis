@@ -1,8 +1,9 @@
 # Real data — provenance & ethics
 
-This folder holds the **real** inputs for the Sri Lankan illicit-network graph. Unlike
-`sample_data/` (which is fictional and exists only to exercise the regex/structural pass),
-everything here is compiled from **public reporting** about documented cases.
+This folder holds the **real** input corpus for Aegis's first application domain —
+criminal-network analysis of documented Sri Lankan cases. Unlike `sample_data/` (which
+is fictional and exists only to exercise the regex/structural pass), everything here is
+compiled from **public reporting** about documented cases.
 
 ## What's here
 

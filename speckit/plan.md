@@ -67,7 +67,7 @@ Each row that diverges from GOAL.md has an ADR in `decisions.md`.
 ## 3. Repository layout (target)
 
 ```
-criminal-networks-analysis/
+Aegis/
 ├── ontology/
 │   └── aegis.yaml              # THE domain artifact (Article XI)
 ├── aegis/                      # new package (the platform core)

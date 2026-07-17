@@ -16,18 +16,18 @@ claim with a source, a grading, a time window, and an access decision behind it.
 | Persona | Phase introduced | Needs |
 |---|---|---|
 | **Analyst** (initially: Ayodhya, solo) | 1 | Ingest documents/media, record claims, explore graph/timeline, review AI suggestions, adjudicate identities |
-| **Reviewer / supervisor** | 3 | Approve assessments, adjudicate high-impact merges, manage cases |
+| **Reviewer / supervisor** | 4 | Approve assessments, adjudicate high-impact merges, manage cases |
 | **Auditor** | 1 (role exists from day one) | Read audit trail, verify hash chains, no edit rights |
 | **Administrator** | 1 | Manage users/roles/ontology versions — *without* automatic access to intelligence content |
-| **External partner** | 6 | Receives disclosure/export packages only; never direct DB access |
+| **External partner** | 7 | Receives disclosure/export packages only; never direct DB access |
 
 Even while a single person plays all roles, the roles exist and are enforced — that is
 what makes the later multi-user phases a configuration change instead of a rewrite.
 
 ## 3. What Aegis is (capability map)
 
-Tiered: **MVP** = Phases 1–2, **Core** = Phases 3–5, **Scale** = Phases 6–7
-(see `roadmap.md`).
+Tiered per roadmap v2: **MVP** = P0–P2 (★ gate closes P2), **Core** = P3–P6,
+**Scale** = P7–P9 (see `roadmap.md`; phase numbers here are v2).
 
 ### Knowledge (MVP)
 - Claim store: graded, sourced, time-bounded claims (GOAL.md §7.4).

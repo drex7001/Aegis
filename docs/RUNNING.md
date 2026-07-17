@@ -1,4 +1,9 @@
-# Running the pipeline — exact steps
+# Running the legacy pipeline — exact steps
+
+> **⚠️ Legacy runbook.** These are the commands for the **pre-Aegis prototype**
+> (replace, never extend — ADR-023). The platform's own commands (compose
+> stack, migrations, `aegis serve`, tests) are in the root
+> [`README.md`](../README.md) and [`AGENTS.md`](../AGENTS.md).
 
 Every command you need, in order, with what to expect. Commands are PowerShell (Windows);
 on macOS/Linux replace `.venv\Scripts\` with `.venv/bin/`.
@@ -12,7 +17,7 @@ on macOS/Linux replace `.venv\Scripts\` with `.venv/bin/`.
 ## 0. One-time setup
 
 ```powershell
-cd C:\Users\Ayodhya\Desktop\Projects\law
+cd <repo root>
 python -m venv .venv
 .venv\Scripts\pip install -r requirements.txt
 ```
