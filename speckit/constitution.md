@@ -1,5 +1,32 @@
 # Aegis Constitution
 
+## Mission
+
+Aegis is an **ontology-driven intelligence platform**: a sovereign, governed
+environment in which every analytical domain — criminal-network analysis,
+financial crime, border and customs intelligence, and others to come — is an
+application of one shared core. The ontology is the product; the domains are
+its consumers. Comparable in concept to Palantir's platforms, but open-stack,
+auditable, and designed for Sri Lanka's legal, linguistic (Sinhala / Tamil /
+English), and institutional context.
+
+## Long-term vision
+
+A single platform where the semantic layer (object types, properties, links,
+interfaces), the kinetic layer (actions, functions), and the governance layer
+(grading, handling, authorization, audit) are declared once in the ontology and
+power every domain's ingestion, resolution, analysis, and UI. Adding a new
+analytical domain means adding an ontology module — not building a new system.
+**Criminal-network analysis is the first such domain**, not the platform's
+identity.
+
+The legacy implementation that preceded Aegis (the static pipeline and
+Cytoscape explorer) is scaffolding: it is **replaced, never extended**. New
+capability is designed from the ontology outward, without inheriting legacy
+shapes or constraints (ADR-023).
+
+## Articles
+
 Non-negotiable principles. Every phase, every feature, every schema change is checked
 against these articles. They condense GOAL.md §3 (design rules) and §41 (product
 decisions) into testable rules. If a proposed change violates an article, the change is
@@ -17,12 +44,13 @@ deleted. (GOAL.md Rule 2, §7.4)
 **Test:** no table or API accepts a relationship or attribute without a source record
 reference.
 
-## Article II — No inherent criminality
+## Article II — No inherent derogatory status
 
-There is no `Criminal` entity type, no global "criminal risk score", and no permanent
-criminal label. Roles (suspect, witness, victim, informant) are case-scoped, time-bounded
-claims. Judicial states (charged, convicted, acquitted, sealed) are explicit and current.
-(GOAL.md Rule 1, §22, §25)
+The ontology never encodes accusation as identity — in any domain. There is no
+`Criminal` entity type, no `Terrorist` or `Fraudster` type, no global risk score, and no
+permanent derogatory label. Roles (suspect, witness, victim, informant) are case-scoped,
+time-bounded claims. Judicial states (charged, convicted, acquitted, sealed) are explicit
+and current. (GOAL.md Rule 1, §22, §25)
 
 **Test:** grep the ontology — no object type or unqualified property implies guilt.
 
@@ -131,3 +159,16 @@ projection loses nothing. (GOAL.md §8.3, §28)
 
 **Test:** `rebuild-projections` command regenerates all derived stores from canonical
 tables alone.
+
+## Article XIV — The core is domain-neutral
+
+Platform services (claim store, identity resolution, evidence vault, review queue,
+actions, projections, search, authorization, audit) contain no hard-coded domain
+concepts. A domain — criminal networks, financial crime, border intelligence — enters
+the platform as an **ontology module** (object types, predicates, event types, actions,
+functions) plus migrations, and every domain rides the same core. One-time migration
+adapters (ADR-016) and code scheduled for deletion are the only exemptions. (ADR-023)
+
+**Test:** adding a second domain requires an ontology change and migrations, not changes
+to core services; domain nouns in core code outside ontology-derived artifacts fail
+review.

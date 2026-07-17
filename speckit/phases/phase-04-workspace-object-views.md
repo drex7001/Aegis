@@ -43,8 +43,10 @@ and sources.
    `?asOf=` mode end-to-end in the UI ("what did we know on date X?").
 7. **Review & adjudication surfaces migrated**: P2's review-queue, search, and
    provenance panels re-rendered inside the workspace (API unchanged).
-8. **Legacy explorer retirement**: feature-parity checklist, then
-   `app/static` explorer and deprecated `app/server.py` removed.
+8. **Legacy explorer deletion**: the workspace replaces the legacy explorer
+   outright — its scope comes from what analysts need (graph, filters, detail
+   panel), never from matching legacy features (ADR-023). `app/static`
+   explorer and deprecated `app/server.py` removed.
 
 ## Dependencies
 
@@ -72,7 +74,7 @@ and sources.
 | Risk | Mitigation |
 |---|---|
 | UI scope explosion | Object-view-first: ship the generic screen, resist bespoke per-type pages; anything cosmetic is post-parity |
-| Parity trap (endless legacy-explorer matching) | Parity checklist written up front, limited to what analysts actually use (graph, filters, detail panel) |
+| Parity trap (designing against the legacy explorer) | Replacement, not parity (ADR-023): scope is a short analyst-needs list written up front (graph, filters, detail panel); legacy features absent from it are dropped without debate |
 | SDK gaps discovered late | P3 exit criterion (ontology change → SDK with zero hand-code) is the guard; gaps found here are P3 regressions, fixed there |
 | Hypotheses become vibes again | Hypothesis create/update is an audited action; missing-info note required on creation |
 
@@ -98,5 +100,5 @@ GOAL.md §31 stays future), mobile, offline.
 - **C — Cases:** case screens, membership, case-scoped graph.
 - **D — Hypotheses & tasks:** models (audited actions) + screens.
 - **E — Time:** timeline component, as-of mode.
-- **F — Cutover:** panel migration, parity checklist, explorer retirement,
-  ADR-019 review.
+- **F — Cutover:** panel migration, analyst-needs checklist, explorer
+  deletion, ADR-019 review.

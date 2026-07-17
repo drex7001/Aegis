@@ -16,10 +16,13 @@ Sri Lankan networks (historical Colombo underworld · modern transnational narco
 > (AMBIGUOUS = alleged/contested). It is **not a determination of guilt**; see
 > [`real_data/README.md`](real_data/README.md).
 
-> **Where this is going.** This prototype is evolving into **Aegis**, a governed
-> claims-based intelligence platform ([`GOAL.md`](GOAL.md)). The build path — constitution,
-> roadmap, ADRs, detailed specs, and the declarative ontology — lives in
-> [`speckit/`](speckit/README.md) and [`ontology/aegis.yaml`](ontology/aegis.yaml).
+> **Where this is going.** This prototype is being **replaced** by **Aegis**, an
+> ontology-driven, governed intelligence platform ([`GOAL.md`](GOAL.md)) in which
+> criminal-network analysis is the first application domain — not the platform's
+> identity (ADR-023). The build path — constitution, roadmap, ADRs, detailed specs,
+> and the declarative ontology — lives in [`speckit/`](speckit/README.md) and
+> [`ontology/aegis.yaml`](ontology/aegis.yaml). The prototype documented below is
+> legacy scaffolding: kept running until Aegis replaces it, never extended.
 
 ## Quickstart — real graph + web UI
 

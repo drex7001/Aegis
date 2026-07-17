@@ -1,9 +1,11 @@
 # Aegis Spec Kit
 
-This directory is the **specification kit** for evolving the current prototype
-(`pipeline/`, `app/`) into **Aegis** — the governed intelligence platform described in
-[`../GOAL.md`](../GOAL.md). GOAL.md is the *north star* (enterprise end-state); this kit
-is the *buildable path* for a small team starting from the code that exists today.
+This directory is the **specification kit** for building **Aegis** — the
+ontology-driven intelligence platform described in [`../GOAL.md`](../GOAL.md), whose
+first application domain is criminal-network analysis. GOAL.md is the *north star*
+(enterprise end-state); this kit is the *buildable path* for a small team. The
+pre-Aegis prototype (`pipeline/`, `app/`) is scaffolding to be **replaced, not
+extended** (ADR-023).
 
 ## Reading order
 

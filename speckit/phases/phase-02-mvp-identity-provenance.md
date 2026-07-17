@@ -78,7 +78,7 @@ neither is out of scope (see non-goals).
 | Risk | Mitigation |
 |---|---|
 | Splink quality on Sinhala transliteration is poor | Deterministic rules carry the demo; probabilistic threshold tuned on the seeded golden pairs; failure feeds the ADR-012 evidence base, not a blocker |
-| UI effort sunk into the legacy explorer feels throwaway | Panels are minimal HTML/JS; their *APIs* (why-connected, review, search) are the durable artifact and carry unchanged into P4 |
+| UI effort sunk into the legacy explorer feels throwaway | It is throwaway by design — legacy is replaced, never extended (ADR-023). Panels stay minimal HTML/JS; their *APIs* (why-connected, review, search) are the durable artifact and carry unchanged into P4 |
 | Wrong merge contaminates the graph | Article V reversibility test is a blocking task, not an afterthought |
 | MVP scope creep | Non-goals list below is enforced in review; anything not needed for the demo loop moves to P3+ |
 

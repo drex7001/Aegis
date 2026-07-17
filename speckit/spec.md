@@ -2,10 +2,11 @@
 
 ## 1. Mission
 
-A governed intelligence-analysis workbench for lawful, open-source criminal-network
-analysis — starting with Sri Lankan OSINT (drug networks, historical underworld,
-Easter-attack network), designed so the same core grows into the multi-analyst,
-multi-agency platform GOAL.md describes.
+An **ontology-driven intelligence platform** whose first application domain is
+lawful, open-source criminal-network analysis — starting with Sri Lankan OSINT
+(drug networks, historical underworld, Easter-attack network). The domain rides
+a domain-neutral core (Article XIV); the same core grows into the
+multi-domain, multi-analyst, multi-agency platform GOAL.md describes.
 
 The defining property is **honesty under governance**: every relationship shown is a
 claim with a source, a grading, a time window, and an access decision behind it.

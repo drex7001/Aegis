@@ -1,5 +1,9 @@
 # Aegis Roadmap
 
+This roadmap builds an **ontology-driven intelligence platform**; criminal-
+network analysis is its first application domain, not its identity (ADR-023).
+The legacy prototype is replaced along the way, never extended.
+
 Phases are gated by **exit criteria**, not dates. Effort estimates assume one
 hands-on developer part-time; treat them as relative sizes. Nothing in a later
 phase may violate the constitution to ship earlier.
@@ -135,7 +139,8 @@ hypotheses instead of vibes. Charter:
 generated SDK** (ontology-driven screens); **object views** (entity-360:
 claim-derived properties, links, timeline, sources, cases); case UI +
 FGA-scoped membership; hypotheses with supporting/contradicting links; tasks/
-leads; timeline + as-of mode end-to-end; legacy explorer retired at parity.
+leads; timeline + as-of mode end-to-end; legacy explorer replaced and deleted
+(scope set by analyst needs, not legacy parity — ADR-023).
 
 **Exit criteria.** Authz matrix holds in the UI (non-member sees nothing via
 any endpoint); a hypothesis page shows both sides (Article VIII); "what was

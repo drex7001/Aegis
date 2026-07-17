@@ -512,3 +512,42 @@ the translation. GOAL.md §40 now defers to speckit/roadmap.md.
 
 **Revisit when.** A phase's exit criteria prove wrong in practice — amend via a new
 ADR and a charter update, never by renumbering again.
+
+---
+
+## ADR-023: Platform-first identity — ontology-driven platform; criminal-network analysis is a domain module; legacy is replaced, never extended
+
+**Context.** The project began as (and its repository is still named) a
+criminal-network-analysis tool, and its founding documents framed Aegis that way, with
+the intelligence platform as the growth path. After the Foundry study (ADR-021) and
+roadmap v2 (ADR-022), the user set the reverse framing as the product identity: build
+an ontology-driven intelligence platform for our country's needs — Palantir-class in
+concept, open-stack and auditable in construction — where criminal-network analysis is
+one application domain among several (financial crime, border/customs, and others),
+all powered by the same ontology core. The pre-Aegis prototype (`pipeline/`, `app/`
+static explorer) is to be treated as scaffolding to replace, not a system to extend.
+
+**Decision.** (1) The constitution gains a mission/vision preamble stating the
+platform-first identity, and a new **Article XIV — the core is domain-neutral**:
+platform services carry no hard-coded domain concepts; a domain enters as an ontology
+module plus migrations (one-time migration adapters per ADR-016, and code scheduled
+for deletion, exempt). (2) **Article II generalizes** from "no inherent criminality"
+to "no inherent derogatory status" — same rule, stated for every domain; number, test,
+and intent unchanged. (3) GOAL.md §1–2 and speckit framing docs are rewritten
+platform-first; the domain list in GOAL.md §2.3 presents criminal-network analysis as
+the first domain module. (4) **Legacy stance:** nothing new is built on or shaped by
+the legacy explorer/pipeline; P2 keeps only throwaway panels on durable APIs, and P4
+replaces and deletes the explorer with scope set by analyst needs, not feature parity.
+The `/api/*` legacy-shaped projection surface (ADR-019) is reviewed for retirement at
+the P4 gate.
+
+**Consequences.** Charters and roadmap drop "parity" language in favour of
+"replacement"; future domain proposals are ontology-module proposals, not new
+subsystems; Article XIV becomes a review gate for core code (domain nouns outside
+ontology-derived artifacts fail review). The repository name is historical and may be
+revisited separately; no code changes are implied by this ADR. ADR-001…022 remain
+append-only history in the original framing.
+
+**Revisit when.** A second real domain module lands (validates Article XIV in
+practice), or a domain need arises that genuinely cannot be expressed as an ontology
+module plus migrations.

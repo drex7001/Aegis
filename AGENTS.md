@@ -1,10 +1,12 @@
 # AGENTS.md — instructions for AI agents in this repository
 
-This is **Aegis** — a governed intelligence / criminal-network-analysis
-platform (Sri Lankan OSINT corpus). The vision is `GOAL.md`; the buildable
-path is `speckit/` (read `speckit/README.md` first). Work is phase-gated:
-check `speckit/roadmap.md` for the current phase and its charter in
-`speckit/phases/` before starting anything.
+This is **Aegis** — an ontology-driven, governed intelligence platform; its
+first application domain is criminal-network analysis over a Sri Lankan OSINT
+corpus. The vision is `GOAL.md`; the buildable path is `speckit/` (read
+`speckit/README.md` first). Work is phase-gated: check `speckit/roadmap.md`
+for the current phase and its charter in `speckit/phases/` before starting
+anything. The pre-Aegis prototype (`pipeline/`, `app/`) is legacy scaffolding:
+**replace, never extend** (ADR-023).
 
 ## Git rules (binding — full doc: `docs/GIT_WORKFLOW.md`)
 
@@ -22,10 +24,11 @@ check `speckit/roadmap.md` for the current phase and its charter in
 
 ## Governance rules (from `speckit/constitution.md` — non-negotiable)
 
-- The 13 Articles are checked on every schema/feature change. Highlights:
-  claims-not-facts (I), no inherent criminality (II), AI output goes to the
-  review queue, never directly to canonical tables (VII), every route has an
-  authorization dependency (VI), projections are rebuildable caches (XIII).
+- The 14 Articles are checked on every schema/feature change. Highlights:
+  claims-not-facts (I), no inherent derogatory status (II), AI output goes to
+  the review queue, never directly to canonical tables (VII), every route has
+  an authorization dependency (VI), projections are rebuildable caches (XIII),
+  the core is domain-neutral — domains arrive as ontology modules (XIV).
 - `ontology/aegis.yaml` is the single domain artifact (XI): never hand-write a
   domain type the ontology doesn't declare. Changes follow the versioning
   rules in `speckit/specs/01-ontology.md` (v2: `specs/08-ontology-v2.md`).

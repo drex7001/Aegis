@@ -1,6 +1,16 @@
 # Aegis Intelligence Platform
 
-## Production-grade intelligence, criminal-network analysis, evidence, and investigation system
+## An ontology-driven intelligence platform — one governed core, many analytical domains
+
+Aegis is a production-grade, sovereign intelligence platform in which a single
+**ontology** — the declared model of objects, properties, links, events,
+actions, and governance rules — powers every analytical domain built on top of
+it. **Criminal-network analysis is the first application domain, not the
+platform.** The same core will carry financial-crime, border, and other
+domains as ontology modules, the way Palantir's platforms carry many
+workflows on one ontology — but open-stack, auditable, and designed for our
+country's legal, linguistic (Sinhala / Tamil / English), and institutional
+needs.
 
 The correct design is **not** a giant graph database containing “criminals and their connections.”
 
@@ -128,22 +138,59 @@ Therefore:
 
 ---
 
-# 2. Product mission
+# 2. Mission and vision
 
-Aegis is a governed intelligence and investigative-analysis environment for:
+## 2.1 Mission
 
-* Criminal investigations.
-* Organized crime and gang analysis.
+Build a governed, ontology-driven intelligence platform: one core that turns
+raw sources into graded, sourced, time-bounded **claims** about a shared model
+of the world, and lets accountable humans — never algorithms — decide what
+becomes accepted knowledge. Every capability (ingestion, identity resolution,
+analysis, visualization, sharing) is generated from or governed by the
+ontology, so the platform serves any lawful analytical domain without being
+rebuilt for each one.
+
+## 2.2 Long-term vision
+
+A national-scale, sovereign platform — comparable in concept to Palantir's
+ontology-centred systems, but open-stack and independently auditable — where:
+
+* the **ontology** is the single source of domain truth (semantic + kinetic +
+  governance layers, §7.8);
+* **domains are modules**: each analytical domain is an ontology module plus
+  generated screens, not a bespoke system;
+* **governance is structural**: grading, handling, authorization, audit, and
+  review-queue discipline are properties of the core, inherited by every
+  domain for free;
+* multiple institutions cooperate through **federated, originator-controlled
+  exchange** (§33), never one unrestricted database.
+
+## 2.3 One platform, many domains
+
+The domain-neutral core (claims, identity, evidence, cases, actions,
+projections, search, analytics, governance) carries application domains
+declared in the ontology:
+
+* **Criminal-network analysis** — the first domain, in active development on a
+  Sri Lankan OSINT corpus: organized crime, gangs, drug and human-trafficking
+  networks.
 * Financial crime and money laundering.
-* Drug and human-trafficking investigations.
 * Border and customs intelligence.
 * Counterterrorism investigations subject to applicable law.
-* Multi-agency task forces.
-* Case and evidence management.
-* Strategic threat assessments.
-* Judicial and disclosure workflows.
+* Multi-agency task forces, strategic threat assessments, judicial and
+  disclosure workflows — cross-domain capabilities of the same core.
 
-It is **not**:
+Adding a domain means adding object types, predicates, event types, actions,
+and functions to the ontology (Article XIV) — plus migrations — and letting
+codegen and the generic surfaces (object views, search, analytics) do the
+rest.
+
+The pre-Aegis prototype (static pipeline + Cytoscape explorer) is treated as
+scaffolding: it seeded the corpus and proved the projection layer, and it is
+**replaced, never extended** (ADR-023). No new capability is designed around
+legacy shapes.
+
+Aegis is **not**:
 
 * An autonomous accusation system.
 * An automated probable-cause generator.
@@ -2781,7 +2828,8 @@ section previously used. Summary:
   generated Python/TypeScript SDKs (§7.8).
 * **P4 Investigation workspace & object views** — case-scoped React workspace
   on the generated SDK, entity-360 object views, hypotheses, tasks, timeline
-  and as-of reads.
+  and as-of reads. Replaces and deletes the legacy explorer; its scope comes
+  from analyst needs, never from matching legacy features (ADR-023).
 
 ## Milestone IV — Full intelligence domain
 
