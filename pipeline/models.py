@@ -43,6 +43,9 @@ class LayerType(str, Enum):
     FINANCIAL = "FINANCIAL"
     PRISON_CO_LOCATION = "PRISON_CO_LOCATION"
     TRANSNATIONAL = "TRANSNATIONAL"
+    # Added by the aegis ontology (T10): kinship predicates (sibling_of,
+    # spouse_of) were previously misfiled under FINANCIAL/IDEOLOGICAL.
+    KINSHIP = "KINSHIP"
 
 
 class ExtractionMethod(str, Enum):

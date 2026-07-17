@@ -1,0 +1,1582 @@
+{
+  "nodes": [
+    {
+      "node_id": "makandure_madush",
+      "name": "Makandure Madush",
+      "aliases": [
+        "Samarasinghe Arachchige Madush Lakshitha"
+      ],
+      "nic": null,
+      "affiliations": [
+        "Madush drug network"
+      ],
+      "node_type": "PERSON",
+      "source_file": "dbsjeyaraj.com — 'Downfall in Dubai of Sri Lanka's Most Wanted Drug Dealer Makandure Madush'",
+      "source_excerpt": "Drug kingpin; ran a Dubai-based narcotics network. Arrested in Dubai 4 Feb 2019, returned to Sri Lanka 5 May 2019 under the PTA, shot dead in police custody 20 Oct 2020.",
+      "cluster_id": 1
+    },
+    {
+      "node_id": "kanjipani_imran",
+      "name": "Kanjipani Imran",
+      "aliases": [
+        "Mohamed Najim Mohamed Imran"
+      ],
+      "nic": null,
+      "affiliations": [
+        "Madush drug network"
+      ],
+      "node_type": "PERSON",
+      "source_file": "Daily Mirror — 'Kanjipani Imran, three others deported from Dubai'",
+      "source_excerpt": "Colombo underworld figure; arrested with Madush in Dubai 4 Feb 2019 and deported to Sri Lanka.",
+      "cluster_id": 1
+    },
+    {
+      "node_id": "angoda_lokka",
+      "name": "Angoda Lokka",
+      "aliases": [
+        "Maddumage Chandana Lasantha Perera"
+      ],
+      "nic": null,
+      "affiliations": [
+        "Angoda Lokka network"
+      ],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Drug lord; reportedly died of a heart attack in Coimbatore, India in 2020 while directing operations from abroad.",
+      "cluster_id": 4
+    },
+    {
+      "node_id": "harak_kata",
+      "name": "Harak Kata",
+      "aliases": [
+        "Nadun Chinthaka Wickramaratne"
+      ],
+      "nic": null,
+      "affiliations": [
+        "Harak Kata network"
+      ],
+      "node_type": "PERSON",
+      "source_file": "News First — 'Underworld gangster Harak Kata extradited to Sri Lanka from Madagascar'",
+      "source_excerpt": "Heroin trafficker with an international network (Dubai, Malaysia, Maldives, Seychelles, Madagascar); arrested in Madagascar and extradited to Sri Lanka 15 Mar 2023; held under the PTA.",
+      "cluster_id": 4
+    },
+    {
+      "node_id": "wele_suda",
+      "name": "Wele Suda",
+      "aliases": [
+        "Gampola Vidanelage Samantha Kumara"
+      ],
+      "nic": null,
+      "affiliations": [
+        "Wele Suda network"
+      ],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Major heroin trafficker; arrested in Pakistan (Karachi) in Feb 2015 and extradited; continued to run operations from prison. Serving a life sentence.",
+      "cluster_id": 1
+    },
+    {
+      "node_id": "kalu_sagara",
+      "name": "Kalu Sagara",
+      "aliases": [],
+      "nic": null,
+      "affiliations": [
+        "Madush drug network (former)"
+      ],
+      "node_type": "PERSON",
+      "source_file": "Daily Mirror — 'Who was behind the arrest of Makandure Madush?'",
+      "source_excerpt": "One-time associate of Madush who reportedly tipped off Dubai Police and the Sri Lankan STF to his location.",
+      "cluster_id": 1
+    },
+    {
+      "node_id": "ranale_samayan",
+      "name": "Ranale Samayan",
+      "aliases": [
+        "Aruna Damith Udayanga"
+      ],
+      "nic": null,
+      "affiliations": [],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Underworld gang leader; killed in 2017, reportedly by the rival gang of Angoda Lokka and Makandure Madush.",
+      "cluster_id": 4
+    },
+    {
+      "node_id": "kudu_salindu",
+      "name": "Kudu Salindu",
+      "aliases": [],
+      "nic": null,
+      "affiliations": [
+        "Harak Kata network"
+      ],
+      "node_type": "PERSON",
+      "source_file": "News First — 'Underworld gangster Harak Kata extradited to Sri Lanka from Madagascar'",
+      "source_excerpt": "Organized-crime suspect arrested in Madagascar alongside Harak Kata and brought to Sri Lanka in March 2023.",
+      "cluster_id": 4
+    },
+    {
+      "node_id": "ganemulla_sanjeewa",
+      "name": "Ganemulla Sanjeewa",
+      "aliases": [],
+      "nic": null,
+      "affiliations": [
+        "Organized crime"
+      ],
+      "node_type": "PERSON",
+      "source_file": "Lanka News Web — 'Mobile phone and accessories found in cells of notorious criminals at Boossa Prison'",
+      "source_excerpt": "Organized-crime and drug-trafficking convict; a smartphone and accessories were found in his Boossa Prison cell.",
+      "cluster_id": 1
+    },
+    {
+      "node_id": "kosgoda_sujee",
+      "name": "Kosgoda Sujee",
+      "aliases": [],
+      "nic": null,
+      "affiliations": [
+        "Madush drug network (former)"
+      ],
+      "node_type": "PERSON",
+      "source_file": "dbsjeyaraj.com — 'Downfall in Dubai of Sri Lanka's Most Wanted Drug Dealer Makandure Madush'",
+      "source_excerpt": "Named among the group that helped Madush establish himself in Dubai before falling out with him.",
+      "cluster_id": 1
+    },
+    {
+      "node_id": "kirulapone_merrill",
+      "name": "Kirulapone Merrill",
+      "aliases": [
+        "Kirulapone Merrill"
+      ],
+      "nic": null,
+      "affiliations": [
+        "Madush drug network (former)"
+      ],
+      "node_type": "PERSON",
+      "source_file": "dbsjeyaraj.com — 'Downfall in Dubai of Sri Lanka's Most Wanted Drug Dealer Makandure Madush'",
+      "source_excerpt": "Named among the group that helped Madush establish himself in Dubai before falling out with him.",
+      "cluster_id": 1
+    },
+    {
+      "node_id": "siddique",
+      "name": "Siddique",
+      "aliases": [],
+      "nic": null,
+      "affiliations": [
+        "Madush drug network (former)"
+      ],
+      "node_type": "PERSON",
+      "source_file": "dbsjeyaraj.com — 'Downfall in Dubai of Sri Lanka's Most Wanted Drug Dealer Makandure Madush'",
+      "source_excerpt": "Named among the group that helped Madush establish himself in Dubai before falling out with him.",
+      "cluster_id": 1
+    },
+    {
+      "node_id": "soththi_upali",
+      "name": "Soththi Upali",
+      "aliases": [
+        "Arambawelage Don Upali Ranjith"
+      ],
+      "nic": null,
+      "affiliations": [],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Underworld figure active 1970–1998; allied with political patrons of the era. Killed 17 Dec 1998.",
+      "cluster_id": 2
+    },
+    {
+      "node_id": "chinthaka_amarasinghe",
+      "name": "Chinthaka Amarasinghe",
+      "aliases": [
+        "Usliyanage Chinthaka Nalin Perera"
+      ],
+      "nic": null,
+      "affiliations": [],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Underworld figure who reportedly sought to avenge his father's killing by Soththi Upali's faction; killed 1996.",
+      "cluster_id": 2
+    },
+    {
+      "node_id": "dhammika_amarasinghe",
+      "name": "Dhammika Amarasinghe",
+      "aliases": [
+        "Dhammika Amarasinghe"
+      ],
+      "nic": null,
+      "affiliations": [],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Brother of Chinthaka Amarasinghe; active 1990s–2004. Killed inside Colombo Magistrate's Court in Jan 2004.",
+      "cluster_id": 2
+    },
+    {
+      "node_id": "kalu_ajith",
+      "name": "Kalu Ajith",
+      "aliases": [
+        "Ajith Dhammika"
+      ],
+      "nic": null,
+      "affiliations": [],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Gang leader active 1980s–1997; his gang was blamed for the 1996 killing of Chinthaka Amarasinghe. Killed 16 Jul 1997.",
+      "cluster_id": 2
+    },
+    {
+      "node_id": "nawala_nihal",
+      "name": "Nawala Nihal",
+      "aliases": [
+        "Koswattage Donald Nihal Wickremasinghe"
+      ],
+      "nic": null,
+      "affiliations": [],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Described as a godfather of the Colombo underworld; blamed for the 1997 killing of Kalu Ajith. Died 2006.",
+      "cluster_id": 2
+    },
+    {
+      "node_id": "kaduwela_wasantha",
+      "name": "Kaduwela Wasantha",
+      "aliases": [
+        "Wasantha Darmasiri Jayarathna"
+      ],
+      "nic": null,
+      "affiliations": [],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Underworld figure reportedly allied with Chinthaka Amarasinghe and Kalu Ajith. Killed 26 May 2002.",
+      "cluster_id": 2
+    },
+    {
+      "node_id": "moratu_saman",
+      "name": "Moratu Saman",
+      "aliases": [
+        "Moratu Saman"
+      ],
+      "nic": null,
+      "affiliations": [],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Underworld figure once allied with Dhammika Amarasinghe before a violent falling-out. Died 2003.",
+      "cluster_id": 2
+    },
+    {
+      "node_id": "olcott",
+      "name": "Olcott",
+      "aliases": [
+        "Jayakody Arachchige Ruwan Perera"
+      ],
+      "nic": null,
+      "affiliations": [
+        "LTTE (alleged)"
+      ],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Heroin trafficker linked to a failed 1999 LTTE assassination attempt on President Chandrika Kumaratunga; lived in exile in Tamil Nadu. Killed in an STF raid in Sept 2010.",
+      "cluster_id": 5
+    },
+    {
+      "node_id": "kimbula_ela_guna",
+      "name": "Kimbula-Ela Guna",
+      "aliases": [
+        "Sinniah Gunasekeran"
+      ],
+      "nic": null,
+      "affiliations": [
+        "LTTE (alleged)"
+      ],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Major drug dealer with LTTE links; involved in the failed 1999 assassination attempt on President Kumaratunga; arrested in Tamil Nadu in 2008.",
+      "cluster_id": 5
+    },
+    {
+      "node_id": "thel_bala",
+      "name": "Thel Bala",
+      "aliases": [
+        "Ganeshalingam Saipriyan"
+      ],
+      "nic": null,
+      "affiliations": [
+        "LTTE (alleged)"
+      ],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Jaffna-region drug dealer linked to the failed 1999 assassination attempt on President Kumaratunga. Died 2017.",
+      "cluster_id": 5
+    },
+    {
+      "node_id": "zahran_hashim",
+      "name": "Zahran Hashim",
+      "aliases": [
+        "Mohamed Hashim Mohamed Zahran",
+        "Mohammed Zahran Hashim"
+      ],
+      "nic": null,
+      "affiliations": [
+        "National Thowheeth Jamaath"
+      ],
+      "node_type": "PERSON",
+      "source_file": "Jamestown Foundation — 'The Mastermind of the Sri Lankan Easter Sunday Attacks: Zahran Hashim'",
+      "source_excerpt": "Founder of the National Thowheeth Jama'ath and suspected ringleader of the 21 Apr 2019 Easter attacks; suicide bomber at the Shangri-La Hotel.",
+      "cluster_id": 3
+    },
+    {
+      "node_id": "rilwan_hashim",
+      "name": "Rilwan Hashim",
+      "aliases": [],
+      "nic": null,
+      "affiliations": [
+        "National Thowheeth Jamaath"
+      ],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Brother of Zahran Hashim; reportedly helped build explosives. Killed in the Sainthamaruthu raid on 26 Apr 2019.",
+      "cluster_id": 3
+    },
+    {
+      "node_id": "zainee_hashim",
+      "name": "Zainee Hashim",
+      "aliases": [],
+      "nic": null,
+      "affiliations": [
+        "National Thowheeth Jamaath"
+      ],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Brother of Zahran Hashim; named among those directly linked to the attack network.",
+      "cluster_id": 3
+    },
+    {
+      "node_id": "naufer_moulavi",
+      "name": "Naufer Moulavi",
+      "aliases": [
+        "Mohamed Naufer",
+        "Naufer Moulavi"
+      ],
+      "nic": null,
+      "affiliations": [
+        "National Thowheeth Jamaath"
+      ],
+      "node_type": "PERSON",
+      "source_file": "Ada Derana — 'Zahran planned to launch Easter attack using 20 bombers, PCoI hears'",
+      "source_excerpt": "Named by the Minister of Public Security, after the PCoI report, as the mastermind of the Easter attacks; in custody.",
+      "cluster_id": 3
+    },
+    {
+      "node_id": "inshaf_ahmed",
+      "name": "Inshaf Ahmed",
+      "aliases": [
+        "Mohamed Ibrahim Inshaf Ahamed"
+      ],
+      "nic": null,
+      "affiliations": [
+        "National Thowheeth Jamaath"
+      ],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Suicide bomber at the Cinnamon Grand; owned the Colossus Copper factory reportedly used to fabricate suicide vests.",
+      "cluster_id": 0
+    },
+    {
+      "node_id": "ilham_ahmed",
+      "name": "Ilham Ahmed",
+      "aliases": [
+        "Mohamed Ibrahim Ilham Ahamed"
+      ],
+      "nic": null,
+      "affiliations": [
+        "National Thowheeth Jamaath"
+      ],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Suicide bomber at the Shangri-La Hotel; younger brother of Inshaf Ahmed.",
+      "cluster_id": 0
+    },
+    {
+      "node_id": "abdul_latheef_jameel",
+      "name": "Abdul Latheef Jameel",
+      "aliases": [
+        "Abdul Lathif Jameel Mohammed"
+      ],
+      "nic": null,
+      "affiliations": [
+        "National Thowheeth Jamaath"
+      ],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Suicide bomber (Tropical Inn, Dehiwala); had been investigated in 2014 by an Australian Joint Counter Terrorism Team over reported ISIS links via operative Neil Prakash.",
+      "cluster_id": 0
+    },
+    {
+      "node_id": "mohamed_azam",
+      "name": "Mohamed Azam",
+      "aliases": [
+        "Mohamed Azam Mohamed Mubarak"
+      ],
+      "nic": null,
+      "affiliations": [
+        "National Thowheeth Jamaath"
+      ],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Suicide bomber at the Kingsbury Hotel; NTJ member.",
+      "cluster_id": 0
+    },
+    {
+      "node_id": "mohamed_nassar",
+      "name": "Mohamed Nassar",
+      "aliases": [
+        "Mohamed Nassar Mohamed Asad"
+      ],
+      "nic": null,
+      "affiliations": [
+        "National Thowheeth Jamaath"
+      ],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Suicide bomber at Zion Church, Batticaloa; NTJ member.",
+      "cluster_id": 0
+    },
+    {
+      "node_id": "hasthun",
+      "name": "Hasthun",
+      "aliases": [
+        "Atchchi Muhammadu Muhammadu Hasthun"
+      ],
+      "nic": null,
+      "affiliations": [
+        "National Thowheeth Jamaath"
+      ],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Suicide bomber at St. Sebastian's Church, Negombo; husband of Pulasthini Rajendran.",
+      "cluster_id": 6
+    },
+    {
+      "node_id": "alawdeen_ahmed_muad",
+      "name": "Alawdeen Ahmed Muad",
+      "aliases": [
+        "Alawdeen Ahmed Muad"
+      ],
+      "nic": null,
+      "affiliations": [
+        "National Thowheeth Jamaath"
+      ],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Suicide bomber at St. Anthony's Shrine, Colombo; NTJ member.",
+      "cluster_id": 0
+    },
+    {
+      "node_id": "ahmed_milhan",
+      "name": "Ahmed Milhan",
+      "aliases": [
+        "Hayathu Mohamed Ahmed Milhan"
+      ],
+      "nic": null,
+      "affiliations": [
+        "National Thowheeth Jamaath"
+      ],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Suspected NTJ figure, reportedly deported from the Middle East and expected to be a successor leader.",
+      "cluster_id": 0
+    },
+    {
+      "node_id": "army_mohideen",
+      "name": "Army Mohideen",
+      "aliases": [],
+      "nic": null,
+      "affiliations": [
+        "National Thowheeth Jamaath"
+      ],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Reportedly provided military-style training to the attackers.",
+      "cluster_id": 0
+    },
+    {
+      "node_id": "fathima_ilham",
+      "name": "Fathima Ilham",
+      "aliases": [
+        "Fathima Ilham"
+      ],
+      "nic": null,
+      "affiliations": [
+        "National Thowheeth Jamaath"
+      ],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Wife of Ilham Ahmed; detonated explosives during the Dematagoda raid on 26 Apr 2019, killing herself, her children and three police officers.",
+      "cluster_id": 0
+    },
+    {
+      "node_id": "pulasthini_rajendran",
+      "name": "Pulasthini Rajendran",
+      "aliases": [
+        "Sarah"
+      ],
+      "nic": null,
+      "affiliations": [
+        "National Thowheeth Jamaath"
+      ],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Wife of the bomber Hasthun; killed in the Sainthamaruthu raid on 26 Apr 2019.",
+      "cluster_id": 6
+    },
+    {
+      "node_id": "abu_hind",
+      "name": "Abu Hind",
+      "aliases": [],
+      "nic": null,
+      "affiliations": [
+        "Islamic State (alleged)"
+      ],
+      "node_type": "PERSON",
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "A contact in India with whom Zahran reportedly maintained regular phone communication from 2018.",
+      "cluster_id": 3
+    },
+    {
+      "node_id": "national_thowheeth_jamaath",
+      "name": "National Thowheeth Jamaath",
+      "aliases": [
+        "NTJ",
+        "National Thowheeth Jama'ath"
+      ],
+      "nic": null,
+      "affiliations": [],
+      "node_type": "ORGANIZATION",
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Local militant Islamist group founded by Zahran Hashim; designated a terrorist organisation on 27 Apr 2019.",
+      "cluster_id": 0
+    },
+    {
+      "node_id": "jammiyathul_millathu_ibrahim",
+      "name": "Jammiyathul Millathu Ibrahim",
+      "aliases": [
+        "JMI"
+      ],
+      "nic": null,
+      "affiliations": [],
+      "node_type": "ORGANIZATION",
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Jammiyathul Millathu Ibrahim — a splinter group designated a terrorist organisation alongside the NTJ on 27 Apr 2019.",
+      "cluster_id": 0
+    },
+    {
+      "node_id": "islamic_state",
+      "name": "Islamic State",
+      "aliases": [
+        "ISIS",
+        "IS",
+        "Islamic State of Iraq and Syria"
+      ],
+      "nic": null,
+      "affiliations": [],
+      "node_type": "ORGANIZATION",
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Islamic State; its Amaq agency claimed the attacks, but the CID found no evidence of direct IS operational involvement.",
+      "cluster_id": 0
+    }
+  ],
+  "edges": [
+    {
+      "source": "makandure_madush",
+      "target": "kanjipani_imran",
+      "relation": "co_arrested_with",
+      "layer": "TRANSNATIONAL",
+      "confidence": "EXTRACTED",
+      "weight": 1.0,
+      "start_date": "2019-02-04",
+      "end_date": "2019-02-04",
+      "location": "Dubai, UAE",
+      "source_file": "Ada Derana — 'Makandure Madush arrested in Dubai'",
+      "source_excerpt": "Madush was arrested in Dubai on 4 Feb 2019; Kanjipani Imran was among those arrested with him and later deported.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "makandure_madush",
+      "target": "kanjipani_imran",
+      "relation": "partnered_with",
+      "layer": "TRANSNATIONAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": null,
+      "end_date": null,
+      "location": "Indian Ocean routes",
+      "source_file": "dbsjeyaraj.com — 'Downfall in Dubai of Sri Lanka's Most Wanted Drug Dealer Makandure Madush'",
+      "source_excerpt": "Imran had partnered with Makandure Madush to build a syndicate controlling maritime trafficking routes through the Indian Ocean.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "makandure_madush",
+      "target": "angoda_lokka",
+      "relation": "allied_with",
+      "layer": "FINANCIAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": "2017-01-01",
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Ranale Samayan was killed in 2017 by the rival gang of Angoda Lokka and Makandure Madush — indicating an operational alliance between them.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "angoda_lokka",
+      "target": "ranale_samayan",
+      "relation": "ordered_killing_of",
+      "layer": "FINANCIAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": "2017-01-01",
+      "end_date": "2017-01-01",
+      "location": null,
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Samayan's death (2017) is attributed to the rival gang of Angoda Lokka and Makandure Madush.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "makandure_madush",
+      "target": "ranale_samayan",
+      "relation": "ordered_killing_of",
+      "layer": "FINANCIAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": "2017-01-01",
+      "end_date": "2017-01-01",
+      "location": null,
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Samayan's death (2017) is attributed to the rival gang of Angoda Lokka and Makandure Madush.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "angoda_lokka",
+      "target": "harak_kata",
+      "relation": "close_associate_of",
+      "layer": "FINANCIAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Times of Addu — 'Sri Lankan drug trafficker Harak Kata with links to Maldives arrested in Dubai'",
+      "source_excerpt": "Harak Kata is described as a close associate of the slain underworld don 'Angoda Lokka'.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "harak_kata",
+      "target": "kudu_salindu",
+      "relation": "co_arrested_with",
+      "layer": "TRANSNATIONAL",
+      "confidence": "EXTRACTED",
+      "weight": 1.0,
+      "start_date": "2023-03-15",
+      "end_date": "2023-03-15",
+      "location": "Madagascar",
+      "source_file": "News First — 'Underworld gangster Harak Kata extradited to Sri Lanka from Madagascar'",
+      "source_excerpt": "Harak Kata and Kudu Salindu were arrested in Madagascar and brought to Sri Lanka in March 2023.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "kalu_sagara",
+      "target": "makandure_madush",
+      "relation": "rival_of",
+      "layer": "FINANCIAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Daily Mirror — 'Who was behind the arrest of Makandure Madush?'",
+      "source_excerpt": "Kalu Sagara was a one-time friend of Madush; drug-trade rivalry turned them against each other.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "kalu_sagara",
+      "target": "makandure_madush",
+      "relation": "tipped_off_police_on",
+      "layer": "FINANCIAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": "2019-02-01",
+      "end_date": "2019-02-04",
+      "location": "Dubai, UAE",
+      "source_file": "Daily Mirror — 'Who was behind the arrest of Makandure Madush?'",
+      "source_excerpt": "Kalu Sagara reportedly tipped off Dubai Police and the Sri Lankan STF about Madush's location, leading to his arrest.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "wele_suda",
+      "target": "makandure_madush",
+      "relation": "helped_establish_in_dubai",
+      "layer": "TRANSNATIONAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": null,
+      "end_date": null,
+      "location": "Dubai, UAE",
+      "source_file": "dbsjeyaraj.com — 'Downfall in Dubai of Sri Lanka's Most Wanted Drug Dealer Makandure Madush'",
+      "source_excerpt": "Wele Suda, Kosgoda Sujee, Kirulapone Merrill and Siddique had helped Madush set up in Dubai.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "kosgoda_sujee",
+      "target": "makandure_madush",
+      "relation": "helped_establish_in_dubai",
+      "layer": "TRANSNATIONAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": null,
+      "end_date": null,
+      "location": "Dubai, UAE",
+      "source_file": "dbsjeyaraj.com — 'Downfall in Dubai of Sri Lanka's Most Wanted Drug Dealer Makandure Madush'",
+      "source_excerpt": "Wele Suda, Kosgoda Sujee, Kirulapone Merrill and Siddique had helped Madush set up in Dubai.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "kirulapone_merrill",
+      "target": "makandure_madush",
+      "relation": "helped_establish_in_dubai",
+      "layer": "TRANSNATIONAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": null,
+      "end_date": null,
+      "location": "Dubai, UAE",
+      "source_file": "dbsjeyaraj.com — 'Downfall in Dubai of Sri Lanka's Most Wanted Drug Dealer Makandure Madush'",
+      "source_excerpt": "Wele Suda, Kosgoda Sujee, Kirulapone Merrill and Siddique had helped Madush set up in Dubai.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "siddique",
+      "target": "makandure_madush",
+      "relation": "helped_establish_in_dubai",
+      "layer": "TRANSNATIONAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": null,
+      "end_date": null,
+      "location": "Dubai, UAE",
+      "source_file": "dbsjeyaraj.com — 'Downfall in Dubai of Sri Lanka's Most Wanted Drug Dealer Makandure Madush'",
+      "source_excerpt": "Wele Suda, Kosgoda Sujee, Kirulapone Merrill and Siddique had helped Madush set up in Dubai.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "wele_suda",
+      "target": "makandure_madush",
+      "relation": "conspired_against",
+      "layer": "FINANCIAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": "2019-02-01",
+      "end_date": "2019-02-04",
+      "location": null,
+      "source_file": "dbsjeyaraj.com — 'Downfall in Dubai of Sri Lanka's Most Wanted Drug Dealer Makandure Madush'",
+      "source_excerpt": "The same group, feeling sidelined by Madush, was reportedly involved in setting him up for arrest.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "kosgoda_sujee",
+      "target": "makandure_madush",
+      "relation": "conspired_against",
+      "layer": "FINANCIAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": "2019-02-01",
+      "end_date": "2019-02-04",
+      "location": null,
+      "source_file": "dbsjeyaraj.com — 'Downfall in Dubai of Sri Lanka's Most Wanted Drug Dealer Makandure Madush'",
+      "source_excerpt": "The same group, feeling sidelined by Madush, was reportedly involved in setting him up for arrest.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "kirulapone_merrill",
+      "target": "makandure_madush",
+      "relation": "conspired_against",
+      "layer": "FINANCIAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": "2019-02-01",
+      "end_date": "2019-02-04",
+      "location": null,
+      "source_file": "dbsjeyaraj.com — 'Downfall in Dubai of Sri Lanka's Most Wanted Drug Dealer Makandure Madush'",
+      "source_excerpt": "The same group, feeling sidelined by Madush, was reportedly involved in setting him up for arrest.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "siddique",
+      "target": "makandure_madush",
+      "relation": "conspired_against",
+      "layer": "FINANCIAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": "2019-02-01",
+      "end_date": "2019-02-04",
+      "location": null,
+      "source_file": "dbsjeyaraj.com — 'Downfall in Dubai of Sri Lanka's Most Wanted Drug Dealer Makandure Madush'",
+      "source_excerpt": "The same group, feeling sidelined by Madush, was reportedly involved in setting him up for arrest.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "wele_suda",
+      "target": "ganemulla_sanjeewa",
+      "relation": "co_located_in_prison_with",
+      "layer": "PRISON_CO_LOCATION",
+      "confidence": "EXTRACTED",
+      "weight": 1.0,
+      "start_date": null,
+      "end_date": null,
+      "location": "Boossa Prison",
+      "source_file": "Lanka News Web — 'Mobile phone and accessories found in cells of notorious criminals at Boossa Prison'",
+      "source_excerpt": "An STF sweep recovered a smartphone and accessories concealed in the cells of two notorious inmates, 'Ganemulla Sanjeewa' and 'Wele Suda', at Boossa high-security prison.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "chinthaka_amarasinghe",
+      "target": "soththi_upali",
+      "relation": "avenging_rival_of",
+      "layer": "FINANCIAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Chinthaka Amarasinghe was reportedly motivated by avenging his father's death at the hands of Soththi Upali's faction.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "kalu_ajith",
+      "target": "chinthaka_amarasinghe",
+      "relation": "ordered_killing_of",
+      "layer": "FINANCIAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": "1996-01-01",
+      "end_date": "1996-01-01",
+      "location": null,
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Chinthaka Amarasinghe (d. 1996) was killed by Kalu Ajith's gang.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "nawala_nihal",
+      "target": "kalu_ajith",
+      "relation": "ordered_killing_of",
+      "layer": "FINANCIAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": "1997-07-16",
+      "end_date": "1997-07-16",
+      "location": null,
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Kalu Ajith was killed on 16 Jul 1997; the killing is attributed to Nawala Nihal.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "dhammika_amarasinghe",
+      "target": "chinthaka_amarasinghe",
+      "relation": "sibling_of",
+      "layer": "FINANCIAL",
+      "confidence": "EXTRACTED",
+      "weight": 1.0,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Dhammika Amarasinghe was the brother of Chinthaka Amarasinghe.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "soththi_upali",
+      "target": "dhammika_amarasinghe",
+      "relation": "killed_family_of",
+      "layer": "FINANCIAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Sixteen members of Dhammika Amarasinghe's family were reportedly killed by Soththi Upali's gang.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "moratu_saman",
+      "target": "dhammika_amarasinghe",
+      "relation": "former_ally_turned_rival_of",
+      "layer": "FINANCIAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Moratu Saman was once allied with Dhammika Amarasinghe before falling out; Dhammika reportedly tried to kill him in 2002.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "kaduwela_wasantha",
+      "target": "chinthaka_amarasinghe",
+      "relation": "allied_with",
+      "layer": "FINANCIAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Kaduwela Wasantha was reportedly allied with Chinthaka Amarasinghe and Kalu Ajith.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "kaduwela_wasantha",
+      "target": "kalu_ajith",
+      "relation": "allied_with",
+      "layer": "FINANCIAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Kaduwela Wasantha was reportedly allied with Chinthaka Amarasinghe and Kalu Ajith.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "olcott",
+      "target": "kimbula_ela_guna",
+      "relation": "co_conspirator_in_plot_with",
+      "layer": "IDEOLOGICAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": "1999-01-01",
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Olcott, Kimbula-Ela Guna and Thel Bala were linked to the failed 1999 LTTE assassination attempt on President Kumaratunga.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "olcott",
+      "target": "thel_bala",
+      "relation": "co_conspirator_in_plot_with",
+      "layer": "IDEOLOGICAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": "1999-01-01",
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Olcott, Kimbula-Ela Guna and Thel Bala were linked to the failed 1999 LTTE assassination attempt on President Kumaratunga.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "kimbula_ela_guna",
+      "target": "thel_bala",
+      "relation": "co_conspirator_in_plot_with",
+      "layer": "IDEOLOGICAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": "1999-01-01",
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Olcott, Kimbula-Ela Guna and Thel Bala were linked to the failed 1999 LTTE assassination attempt on President Kumaratunga.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "kimbula_ela_guna",
+      "target": "olcott",
+      "relation": "ran_narcotics_from_tamil_nadu_with",
+      "layer": "TRANSNATIONAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — List of Sri Lankan mobsters",
+      "source_excerpt": "Both fled to Tamil Nadu and were reported to monitor / run drug trafficking into Sri Lanka from India.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "zahran_hashim",
+      "target": "national_thowheeth_jamaath",
+      "relation": "founded",
+      "layer": "IDEOLOGICAL",
+      "confidence": "EXTRACTED",
+      "weight": 1.0,
+      "start_date": "2014-01-01",
+      "end_date": null,
+      "location": null,
+      "source_file": "Jamestown Foundation — 'The Mastermind of the Sri Lankan Easter Sunday Attacks: Zahran Hashim'",
+      "source_excerpt": "The National Thowheeth Jama'ath was founded by Zahran Hashim.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "zahran_hashim",
+      "target": "rilwan_hashim",
+      "relation": "sibling_co_attacker_of",
+      "layer": "IDEOLOGICAL",
+      "confidence": "EXTRACTED",
+      "weight": 1.0,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Zahran Hashim's two brothers, Rilwan Hashim and Zainee Hashim, were directly linked to the attack network.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "zahran_hashim",
+      "target": "zainee_hashim",
+      "relation": "sibling_co_attacker_of",
+      "layer": "IDEOLOGICAL",
+      "confidence": "EXTRACTED",
+      "weight": 1.0,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Zahran Hashim's two brothers, Rilwan Hashim and Zainee Hashim, were directly linked to the attack network.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "naufer_moulavi",
+      "target": "zahran_hashim",
+      "relation": "co_masterminded_attacks_with",
+      "layer": "IDEOLOGICAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Ada Derana — 'Zahran planned to launch Easter attack using 20 bombers, PCoI hears'",
+      "source_excerpt": "After the PCoI report, the Minister of Public Security stated that Muhammed Naufer was the mastermind of the Easter attacks, alongside Zahran.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "naufer_moulavi",
+      "target": "national_thowheeth_jamaath",
+      "relation": "member_of",
+      "layer": "IDEOLOGICAL",
+      "confidence": "EXTRACTED",
+      "weight": 1.0,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Muhammed Naufer, named as the mastermind, was a leading figure of the NTJ network.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "rilwan_hashim",
+      "target": "national_thowheeth_jamaath",
+      "relation": "member_of",
+      "layer": "IDEOLOGICAL",
+      "confidence": "EXTRACTED",
+      "weight": 1.0,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Rilwan Hashim is named as a member of the National Thowheeth Jama'ath attack network.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "zainee_hashim",
+      "target": "national_thowheeth_jamaath",
+      "relation": "member_of",
+      "layer": "IDEOLOGICAL",
+      "confidence": "EXTRACTED",
+      "weight": 1.0,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Zainee Hashim is named as a member of the National Thowheeth Jama'ath attack network.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "inshaf_ahmed",
+      "target": "national_thowheeth_jamaath",
+      "relation": "member_of",
+      "layer": "IDEOLOGICAL",
+      "confidence": "EXTRACTED",
+      "weight": 1.0,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Inshaf Ahmed is named as a member of the National Thowheeth Jama'ath attack network.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "ilham_ahmed",
+      "target": "national_thowheeth_jamaath",
+      "relation": "member_of",
+      "layer": "IDEOLOGICAL",
+      "confidence": "EXTRACTED",
+      "weight": 1.0,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Ilham Ahmed is named as a member of the National Thowheeth Jama'ath attack network.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "abdul_latheef_jameel",
+      "target": "national_thowheeth_jamaath",
+      "relation": "member_of",
+      "layer": "IDEOLOGICAL",
+      "confidence": "EXTRACTED",
+      "weight": 1.0,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Abdul Latheef Jameel is named as a member of the National Thowheeth Jama'ath attack network.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "mohamed_azam",
+      "target": "national_thowheeth_jamaath",
+      "relation": "member_of",
+      "layer": "IDEOLOGICAL",
+      "confidence": "EXTRACTED",
+      "weight": 1.0,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Mohamed Azam is named as a member of the National Thowheeth Jama'ath attack network.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "mohamed_nassar",
+      "target": "national_thowheeth_jamaath",
+      "relation": "member_of",
+      "layer": "IDEOLOGICAL",
+      "confidence": "EXTRACTED",
+      "weight": 1.0,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Mohamed Nassar is named as a member of the National Thowheeth Jama'ath attack network.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "hasthun",
+      "target": "national_thowheeth_jamaath",
+      "relation": "member_of",
+      "layer": "IDEOLOGICAL",
+      "confidence": "EXTRACTED",
+      "weight": 1.0,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Hasthun is named as a member of the National Thowheeth Jama'ath attack network.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "alawdeen_ahmed_muad",
+      "target": "national_thowheeth_jamaath",
+      "relation": "member_of",
+      "layer": "IDEOLOGICAL",
+      "confidence": "EXTRACTED",
+      "weight": 1.0,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Alawdeen Ahmed Muad is named as a member of the National Thowheeth Jama'ath attack network.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "pulasthini_rajendran",
+      "target": "national_thowheeth_jamaath",
+      "relation": "member_of",
+      "layer": "IDEOLOGICAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Pulasthini Rajendran (Sarah), wife of the bomber Hasthun, was part of the NTJ network and died in the Sainthamaruthu raid.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "fathima_ilham",
+      "target": "national_thowheeth_jamaath",
+      "relation": "member_of",
+      "layer": "IDEOLOGICAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Fathima Ilham, wife of Ilham Ahmed, was part of the network and detonated during the Dematagoda raid.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "inshaf_ahmed",
+      "target": "ilham_ahmed",
+      "relation": "sibling_co_attacker_of",
+      "layer": "IDEOLOGICAL",
+      "confidence": "EXTRACTED",
+      "weight": 1.0,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Ilham Ahmed was the younger brother of Inshaf Ahmed; both were suicide bombers.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "inshaf_ahmed",
+      "target": "national_thowheeth_jamaath",
+      "relation": "financed_and_supplied_materiel_to",
+      "layer": "FINANCIAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": null,
+      "end_date": "2019-04-21",
+      "location": null,
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Inshaf Ahmed owned the Colossus Copper manufacturing business, reportedly used to fabricate suicide vests using bolts and screws.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "army_mohideen",
+      "target": "national_thowheeth_jamaath",
+      "relation": "provided_military_training_to",
+      "layer": "IDEOLOGICAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Army Mohideen reportedly provided military training to the perpetrators.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "zahran_hashim",
+      "target": "abu_hind",
+      "relation": "communicated_with",
+      "layer": "TRANSNATIONAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": "2018-01-01",
+      "end_date": "2019-04-21",
+      "location": "India",
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Zahran Hashim maintained regular phone communication with Abu Hind from India; per his wife Hadiya's testimony this began as early as 2018.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "national_thowheeth_jamaath",
+      "target": "islamic_state",
+      "relation": "pledged_allegiance_to",
+      "layer": "IDEOLOGICAL",
+      "confidence": "AMBIGUOUS",
+      "weight": 0.4,
+      "start_date": "2019-04-23",
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Amaq released a video of eight bombers pledging allegiance to Abu Bakr al-Baghdadi, but the CID found no evidence of direct IS operational involvement.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "zahran_hashim",
+      "target": "islamic_state",
+      "relation": "pledged_allegiance_to",
+      "layer": "IDEOLOGICAL",
+      "confidence": "AMBIGUOUS",
+      "weight": 0.4,
+      "start_date": "2019-04-23",
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Zahran Hashim appeared in the IS pledge-of-allegiance video; direct IS involvement was not established by the CID.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "abdul_latheef_jameel",
+      "target": "islamic_state",
+      "relation": "suspected_foreign_is_contact_of",
+      "layer": "TRANSNATIONAL",
+      "confidence": "AMBIGUOUS",
+      "weight": 0.4,
+      "start_date": "2014-01-01",
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Abdul Latheef was investigated in 2014 by an Australian Joint Counter Terrorism Team over reported ISIS links via operative Neil Prakash.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "ahmed_milhan",
+      "target": "national_thowheeth_jamaath",
+      "relation": "suspected_successor_leader_of",
+      "layer": "IDEOLOGICAL",
+      "confidence": "AMBIGUOUS",
+      "weight": 0.4,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Ahmed Milhan was a suspected mastermind reportedly expected to become a successor NTJ leader.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "hasthun",
+      "target": "pulasthini_rajendran",
+      "relation": "spousal_co_attacker_of",
+      "layer": "IDEOLOGICAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Pulasthini Rajendran (Sarah) was the wife of the bomber Hasthun; she was killed in the Sainthamaruthu raid.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "ilham_ahmed",
+      "target": "fathima_ilham",
+      "relation": "spousal_co_attacker_of",
+      "layer": "IDEOLOGICAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Fathima Ilham was the pregnant wife of Ilham Ahmed; she detonated explosives during the Dematagoda raid.",
+      "extraction_method": "CURATED"
+    },
+    {
+      "source": "jammiyathul_millathu_ibrahim",
+      "target": "national_thowheeth_jamaath",
+      "relation": "splinter_affiliate_of",
+      "layer": "IDEOLOGICAL",
+      "confidence": "INFERRED",
+      "weight": 0.7,
+      "start_date": null,
+      "end_date": null,
+      "location": null,
+      "source_file": "Wikipedia — 2019 Sri Lanka Easter bombings",
+      "source_excerpt": "Jammiyathul Millathu Ibrahim (JMI) was a splinter group designated a terrorist organisation alongside the NTJ.",
+      "extraction_method": "CURATED"
+    }
+  ],
+  "generated_at": "2026-07-11T18:54:00.859829+00:00",
+  "cells": [
+    {
+      "cluster_id": 0,
+      "algorithm": "leiden",
+      "size": 12,
+      "members": [
+        "Abdul Latheef Jameel",
+        "Ahmed Milhan",
+        "Alawdeen Ahmed Muad",
+        "Army Mohideen",
+        "Fathima Ilham",
+        "Ilham Ahmed",
+        "Inshaf Ahmed",
+        "Islamic State",
+        "Jammiyathul Millathu Ibrahim",
+        "Mohamed Azam",
+        "Mohamed Nassar",
+        "National Thowheeth Jamaath"
+      ],
+      "dominant_layer": "IDEOLOGICAL",
+      "internal_edges": 15,
+      "avg_confidence_weight": 0.78,
+      "isolated": false
+    },
+    {
+      "cluster_id": 1,
+      "algorithm": "leiden",
+      "size": 8,
+      "members": [
+        "Ganemulla Sanjeewa",
+        "Kalu Sagara",
+        "Kanjipani Imran",
+        "Kirulapone Merrill",
+        "Kosgoda Sujee",
+        "Makandure Madush",
+        "Siddique",
+        "Wele Suda"
+      ],
+      "dominant_layer": "TRANSNATIONAL",
+      "internal_edges": 13,
+      "avg_confidence_weight": 0.746,
+      "isolated": false
+    },
+    {
+      "cluster_id": 2,
+      "algorithm": "leiden",
+      "size": 7,
+      "members": [
+        "Chinthaka Amarasinghe",
+        "Dhammika Amarasinghe",
+        "Kaduwela Wasantha",
+        "Kalu Ajith",
+        "Moratu Saman",
+        "Nawala Nihal",
+        "Soththi Upali"
+      ],
+      "dominant_layer": "FINANCIAL",
+      "internal_edges": 8,
+      "avg_confidence_weight": 0.737,
+      "isolated": true
+    },
+    {
+      "cluster_id": 3,
+      "algorithm": "leiden",
+      "size": 5,
+      "members": [
+        "Abu Hind",
+        "Naufer Moulavi",
+        "Rilwan Hashim",
+        "Zahran Hashim",
+        "Zainee Hashim"
+      ],
+      "dominant_layer": "IDEOLOGICAL",
+      "internal_edges": 4,
+      "avg_confidence_weight": 0.85,
+      "isolated": false
+    },
+    {
+      "cluster_id": 4,
+      "algorithm": "leiden",
+      "size": 4,
+      "members": [
+        "Angoda Lokka",
+        "Harak Kata",
+        "Kudu Salindu",
+        "Ranale Samayan"
+      ],
+      "dominant_layer": "FINANCIAL",
+      "internal_edges": 3,
+      "avg_confidence_weight": 0.8,
+      "isolated": false
+    },
+    {
+      "cluster_id": 5,
+      "algorithm": "leiden",
+      "size": 3,
+      "members": [
+        "Kimbula-Ela Guna",
+        "Olcott",
+        "Thel Bala"
+      ],
+      "dominant_layer": "IDEOLOGICAL",
+      "internal_edges": 4,
+      "avg_confidence_weight": 0.7,
+      "isolated": true
+    },
+    {
+      "cluster_id": 6,
+      "algorithm": "leiden",
+      "size": 2,
+      "members": [
+        "Hasthun",
+        "Pulasthini Rajendran"
+      ],
+      "dominant_layer": "IDEOLOGICAL",
+      "internal_edges": 1,
+      "avg_confidence_weight": 0.7,
+      "isolated": false
+    }
+  ],
+  "meta": {
+    "title": "Sri Lanka Illicit Networks — Temporal Multiplex Graph",
+    "disclaimer": "Analytical model compiled ONLY from public reporting (Wikipedia, PCoI reporting, named Sri Lankan news outlets). Not a determination of guilt. Confidence tags encode source strength: EXTRACTED = stated plainly in an official record or by named reporting; INFERRED = probable but not adjudicated; AMBIGUOUS = alleged / contested. The three networks are not linked in the public record.",
+    "sources": [
+      {
+        "key": "wiki_mobsters",
+        "publication": "Wikipedia — List of Sri Lankan mobsters",
+        "url": "https://en.wikipedia.org/wiki/List_of_Sri_Lankan_mobsters"
+      },
+      {
+        "key": "wiki_easter",
+        "publication": "Wikipedia — 2019 Sri Lanka Easter bombings",
+        "url": "https://en.wikipedia.org/wiki/2019_Sri_Lanka_Easter_bombings"
+      },
+      {
+        "key": "adaderana_madush",
+        "publication": "Ada Derana — 'Makandure Madush arrested in Dubai'",
+        "url": "http://www.adaderana.lk/news/53068/makandure-madush-arrested-in-dubai"
+      },
+      {
+        "key": "dm_imran",
+        "publication": "Daily Mirror — 'Kanjipani Imran, three others deported from Dubai'",
+        "url": "https://www.dailymirror.lk/breaking-news/Kanjipani-Imran-three-others-deported-from-Dubai/108-164623"
+      },
+      {
+        "key": "dbsj_madush",
+        "publication": "dbsjeyaraj.com — 'Downfall in Dubai of Sri Lanka's Most Wanted Drug Dealer Makandure Madush'",
+        "url": "https://dbsjeyaraj.com/dbsj/?p=62890"
+      },
+      {
+        "key": "dm_madush_arrest",
+        "publication": "Daily Mirror — 'Who was behind the arrest of Makandure Madush?'",
+        "url": "https://www.dailymirror.lk/news-features/Who-was-behind-the-arrest-of-Makandure-Madush-/131-162475"
+      },
+      {
+        "key": "newsfirst_harak",
+        "publication": "News First — 'Underworld gangster Harak Kata extradited to Sri Lanka from Madagascar'",
+        "url": "https://www.newsfirst.lk/2023/03/15/underworld-gangster-harak-kata-extradited-to-sri-lanka-from-madagascar"
+      },
+      {
+        "key": "timesaddu_harak",
+        "publication": "Times of Addu — 'Sri Lankan drug trafficker Harak Kata with links to Maldives arrested in Dubai'",
+        "url": "https://timesofaddu.com/2022/08/13/sri-lankan-drug-trafficker-harak-kata-with-links-to-maldives-arrested-in-dubai/"
+      },
+      {
+        "key": "lnw_boossa",
+        "publication": "Lanka News Web — 'Mobile phone and accessories found in cells of notorious criminals at Boossa Prison'",
+        "url": "https://lankanewsweb.net/archives/63756/"
+      },
+      {
+        "key": "jamestown_zahran",
+        "publication": "Jamestown Foundation — 'The Mastermind of the Sri Lankan Easter Sunday Attacks: Zahran Hashim'",
+        "url": "https://jamestown.org/brief/the-mastermind-of-the-sri-lankan-easter-sunday-attacks-a-brief-sketch-of-mohammed-zahran-hashim-of-national-thowheeth-jamaath/"
+      },
+      {
+        "key": "adaderana_pcoi",
+        "publication": "Ada Derana — 'Zahran planned to launch Easter attack using 20 bombers, PCoI hears'",
+        "url": "https://adaderana.lk/news/68204"
+      },
+      {
+        "key": "tamilguardian_80",
+        "publication": "Tamil Guardian — 'Drug kingpin killed to protect the identity of 80 politicians claims JVP MP'",
+        "url": "https://www.tamilguardian.com/content/drug-kingpin-killed-protect-identity-80-politicians-claims-jvp-mp"
+      }
+    ],
+    "layers": {
+      "IDEOLOGICAL": "Shared/adopted extremist ideology, membership, allegiance",
+      "FINANCIAL": "Money flows and shared illicit enterprise (drug operations, funding, enterprise violence)",
+      "PRISON_CO_LOCATION": "Co-located in a prison / remand facility",
+      "TRANSNATIONAL": "Cross-border links: foreign networks, smuggling routes, overseas handlers"
+    },
+    "confidence": {
+      "EXTRACTED": "1.0 — stated plainly in an official record or by named reporting",
+      "INFERRED": "0.7 — probable link reporting supports but has not adjudicated",
+      "AMBIGUOUS": "0.4 — alleged / contested / uncorroborated"
+    }
+  }
+}

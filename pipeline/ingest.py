@@ -1,5 +1,11 @@
 """One-command ingestion: turn raw source files into extraction-ready text.
 
+NOTE (speckit T9): governed ingestion now lives in `aegis ingest land` /
+`aegis ingest extract` — raw bytes go to the content-addressed evidence vault
+with a provenance envelope and a source_record row, and extraction output lands
+in the review queue instead of the graph. This module remains for the legacy
+file-based prototype flow (real_data/*.txt + build_real_graph.py) until Phase 3.
+
 Routes every file by extension and writes a provenance-headed .txt into
 real_data/, where the extraction passes (and `build_real_graph.py --semantic`)
 pick it up:
