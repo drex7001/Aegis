@@ -17,7 +17,7 @@ extended** (ADR-023).
 | 4 | [`decisions.md`](decisions.md) | ADR log — every load-bearing decision with rationale and revisit triggers. |
 | 5 | [`roadmap.md`](roadmap.md) | Phased roadmap v2 (milestones I–VI, P0–P9, ★ MVP gate at P2) with exit criteria. |
 | 6 | [`phases/`](phases/) | One charter per phase (P0–P9): objectives, deliverables, dependencies, exit criteria, risks, task sketch. P0–P1 are retrospective records of the completed foundation. |
-| 7 | [`tasks/`](tasks/) | Per-phase T-level task lists, numbering global across phases: [`phase-01`](tasks/phase-01.md) (T1–T16, DONE) · [`phase-02`](tasks/phase-02.md) (T17–T28, **ACTIVE** — closes the MVP gate) · pre-authored: [`phase-03`](tasks/phase-03.md) (T29–T40), [`phase-04`](tasks/phase-04.md) (T41–T53), [`phase-05`](tasks/phase-05.md) (T54–T65). |
+| 7 | [`tasks/`](tasks/) | Per-phase T-level task lists, numbering global across phases: [`phase-01`](tasks/phase-01.md) (T1–T16, DONE) · [`phase-02`](tasks/phase-02.md) (T17–T28, **ACTIVE** — closes the MVP gate) · pre-authored: [`phase-03`](tasks/phase-03.md) (T29–T40), [`phase-04`](tasks/phase-04.md) (T41–T53), [`phase-05`](tasks/phase-05.md) (T54–T65), [`phase-06`](tasks/phase-06.md) (T66–T77), [`phase-07`](tasks/phase-07.md) (T78–T89). |
 | 8 | [`reviews/`](reviews/) | Phase exit reviews, one per closed gate — written by each phase's final task ([`phase-01`](reviews/phase-01-exit-review.md) exists). |
 
 ## Detailed specs

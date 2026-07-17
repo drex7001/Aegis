@@ -174,7 +174,8 @@ and graph from one claim set; precision is visually distinct; an event with
 
 **Goal.** Find anything you're allowed to find; save and share what you found;
 compute metrics that explain themselves. Charter:
-`phases/phase-06-search-object-sets-analytics.md`.
+`phases/phase-06-search-object-sets-analytics.md` · tasks:
+`tasks/phase-06.md` (T66–T77, pre-authored).
 
 **Deliverables (summary)** — global search (FTS + trigram + transliteration,
 authorization re-check before hydration, golden Sinhala/Tamil/English test
@@ -196,7 +197,8 @@ both an analytic run and a watchlist.
 ### Phase 7 — Sharing & governance hardening *(GOAL.md §21–24, §27 · effort: L)*
 
 **Goal.** Ready for a second user you don't fully trust, and for output that
-leaves the system. Charter: `phases/phase-07-sharing-governance.md`.
+leaves the system. Charter: `phases/phase-07-sharing-governance.md` · tasks:
+`tasks/phase-07.md` (T78–T89, pre-authored).
 
 **Deliverables (summary)** — compartments (FGA) incl. informant-pattern
 separation; sealed/expunged judicial-state handling with projection exclusion;

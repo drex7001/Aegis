@@ -1,7 +1,8 @@
 # Phase 7 Charter — Sharing & governance hardening
 
-Status: charter (tasks authored at phase start) · Constitutional basis: Articles
-IV, VI, VIII, X · GOAL.md §21–24, §27 (exchange packages), Rule 4
+Status: charter · tasks pre-authored: `../tasks/phase-07.md` (T78–T89;
+re-validated by T78 at phase start) · Constitutional basis: Articles IV, VI,
+VIII, X · GOAL.md §21–24, §27 (exchange packages), Rule 4
 
 ## Objective
 
@@ -87,7 +88,7 @@ organizations, cross-border policy packs, signed inter-agency exchange (all
 P9 federation-trigger territory — the package *format* lands here, the
 federation *protocol* does not).
 
-## Task sketch (milestone level — T-file at phase start)
+## Task sketch (expanded into `../tasks/phase-07.md`, T78–T89)
 
 - **A — Field filters:** read-path redaction from ontology sensitivity.
 - **B — Compartments:** FGA live, informant pattern, synthetic tests.

@@ -1,7 +1,8 @@
 # Phase 6 Charter — Search, object sets & governed analytics
 
-Status: charter (tasks authored at phase start) · Constitutional basis: Articles
-VI, IX, XIII · GOAL.md §12, §13, §32, §7.8 (object sets) · ADR-012
+Status: charter · tasks pre-authored: `../tasks/phase-06.md` (T66–T77;
+re-validated by T66 at phase start) · Constitutional basis: Articles VI, IX,
+XIII · GOAL.md §12, §13, §32, §7.8 (object sets) · ADR-012
 
 ## Objective
 
@@ -83,7 +84,7 @@ OpenSearch (trigger-gated), GNN link prediction and ML anomaly detection
 models (no financial feeds yet), streaming alerts (Kafka trigger), cross-case
 global dashboards.
 
-## Task sketch (milestone level — T-file at phase start)
+## Task sketch (expanded into `../tasks/phase-06.md`, T66–T77)
 
 - **A — Search:** indexes, transliteration keys, grouped results, authz
   re-check, golden set + CI gate.
