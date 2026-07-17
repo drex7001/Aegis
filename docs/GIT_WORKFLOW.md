@@ -3,7 +3,9 @@
 The rules for how code reaches `master` in this repository. Adopted 2026-07-17
 (everything before then was committed directly to master; that stopped with the
 roadmap-v2 commit). Model: **GitHub Flow** — trunk-based development with
-short-lived branches. AI agents follow these rules too (see `/AGENTS.md`).
+short-lived branches. AI agents follow these rules unchanged, plus the
+[AI-assisted development](#ai-assisted-development) section below (summary in
+`/AGENTS.md`).
 
 ## The six rules
 
@@ -62,6 +64,59 @@ Conventional style, as the history already uses:
 AI-assisted commits keep the `Co-Authored-By:` trailer. Since PRs are
 squash-merged, the **PR title becomes the master commit subject** — write PR
 titles in the same conventional format.
+
+## AI-assisted development
+
+AI agents (Claude Code and similar) do real work in this repository. The six
+rules above bind them unchanged; the rules below make agent work auditable and
+reviewable — the code-side analogue of constitution Article VII (*AI suggests,
+humans decide*).
+
+**Provenance.**
+
+- Every AI-assisted commit carries the agent trailer, e.g.
+  `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`. The human operator
+  is the author; the trailer makes AI involvement queryable
+  (`git log --grep="Co-Authored-By: Claude"`).
+- Agent-drafted PR bodies say so, and end with the standard
+  `🤖 Generated with Claude Code` line.
+
+**Human review is the merge gate.**
+
+- An agent never approves or merges its own PR and never bypasses branch
+  protection. The human who merges owns what lands; the PR checklist below is
+  the *human's* self-review, not the agent's.
+- Agents do not run `gh pr merge`. A human merges after reading the full diff
+  and seeing CI green.
+
+**Honest verification.**
+
+- The PR body states exactly what was verified (`pytest -q -m "not
+  integration"`, `aegis ontology validate`, manual checks) and what was not.
+  An agent never claims green it didn't see; failing output is reported
+  verbatim, not summarized away.
+- Agents never use `--no-verify`, `[skip ci]`, or disable hooks/signing. If a
+  hook or check fails, fix the cause — don't route around it.
+
+**Scope discipline.**
+
+- One task → one branch → one PR. An agent stages only files the task
+  requires, and reviews `git status` + `git diff --stat` before committing —
+  no drive-by refactors, no unrelated churn (they get their own branch).
+- Mechanical changes (renames, moves, formatting) are kept in separate commits
+  from behavioral changes, so the reviewer can actually see the logic diff.
+
+**Destructive operations need explicit human direction.**
+
+- No force-push, no `reset --hard`, no `git clean`, no amending or deleting
+  pushed work — unless the human explicitly asks for it in that session.
+  Preference order for undo: new commit → `git revert` → ask.
+
+**Session hygiene.**
+
+- Agents branch from up-to-date `master` and, when a session ends, report the
+  exact state left behind: branch name, committed vs staged vs untracked, and
+  whether anything was pushed.
 
 ## The day-to-day loop
 

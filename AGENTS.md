@@ -21,6 +21,11 @@ scaffolding: **replace, never extend** (ADR-023, ADR-024).
   changed, `aegis ontology validate` + a semver bump (spec 01 §4).
 - Never rewrite pushed history; undo on master is `git revert`.
 - Never commit secrets (`.env` stays untracked) or large binaries.
+- **AI-agent rules** (GIT_WORKFLOW.md §AI-assisted development): never merge
+  or approve your own PR; never use `--no-verify`/`[skip ci]`/force-push;
+  stage only files the task requires; keep mechanical and behavioral changes
+  in separate commits; PR bodies state exactly what verification ran; report
+  failures verbatim; destructive git operations only on explicit human ask.
 
 ## Governance rules (from `speckit/constitution.md` — non-negotiable)
 
