@@ -349,3 +349,84 @@ pending).
 
 **Revisit when.** Never for the principle. The remap table grows only if more legacy
 sources are migrated — and it grows in the migration module, not the ontology.
+
+---
+
+## ADR-017: Predicate objects may be entity-or-literal; ontology → 0.3.0
+
+**Context.** The legacy `affiliations` field (specs/02 §6) resolves to an organization
+entity "when it exists, else literal". The v0.2.0 ontology could express only a pure
+entity object or a pure `literal` object, so `affiliated_with` could not carry both a
+resolved org reference (`Madush → NTJ`) and an unresolved label (`"Madush drug
+network"`) under one predicate. The T8 migration and the T9 extraction rewire both
+need the fallback.
+
+**Decision.** A predicate's `object` may be a list of object types that also contains
+the string `literal` (e.g. `affiliated_with: {object: [organization, literal]}`),
+meaning the object may be an entity of those types *or* a JSON literal. The loader
+exposes `allows_entity` / `allows_literal` / `entity_object_types`; the actions layer
+validates whichever form a claim supplies. `object: [literal]` alone is rejected as
+redundant (use the string form `object: literal`). Ontology bumped 0.2.0 → 0.3.0
+(additive/minor — one predicate widened, no rename).
+
+**Consequences.** One predicate spans the resolved and unresolved cases, so the
+projection round-trips affiliations back to the legacy `affiliations` node field
+whether they matched an org or not. `claim` still enforces the object XOR at the DB
+level (exactly one of `object_id` / `object_value`); the ontology only widens what the
+actions layer accepts.
+
+**Revisit when.** A predicate needs *typed* literals (Phase 4 value objects) — then
+literals gain their own value-type declaration rather than the bare `literal` marker.
+
+---
+
+## ADR-018: Identity tables (`mention`, `identity_membership`) land with T8, not T4
+
+**Context.** Spec 02 §2 defines `mention` + `identity_membership` for versioned,
+reversible identity (Article V). T4's table list (the core claim store) omitted them,
+and T4's schema-inspection test asserts exactly the T4 table set. The legacy migration
+(T8) is the first code that needs them — one mention + one membership per legacy node,
+`decided_by='rule:legacy-slug'`.
+
+**Decision.** Ship `mention` and `identity_membership` in migration `0005` as part of
+T8a, immediately before the migration that populates them, rather than back-dating
+them into the T4 baseline. Full ER (Splink, adjudication) remains Phase 2 (specs/05);
+Phase 1 only creates the one-mention-per-node clusters the projection reads.
+
+**Consequences.** T4's schema test is unchanged (still asserts the core set); the
+identity tables have their own migration and are exercised by the T8/T10 integration
+tests. These tables carry FK columns but no ORM `relationship()`, so inserts that
+reference a freshly-created parent must flush the parent first (the migration does).
+
+**Revisit when.** Phase 2 — adjudication actions add merge/split, which supersede
+memberships (`valid_to`) rather than deleting them.
+
+---
+
+## ADR-019: The legacy `/api/*` projection surface is public and open-only
+
+**Context.** T13/T14 require the existing single-page UI to "work unchanged" against
+the governed API. That UI fetches `/api/graph`, `/api/stats`, `/api/cells`,
+`/api/query/{name}` with **no bearer token**. Spec 03 §4's deny-by-default rule says
+every route without an `authorize` dependency fails CI.
+
+**Decision.** The unversioned `/api/*` projection routes are explicitly marked
+`public_route` and serve **only** the open-handling, case-less projection — the public
+OSINT floor. The graph emitter (`aegis.projections.graph.build_graph`) defaults to
+`open_only=True`: anything above `open`, case-scoped, or retracted never enters
+`output/real_graph.json`, so there is nothing for a token-less caller to leak. The
+deny-by-default lint (`find_ungated_routes`) accepts a route only if it is gated
+(`authorize`/`current_user`) *or* marked `public_route`; the governed `/v1/*` routes
+are all gated. The corrected kinship categorization (`sibling_of`, `spouse_of` →
+`kinship`) surfaces as a new `KINSHIP` layer in the legacy `LayerType` enum and the UI
+filter/colours.
+
+**Consequences.** The public surface can never widen past `open` without changing the
+emitter default (a visible, reviewable one-line change). Agency deployments that want
+no anonymous graph at all drop the `public_route` markers and put the UI behind the
+bearer flow — the data path is identical. `app/server.py` is retired to a deprecated
+offline-demo tool (kept until Phase 3).
+
+**Revisit when.** A deployment needs authenticated, clearance-scoped graph reads in the
+UI — then the UI adopts the bearer flow and `/api/graph` gains the `authorize()` gate
+plus row filters, and the `public_route` marker is removed.

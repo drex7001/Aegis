@@ -110,3 +110,9 @@ real_data/*.txt
 !real_data/README.md
 
 Files/videoplayback.mp4
+
+# T15 backup artifacts (may contain restricted data)
+backups/
+
+# T10 projection snapshot fixture (committed test baseline)
+!tests/snapshots/real_graph.baseline.json

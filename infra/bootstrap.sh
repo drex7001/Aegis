@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Aegis dev bootstrap (speckit T1). Idempotent — safe to re-run.
-# Requires: services up (`make up`), docker, curl, python3.
+# Requires: services up (`make up`), docker, curl, python3 (or python on Windows).
 #   1. MinIO buckets (raw-landing, evidence, exports) + versioning
 #   2. Keycloak realm check (imported automatically at container start)
 #   3. OpenFGA store "aegis" + authorization model push
@@ -15,6 +15,12 @@ COMPOSE=(docker compose "${ENVFILE_ARGS[@]}" -f "$ROOT/infra/docker-compose.yml"
 FGA_URL="${FGA_API_URL:-http://localhost:8082}"
 KC_URL="${KEYCLOAK_URL:-http://localhost:8180}"
 KC_REALM="${KEYCLOAK_REALM:-aegis}"
+# Windows ships a fake python3 Store shim — probe by executing, not by lookup.
+PY=""
+for cand in python3 python; do
+  if "$cand" -c 'pass' >/dev/null 2>&1; then PY="$cand"; break; fi
+done
+[ -n "$PY" ] || { echo "ERROR: no working python3/python on PATH" >&2; exit 1; }
 
 step() { printf '\n==> %s\n' "$*"; }
 
@@ -33,7 +39,7 @@ else
 fi
 
 step "openfga: ensure store 'aegis'"
-store_id="$(curl -fsS "$FGA_URL/stores" | python3 -c '
+store_id="$(curl -fsS "$FGA_URL/stores" | "$PY" -c '
 import json, sys
 stores = json.load(sys.stdin).get("stores", [])
 print(next((s["id"] for s in stores if s["name"] == "aegis"), ""))
@@ -41,7 +47,7 @@ print(next((s["id"] for s in stores if s["name"] == "aegis"), ""))
 if [ -z "$store_id" ]; then
   store_id="$(curl -fsS -X POST "$FGA_URL/stores" \
     -H 'content-type: application/json' -d '{"name":"aegis"}' \
-    | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
+    | "$PY" -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
   echo "created store: $store_id"
 else
   echo "store exists: $store_id"
@@ -51,7 +57,7 @@ step "openfga: write authorization model (infra/fga/model.json)"
 model_id="$(curl -fsS -X POST "$FGA_URL/stores/$store_id/authorization-models" \
   -H 'content-type: application/json' \
   --data-binary @"$ROOT/infra/fga/model.json" \
-  | python3 -c 'import json,sys; print(json.load(sys.stdin)["authorization_model_id"])')"
+  | "$PY" -c 'import json,sys; print(json.load(sys.stdin)["authorization_model_id"])')"
 echo "model written: $model_id"
 
 step "write infra/.runtime.env"
