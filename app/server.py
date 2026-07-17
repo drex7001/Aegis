@@ -1,5 +1,12 @@
 """FastAPI backend for the Sri Lanka temporal multiplex network explorer.
 
+DEPRECATED (speckit T14): the governed API now serves this UI and the same
+``/api/*`` projection surface — run ``aegis serve`` (aegis.api.create_app),
+which mounts app/static and reads the projection from the claim store. This
+standalone server is kept until Phase 3 for offline demos of the legacy
+file-based pipeline (build_real_graph.py → output/real_graph.json); it performs
+no authorization and must not be exposed beyond localhost.
+
 Serves the interactive UI and a small JSON API over output/real_graph.json:
 
     GET /                     the single-page Cytoscape.js explorer

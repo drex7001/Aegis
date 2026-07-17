@@ -29,6 +29,7 @@ class Settings(BaseSettings):
 
     keycloak_url: str = Field(default="http://localhost:8180", validation_alias="KEYCLOAK_URL")
     keycloak_realm: str = Field(default="aegis", validation_alias="KEYCLOAK_REALM")
+    api_audience: str = Field(default="aegis-api", validation_alias="AEGIS_API_AUDIENCE")
 
     minio_endpoint: str = Field(default="localhost:9000", validation_alias="MINIO_ENDPOINT")
     minio_access_key: str = Field(default="aegis", validation_alias="MINIO_ROOT_USER")

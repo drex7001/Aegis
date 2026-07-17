@@ -12,7 +12,7 @@
   :root{
     --bg:#0d1117; --panel:#161b22; --panel2:#0d1117; --border:#30363d;
     --text:#e6edf3; --muted:#8b949e; --accent:#539bf5;
-    --ideo:#e5534b; --fin:#3fb950; --prison:#d29922; --trans:#539bf5;
+    --ideo:#e5534b; --fin:#3fb950; --prison:#d29922; --trans:#539bf5; --kin:#a371f7;
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -102,6 +102,7 @@
       <div class="row"><input type="checkbox" class="layer" value="FINANCIAL" checked><span class="swatch" style="background:var(--fin)"></span><label>Financial</label></div>
       <div class="row"><input type="checkbox" class="layer" value="PRISON_CO_LOCATION" checked><span class="swatch" style="background:var(--prison)"></span><label>Prison co-location</label></div>
       <div class="row"><input type="checkbox" class="layer" value="TRANSNATIONAL" checked><span class="swatch" style="background:var(--trans)"></span><label>Transnational</label></div>
+      <div class="row"><input type="checkbox" class="layer" value="KINSHIP" checked><span class="swatch" style="background:var(--kin)"></span><label>Kinship/personal</label></div>
     </div>
 
     <div class="section">
@@ -173,7 +174,7 @@
 </div>
 
 <script>
-const LAYER_COLORS = {IDEOLOGICAL:'#e5534b', FINANCIAL:'#3fb950', PRISON_CO_LOCATION:'#d29922', TRANSNATIONAL:'#539bf5'};
+const LAYER_COLORS = {IDEOLOGICAL:'#e5534b', FINANCIAL:'#3fb950', PRISON_CO_LOCATION:'#d29922', TRANSNATIONAL:'#539bf5', KINSHIP:'#a371f7'};
 const CONF_STYLE = {EXTRACTED:'solid', INFERRED:'dashed', AMBIGUOUS:'dotted'};
 const CLUSTER_COLORS = ['#539bf5','#e5534b','#3fb950','#d29922','#986ee2','#39c5cf','#ec775c','#c9a0ff','#57ab5a','#daaa3f','#6cb6ff','#f0883e'];
 const DAY = 86400000;
