@@ -9,7 +9,7 @@ Cypher exporter consume — from the canonical claim store:
 * edges come from the ``edge_projection`` materialized view, detail fields
   from the strongest claim in each group;
 * cells come from the unchanged prototype clustering
-  (:func:`pipeline.clustering.detect_cells`) running on the projection.
+  (:func:`legacy.pipeline.clustering.detect_cells`) running on the projection.
 
 Everything here is derived state (Article XIII): safe to delete and rebuild.
 """
@@ -82,7 +82,7 @@ CONFIDENCE_DESCRIPTIONS = {
 
 
 def _slugify(label: str) -> str:
-    from pipeline.models import slugify
+    from legacy.pipeline.models import slugify
 
     return slugify(label)
 
@@ -219,7 +219,7 @@ def build_graph(
 
 def build_full_graph(session: Session, ontology: Ontology) -> dict[str, Any]:
     """Graph + cells + meta — the complete legacy output/real_graph.json shape."""
-    from pipeline.clustering import detect_cells
+    from legacy.pipeline.clustering import detect_cells
 
     graph = build_graph(session, ontology)
     cells = detect_cells(graph)  # also stamps cluster_id onto every node
@@ -246,7 +246,7 @@ def build_full_graph(session: Session, ontology: Ontology) -> dict[str, Any]:
 
 def write_outputs(graph: dict[str, Any], output_dir: Path) -> list[Path]:
     """real_graph.json + real_ingest.cypher (the preserved Cypher export path)."""
-    from pipeline.neo4j_export import generate_cypher
+    from legacy.pipeline.neo4j_export import generate_cypher
 
     output_dir.mkdir(parents=True, exist_ok=True)
     graph_path = output_dir / "real_graph.json"

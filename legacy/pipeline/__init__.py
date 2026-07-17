@@ -8,7 +8,7 @@ Every edge carries a Graphify-style confidence tag (EXTRACTED / INFERRED / AMBIG
 a derived weight (1.0 / 0.7 / 0.4), a multiplex layer, and a temporal window.
 """
 
-from pipeline.models import (
+from legacy.pipeline.models import (
     CONFIDENCE_WEIGHTS,
     ConfidenceTag,
     CriminalNode,

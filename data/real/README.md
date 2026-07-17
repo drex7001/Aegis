@@ -1,7 +1,7 @@
 # Real data — provenance & ethics
 
 This folder holds the **real** input corpus for Aegis's first application domain —
-criminal-network analysis of documented Sri Lankan cases. Unlike `sample_data/` (which
+criminal-network analysis of documented Sri Lankan cases. Unlike `data/sample/` (which
 is fictional and exists only to exercise the regex/structural pass), everything here is
 compiled from **public reporting** about documented cases.
 
@@ -13,8 +13,9 @@ compiled from **public reporting** about documented cases.
 | `easter_attacks_network.txt` | Narrative summary of the 2019 Easter Sunday / NTJ network — input for the semantic pass. |
 
 The authoritative, fully-cited node/edge set lives in code at
-[`pipeline/real_dataset.py`](../pipeline/real_dataset.py) (the deterministic **curated OSINT layer**).
-Running `python build_real_graph.py` assembles it into `output/real_graph.json`.
+[`legacy/pipeline/real_dataset.py`](../../legacy/pipeline/real_dataset.py) (the deterministic **curated OSINT layer**).
+Running `python legacy/build_real_graph.py` assembles it into `output/real_graph.json`
+(superseded by `aegis migrate-legacy` + `aegis projections rebuild` on the platform path).
 
 ## Sources
 
@@ -26,7 +27,7 @@ All facts trace to public reporting, principally:
 - Ada Derana, Daily Mirror, News First, dbsjeyaraj.com, Times of Addu, Lanka News Web, Tamil Guardian
 
 Each node and edge carries its own `source_file` citation (see the `SOURCES` map in
-`pipeline/real_dataset.py`), surfaced in the UI's **Sources** panel and each entity's detail card.
+`legacy/pipeline/real_dataset.py`), surfaced in the UI's **Sources** panel and each entity's detail card.
 
 ## Ethics & honesty rules
 

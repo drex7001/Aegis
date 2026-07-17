@@ -8,7 +8,7 @@
 Every command you need, in order, with what to expect. Commands are PowerShell (Windows);
 on macOS/Linux replace `.venv\Scripts\` with `.venv/bin/`.
 
-> Big picture and concepts: [`../ARCHITECTURE.md`](../ARCHITECTURE.md).
+> Big picture and concepts: [`../legacy/ARCHITECTURE.md`](../legacy/ARCHITECTURE.md).
 > Adding your own data: [`ADDING_DATA.md`](ADDING_DATA.md).
 > Ingesting raw files (PDF/video/audio → text): [`INGESTION.md`](INGESTION.md).
 
@@ -19,7 +19,7 @@ on macOS/Linux replace `.venv\Scripts\` with `.venv/bin/`.
 ```powershell
 cd <repo root>
 python -m venv .venv
-.venv\Scripts\pip install -r requirements.txt
+.venv\Scripts\pip install -r legacy/requirements.txt
 ```
 
 This installs: Pydantic, LangChain (+ `langchain-google-genai` for Gemini), NetworkX,
@@ -29,7 +29,7 @@ python-igraph + leidenalg (true Leiden), pdfplumber, the Neo4j driver, and FastA
 run `./scripts/setup_ingestion.sh` once: it creates the venv if needed, installs CPU
 torch + the packages above, and puts a project-local Java runtime in `.tools/jre` for
 the opendataloader-pdf parser (no root). Then ingest with
-`.venv/bin/python -m pipeline.ingest` — see [`INGESTION.md`](INGESTION.md).
+`.venv/bin/python -m legacy.pipeline.ingest` — see [`INGESTION.md`](INGESTION.md).
 
 **Configure the LLM key (optional, only for the live semantic pass).** `.env` already holds:
 
@@ -46,7 +46,7 @@ to use a different provider (install the matching `langchain-<provider>` package
 ## 1. Build the real graph (recommended default — offline, deterministic)
 
 ```powershell
-.venv\Scripts\python build_real_graph.py
+.venv\Scripts\python legacy/build_real_graph.py
 ```
 
 Expected tail:
@@ -65,7 +65,7 @@ graph the UI serves by default.
 ## 2. Launch the web UI
 
 ```powershell
-.venv\Scripts\python -m app.server
+.venv\Scripts\python -m legacy.app.server
 ```
 
 Then open **http://127.0.0.1:8000**. You should see the interactive network with the left
@@ -73,7 +73,7 @@ control panel (layers, confidence, temporal slider, analyst queries) and the rig
 panel (detected cells, breakdown, sources). Ctrl+C stops the server.
 
 > The server re-reads `output/real_graph.json` on every request, so after re-running
-> `build_real_graph.py` you only need to **refresh the browser** — no restart.
+> `legacy/build_real_graph.py` you only need to **refresh the browser** — no restart.
 
 Quick API checks (in another terminal):
 
@@ -87,10 +87,10 @@ Invoke-RestMethod http://127.0.0.1:8000/api/query/brokers
 ## 3. Build with the live LLM (Gemini) semantic pass
 
 ```powershell
-.venv\Scripts\python build_real_graph.py --semantic
+.venv\Scripts\python legacy/build_real_graph.py --semantic
 ```
 
-This runs Gemini over each narrative in `real_data/`, validates and merges the results,
+This runs Gemini over each narrative in `data/real/`, validates and merges the results,
 prunes any dangling edges, re-clusters, and rewrites the outputs. Expected: the node/edge
 counts grow (e.g. ~46 nodes / ~90 edges) and you'll see per-document lines like:
 
@@ -101,7 +101,7 @@ counts grow (e.g. ~46 nodes / ~90 edges) and you'll see per-document lines like:
 
 If a call fails it is skipped (`[skip] ...`) and the curated graph is still written.
 
-> To go back to the clean curated graph for the UI, just run `build_real_graph.py` again
+> To go back to the clean curated graph for the UI, just run `legacy/build_real_graph.py` again
 > without `--semantic`.
 
 ---
@@ -118,21 +118,21 @@ Then either **paste** `output/real_ingest.cypher` into Neo4j Browser (http://loc
 no plugins needed), **or push via the driver** (set `NEO4J_URI/USER/PASSWORD` in `.env`):
 
 ```powershell
-.venv\Scripts\python build_real_graph.py --semantic --push   # build + push in one go
+.venv\Scripts\python legacy/build_real_graph.py --semantic --push   # build + push in one go
 # or, push an already-built graph:
-.venv\Scripts\python -m pipeline.neo4j_export --graph output/real_graph.json --push
+.venv\Scripts\python -m legacy.pipeline.neo4j_export --graph output/real_graph.json --push
 ```
 
-Analyst queries to try in Neo4j Browser are in [`../cypher/ingest.cypher`](../cypher/ingest.cypher).
+Analyst queries to try in Neo4j Browser are in [`../legacy/cypher/ingest.cypher`](../legacy/cypher/ingest.cypher).
 
 ---
 
 ## 5. The fictional mechanism demo (no API key)
 
-`demo.py` exercises the **regex structural pass** and validation guardrails on invented data:
+`legacy/demo.py` exercises the **regex structural pass** and validation guardrails on invented data:
 
 ```powershell
-.venv\Scripts\python demo.py --mock
+.venv\Scripts\python legacy/demo.py --mock
 ```
 
 Expected: it proves the guardrails (a hand-set weight is corrected; a bad date is rejected),
@@ -146,13 +146,13 @@ machinery — it is **not** the real dataset.
 
 ```powershell
 # Validate the curated dataset and check for dangling edges
-.venv\Scripts\python -m pipeline.real_dataset
+.venv\Scripts\python -m legacy.pipeline.real_dataset
 
 # List Gemini models your key can use
 .venv\Scripts\python -c "import os,urllib.request,json;from dotenv import load_dotenv;load_dotenv();k=os.getenv('GEMINI_API_KEY');d=json.load(urllib.request.urlopen('https://generativelanguage.googleapis.com/v1beta/models?key='+k));print('\n'.join(m['name'] for m in d['models']))"
 
 # Regenerate only the Cypher from an existing graph
-.venv\Scripts\python -m pipeline.neo4j_export --graph output/real_graph.json --out output/real_ingest.cypher
+.venv\Scripts\python -m legacy.pipeline.neo4j_export --graph output/real_graph.json --out output/real_ingest.cypher
 ```
 
 ---
@@ -161,12 +161,12 @@ machinery — it is **not** the real dataset.
 
 | Goal | Command |
 |---|---|
-| Install | `.venv\Scripts\pip install -r requirements.txt` |
+| Install | `.venv\Scripts\pip install -r legacy/requirements.txt` |
 | Ingestion setup (Linux/macOS, no root) | `./scripts/setup_ingestion.sh` |
-| Ingest raw files (PDF/video/audio) | `.venv\Scripts\python -m pipeline.ingest` |
-| Build real graph (offline) | `.venv\Scripts\python build_real_graph.py` |
-| Build + live Gemini | `.venv\Scripts\python build_real_graph.py --semantic` |
-| Build + push to Neo4j | `.venv\Scripts\python build_real_graph.py --semantic --push` |
-| Serve the UI | `.venv\Scripts\python -m app.server` |
-| Fictional demo | `.venv\Scripts\python demo.py --mock` |
-| Validate curated data | `.venv\Scripts\python -m pipeline.real_dataset` |
+| Ingest raw files (PDF/video/audio) | `.venv\Scripts\python -m legacy.pipeline.ingest` |
+| Build real graph (offline) | `.venv\Scripts\python legacy/build_real_graph.py` |
+| Build + live Gemini | `.venv\Scripts\python legacy/build_real_graph.py --semantic` |
+| Build + push to Neo4j | `.venv\Scripts\python legacy/build_real_graph.py --semantic --push` |
+| Serve the UI | `.venv\Scripts\python -m legacy.app.server` |
+| Fictional demo | `.venv\Scripts\python legacy/demo.py --mock` |
+| Validate curated data | `.venv\Scripts\python -m legacy.pipeline.real_dataset` |

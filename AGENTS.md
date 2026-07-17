@@ -5,8 +5,8 @@ first application domain is criminal-network analysis over a Sri Lankan OSINT
 corpus. The vision is `GOAL.md`; the buildable path is `speckit/` (read
 `speckit/README.md` first). Work is phase-gated: check `speckit/roadmap.md`
 for the current phase and its charter in `speckit/phases/` before starting
-anything. The pre-Aegis prototype (`pipeline/`, `app/`) is legacy scaffolding:
-**replace, never extend** (ADR-023).
+anything. The pre-Aegis prototype (quarantined under `legacy/`) is
+scaffolding: **replace, never extend** (ADR-023, ADR-024).
 
 ## Git rules (binding — full doc: `docs/GIT_WORKFLOW.md`)
 
@@ -54,4 +54,4 @@ automatically on every push/PR — do not merge on red.
 
 Open-source-only corpus about real people: never add national-ID numbers for
 real persons, never present association as guilt, follow
-`real_data/README.md`. Fictional test data lives in `sample_data/`.
+`data/real/README.md`. Fictional test data lives in `data/sample/`.

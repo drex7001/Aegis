@@ -5,16 +5,16 @@
 > **replaced, never extended**: it survives only as scaffolding (the explorer is
 > served by `aegis serve` off a rebuildable projection) until the Phase 4
 > workspace deletes it. The platform's architecture lives in
-> [`GOAL.md`](GOAL.md) and [`speckit/`](speckit/README.md); this file is kept as
+> [`GOAL.md`](../GOAL.md) and [`speckit/`](../speckit/README.md); this file is kept as
 > a reference for the legacy code still in the tree.
 
 A guided tour of the prototype: what it is, how the pieces fit, how data flows through
 it, how to run it, how to add data, and the exact steps used to build it. Written to be
 readable by a non-specialist first, with the technical detail underneath.
 
-> Companion how-tos: [`docs/RUNNING.md`](docs/RUNNING.md) (exact commands) ·
-> [`docs/ADDING_DATA.md`](docs/ADDING_DATA.md) (add your own data) ·
-> [`real_data/README.md`](real_data/README.md) (sources & ethics).
+> Companion how-tos: [`docs/RUNNING.md`](../docs/RUNNING.md) (exact commands) ·
+> [`docs/ADDING_DATA.md`](../docs/ADDING_DATA.md) (add your own data) ·
+> [`data/real/README.md`](../data/real/README.md) (sources & ethics).
 
 ---
 
@@ -97,7 +97,7 @@ detection uses these weights, so hard facts pull nodes together harder than susp
                           ┌──────────────────────────────────────────────────┐
    INPUTS                 │                    EXTRACTION                      │
                           │                                                    │
- real_data/*.txt ─────────┼──▶ semantic_pass.py   (LLM: Gemini / Claude / …) ──┼──┐
+ data/real/*.txt ─────────┼──▶ semantic_pass.py   (LLM: Gemini / Claude / …) ──┼──┐
  (narrative reports)      │      "read prose → nodes + edges"                  │  │
                           │                                                    │  │
  numbered arrest/         │                                                    │  │
@@ -146,9 +146,9 @@ passes*. Everything they produce is forced through one **validation contract**
 **outputs**: a JSON graph (which the **web UI** and any downstream analysis read) and a
 **Cypher** file (which loads the same graph into **Neo4j**).
 
-**Upstream of this diagram** sits the ingestion layer ([`docs/INGESTION.md`](docs/INGESTION.md)):
+**Upstream of this diagram** sits the ingestion layer ([`docs/INGESTION.md`](../docs/INGESTION.md)):
 raw source files dropped in `Files/` — PDF reports, Sinhala video/audio, pasted text —
-are converted by `pipeline/ingest.py` into the `real_data/*.txt` narrative inputs shown
+are converted by `pipeline/ingest.py` into the `data/real/*.txt` narrative inputs shown
 on the left (opendataloader-pdf structured parsing for PDFs, whisper-small-sinhala
 speech-to-text for media, provenance headers on everything).
 
@@ -197,7 +197,7 @@ The real graph is produced by `build_real_graph.py` in these ordered steps:
 
 1. **Curated layer** — `build_curated_network()` returns an `ExtractionResult` of the
    hand-verified, cited nodes/edges (the reliable backbone).
-2. **Semantic layer (optional, `--semantic`)** — for each narrative in `real_data/`, the
+2. **Semantic layer (optional, `--semantic`)** — for each narrative in `data/real/`, the
    LLM extracts nodes/edges; each result is validated and `merge()`d in. Failures are
    caught and skipped (the curated graph stands alone).
 3. **Audit** — `dangling_edges()` reports any edge whose endpoints aren't in the node set.
@@ -225,7 +225,7 @@ Then, independently:
 | `pipeline/clustering.py` | Community detection: Leiden multiplex (igraph+leidenalg), NetworkX Louvain fallback | `detect_cells()` |
 | `pipeline/neo4j_export.py` | Graph → literal Cypher file, or parameterized driver push | `generate_cypher()`, `push_to_neo4j()` |
 | `pipeline/pdf_loader.py` | Extract text from PDFs, split into paragraphs (fallback loader) | `load_pdf_text()`, `split_paragraphs()` |
-| `pipeline/ingest.py` | One-command ingestion router: raw PDF/media/text → provenance-headed `real_data/*.txt` | `ingest_file()`, `target_for()`, `main()` |
+| `pipeline/ingest.py` | One-command ingestion router: raw PDF/media/text → provenance-headed `data/real/*.txt` | `ingest_file()`, `target_for()`, `main()` |
 | `pipeline/pdf_ingest.py` | Structure-aware PDF extraction via opendataloader-pdf (Java CLI, project-local JRE), audit copies in `output/ingest/` | `convert_pdf()`, `find_java()` |
 | `pipeline/transcribe.py` | Sinhala speech-to-text (whisper-small-sinhala + bundled ffmpeg), 10-min blocks with incremental writes | `transcribe_media()`, `transcribe_to_file()`, `load_audio()` |
 | `scripts/setup_ingestion.sh` | One-time, no-root setup of the ingestion stack (venv, CPU torch, local JRE 21) | — |
@@ -272,7 +272,7 @@ python -m venv .venv
 .venv\Scripts\python demo.py --mock
 ```
 
-See [`docs/RUNNING.md`](docs/RUNNING.md) for every command, flag, and expected output.
+See [`docs/RUNNING.md`](../docs/RUNNING.md) for every command, flag, and expected output.
 
 ---
 
@@ -280,7 +280,7 @@ See [`docs/RUNNING.md`](docs/RUNNING.md) for every command, flag, and expected o
 
 You choose the pass that matches what you have. All three go through the same contract, so
 they combine cleanly (same person → same `node_id` → merged). Full copy-paste recipes are
-in [`docs/ADDING_DATA.md`](docs/ADDING_DATA.md); the summary:
+in [`docs/ADDING_DATA.md`](../docs/ADDING_DATA.md); the summary:
 
 **A. Curated fact (best for verified, cited facts) — edit `pipeline/real_dataset.py`.**
 Add a source to `SOURCES`, a node with `_n(...)`, and edges with `_e(...)` (choosing layer,
@@ -307,7 +307,7 @@ derives `PRISON_CO_LOCATION` edges from overlapping remand windows at the same f
 ```
 
 **C. Narrative document (prose) — the LLM semantic pass.**
-Drop a `.txt` report in `real_data/`, add its filename to `NARRATIVE_DOCS` in
+Drop a `.txt` report in `data/real/`, add its filename to `NARRATIVE_DOCS` in
 `build_real_graph.py`, and run `--semantic`. The model follows the honesty rules in
 `SYSTEM_PROMPT` (never invent an edge; tag weak links AMBIGUOUS; quote the source sentence;
 put place names in `location`, not as nodes). Long documents are chunked automatically
@@ -315,8 +315,8 @@ put place names in `location`, not as nodes). Long documents are chunked automat
 
 **D. Raw files (PDF / video / audio) — ingest first.**
 `python -m pipeline.ingest <file-or-Files/>` converts raw source material into
-extraction-ready `real_data/*.txt` (structured PDF parsing, Sinhala speech-to-text,
-provenance headers), then feed the result to pass B or C. Guide: [`docs/INGESTION.md`](docs/INGESTION.md).
+extraction-ready `data/real/*.txt` (structured PDF parsing, Sinhala speech-to-text,
+provenance headers), then feed the result to pass B or C. Guide: [`docs/INGESTION.md`](../docs/INGESTION.md).
 
 **Deduping tip:** use each entity's *common* name as the primary `name` and put formal
 names in `aliases`, so the same person from different passes resolves to the same
@@ -380,7 +380,7 @@ data, not bolted on:
   clustering recovering them as distinct cells is the *finding*, not an assertion of a
   super-network.
 
-Full provenance and the source list: [`real_data/README.md`](real_data/README.md).
+Full provenance and the source list: [`data/real/README.md`](../data/real/README.md).
 
 ---
 
@@ -406,7 +406,7 @@ The methodology, in order, so anyone can reproduce or extend it:
    validated nodes/edges, each with a citation and an honest confidence tag; keep the
    networks separate (no fabricated bridges).
 7. **Wire the live LLM** (Gemini): `google_genai:gemini-2.5-flash-lite`, mapping the
-   `GEMINI_API_KEY` for LangChain; narrative summaries in `real_data/` as its input.
+   `GEMINI_API_KEY` for LangChain; narrative summaries in `data/real/` as its input.
 8. **Cluster** (`clustering.py`): true multiplex Leiden across per-layer graphs
    (`find_partition_multiplex`), Louvain fallback if igraph/leidenalg are missing.
 9. **Export to Neo4j** (`neo4j_export.py`): literal per-layer `MERGE` file + parameterized driver push.

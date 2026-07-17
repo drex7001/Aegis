@@ -4,7 +4,7 @@ This directory is the **specification kit** for building **Aegis** — the
 ontology-driven intelligence platform described in [`../GOAL.md`](../GOAL.md), whose
 first application domain is criminal-network analysis. GOAL.md is the *north star*
 (enterprise end-state); this kit is the *buildable path* for a small team. The
-pre-Aegis prototype (`pipeline/`, `app/`) is scaffolding to be **replaced, not
+pre-Aegis prototype (quarantined under `legacy/`, ADR-024) is scaffolding to be **replaced, not
 extended** (ADR-023).
 
 ## Reading order

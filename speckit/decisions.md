@@ -551,3 +551,51 @@ append-only history in the original framing.
 **Revisit when.** A second real domain module lands (validates Article XIV in
 practice), or a domain need arises that genuinely cannot be expressed as an ontology
 module plus migrations.
+
+---
+
+## ADR-024: Greenfield repository layout — legacy quarantined under `legacy/`, tree scaffolded to the roadmap
+
+**Context.** After ADR-023 the *stance* was platform-first, but the *tree* still
+presented the prototype as a peer of the platform: `pipeline/`, `app/`, `demo.py`,
+`build_real_graph.py`, `cypher/`, a screenshot, and the extraction `requirements.txt`
+sat at the root beside `aegis/` and `ontology/`, and the future homes the specs
+already name (`sdk/`, `ui/`, `ontology/history/`, `aegis/functions/`) did not exist.
+User direction (2026-07): design the layout greenfield from the roadmap and specs;
+do not let legacy shape the structure.
+
+**Decision.** The repository is reorganized around the platform, with every
+roadmap-named component given its scaffolded home (see plan.md §3 for the full
+tree). The prototype is quarantined under `legacy/` — one directory, one README
+with a piecewise deletion schedule — and the data corpora move under `data/`.
+Path translation (documents written before this ADR use the old paths):
+
+| Old path | New path |
+|---|---|
+| `pipeline/` | `legacy/pipeline/` (imports: `legacy.pipeline.*`) |
+| `app/` | `legacy/app/` (imports: `legacy.app.*`) |
+| `build_real_graph.py`, `demo.py`, `cypher/` | `legacy/…` |
+| `requirements.txt` (extraction extras) | `legacy/requirements.txt` |
+| `ARCHITECTURE.md` (prototype tour) | `legacy/ARCHITECTURE.md` |
+| `image.png` | `legacy/explorer-screenshot.png` |
+| `real_data/` | `data/real/` |
+| `sample_data/` | `data/sample/` |
+
+New scaffolding, each bound to the phase that fills it: `ontology/proposals/` +
+`ontology/history/` (P3 change management, spec 08 §7); `aegis/functions/` (P3),
+`aegis/search/` + `aegis/analytics/` (P6), `aegis/sharing/` (P7), `aegis/assist/`
+(P8) as docstring-placeholder packages; `sdk/python/` + `sdk/ts/` (P3, spec 08 §8);
+`ui/` (P4, spec 07). Platform paths (`aegis/`, `ontology/aegis.yaml`, `infra/`,
+`migrations/`, `tests/`) are unchanged, as are the speckit's prescribed file
+locations (`aegis/er/settings.py`, `sdk/python/aegis_sdk/`, …).
+
+**Consequences.** The root now reads as the architecture. Legacy keeps working
+(extraction still feeds the review queue; the explorer is still served) — only its
+import prefix changed. Runtime artifacts (`output/`, `backups/`, `Files/`) stay at
+the root, gitignored. `pyproject.toml` still packages only `aegis`; `legacy` is
+importable in dev/CI but never shipped. ADR-001…023 keep their original path
+references — this table is the translation (ADR-022 precedent).
+
+**Revisit when.** Phase 4 deletes `legacy/app/`; the last `legacy/pipeline/`
+consumer is replaced (extraction v2, P8) — then `legacy/` disappears entirely and
+this ADR's mapping becomes pure history.

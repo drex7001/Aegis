@@ -88,7 +88,7 @@ git switch master && git pull
       `constitution.md`)
 - [ ] Speckit updated if reality diverged (new ADR, charter/task status).
 - [ ] No secrets, no real-person identifiers beyond the documented OSINT
-      ethics rules (`real_data/README.md`).
+      ethics rules (`data/real/README.md`).
 
 ## CI policy (GitHub Actions)
 

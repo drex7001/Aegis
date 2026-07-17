@@ -20,7 +20,7 @@ import os
 from collections import defaultdict
 from pathlib import Path
 
-from pipeline.models import LayerType
+from legacy.pipeline.models import LayerType
 
 VALID_LAYERS = {layer.value for layer in LayerType}
 

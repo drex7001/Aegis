@@ -7,8 +7,8 @@ makes re-landing the same artifact a no-op; the same name arriving with
 *different* bytes is a version conflict and lands quarantined for a human
 (spec 04 §3).
 
-Extraction: the existing prototype passes (``pipeline.structural_pass`` /
-``pipeline.semantic_pass``) are kept unchanged — their outputs now land as
+Extraction: the existing prototype passes (``legacy.pipeline.structural_pass`` /
+``legacy.pipeline.semantic_pass``) are kept unchanged — their outputs now land as
 ``review_queue`` suggestions, never as claims (Article VII).  Suggestion
 payloads are claim drafts in ``record_claim`` field vocabulary; anything the
 pass could not resolve (unknown verbs, unmatched entity references) is carried
@@ -217,7 +217,7 @@ def run_structural_pass(
     pattern_version: str = "v1",
 ) -> list[ReviewQueue]:
     """Deterministic pass (spec 04 §4): remand-list parse + co-location edges."""
-    from pipeline.structural_pass import extract_structural
+    from legacy.pipeline.structural_pass import extract_structural
 
     result = extract_structural(text, source_file=record.record_id)
     producer_meta = {"rule": "remand-overlap", "pattern_version": pattern_version}
@@ -249,7 +249,7 @@ def run_semantic_pass(
     The pass's parsed output is itself vaulted so every suggestion carries a
     resolvable ``raw_response_ref`` (spec 04 §4 debuggability).
     """
-    from pipeline.semantic_pass import SYSTEM_PROMPT, extract_semantic, resolve_model_name
+    from legacy.pipeline.semantic_pass import SYSTEM_PROMPT, extract_semantic, resolve_model_name
 
     result = extract_semantic(text, source_file=record.record_id, model_name=model_name, mock=mock)
     resolved_model = "mock" if mock else resolve_model_name(model_name)
@@ -309,7 +309,7 @@ def _submit_result(
     session: Session,
     *,
     record: SourceRecord,
-    result: Any,  # pipeline.models.ExtractionResult
+    result: Any,  # legacy.pipeline.models.ExtractionResult
     producer: str,
     producer_meta: dict[str, Any],
     actor: str,

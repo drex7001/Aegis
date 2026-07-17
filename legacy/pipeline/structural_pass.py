@@ -18,7 +18,7 @@ from datetime import date
 from itertools import combinations
 from typing import Optional
 
-from pipeline.models import (
+from legacy.pipeline.models import (
     ConfidenceTag,
     CriminalNode,
     ExtractionMethod,

@@ -74,38 +74,42 @@ make lint-ontology     # aegis ontology validate — the Article XI gate
 
 | Path | What |
 |---|---|
-| `aegis/` | Platform core package: ontology loader/codegen, actions, queries, authz, audit, API, projections, one-time migration adapters |
-| `ontology/aegis.yaml` | The versioned domain artifact everything derives from (Article XI) |
-| `speckit/` | Constitution, spec, plan, decisions (ADRs), roadmap, phase charters, detailed specs |
+| `ontology/` | **The domain artifact** (`aegis.yaml`) everything derives from (Article XI), plus change proposals and version history (Phase 3) |
+| `aegis/` | Platform core package — domain-neutral (Article XIV): ontology loader/codegen, actions, queries, authz, audit, store, evidence, ingestion, ER, projections, API, plus scaffolded homes for functions (P3), search/analytics (P6), sharing (P7), and controlled AI (P8) |
+| `sdk/` | Generated Python + TypeScript clients (Phase 3, spec 08) — committed codegen output, never hand-edited |
+| `ui/` | React + TypeScript investigation workspace (Phase 4) — replaces the legacy explorer |
+| `migrations/` | Alembic schema migrations |
 | `infra/` | Compose stack + bootstrap (PostgreSQL/PostGIS, MinIO, Keycloak, OpenFGA) |
 | `tests/` | Unit + integration suites (CI runs both) |
 | `docs/` | Runbooks: git workflow, backup/restore, ingestion toolchain |
-| `real_data/` | Real OSINT corpus (public reporting only) + provenance/ethics rules — **read [`real_data/README.md`](real_data/README.md) first** |
-| `sample_data/` | Fictional test data |
-| `Files/` | Raw drop zone for ingestion (PDF / video / audio / text) |
-| `pipeline/`, `app/`, `build_real_graph.py`, `demo.py`, `cypher/`, `output/` | **Legacy prototype** — see below |
+| `data/` | Corpora: `data/real/` (public-reporting OSINT — **read [`data/real/README.md`](data/real/README.md) first**) and `data/sample/` (fictional) |
+| `speckit/` | Constitution, spec, plan, decisions (ADRs), roadmap, phase charters, detailed specs |
+| `scripts/` | Operational helpers (backup/restore, ingestion setup) |
+| `Files/` | Raw drop zone for ingestion (PDF / video / audio / text; gitignored) |
+| `legacy/` | **Quarantined pre-Aegis prototype** (ADR-023) — see below |
 
 ## Data & ethics
 
-Two strictly separated tracks: `sample_data/` is **fictional**; `real_data/` is
-compiled **only from public reporting** about documented cases, every claim
+Two strictly separated tracks: `data/sample/` is **fictional**; `data/real/`
+is compiled **only from public reporting** about documented cases, every claim
 cited. The platform never stores national-ID numbers for real persons, never
 renders association as guilt (Article IX), and never lets AI output become fact
 without human adjudication (Article VII). Rules and source list:
-[`real_data/README.md`](real_data/README.md).
+[`data/real/README.md`](data/real/README.md).
 
 ## Legacy prototype
 
 Aegis grew out of a prototype — *"Sri Lanka Illicit Networks — Temporal
 Multiplex Graph"*: a regex + LLM extraction pipeline and a Cytoscape.js
 explorer over a static graph JSON. Per **ADR-023 it is replaced, never
-extended**: it now runs only as scaffolding (the explorer is served by
-`aegis serve` from a rebuildable projection) until the Phase 4 workspace
-deletes it. Its documentation is kept for reference:
-[`ARCHITECTURE.md`](ARCHITECTURE.md) (component tour) ·
+extended**: it is quarantined under [`legacy/`](legacy/README.md) and runs
+only as scaffolding (the explorer is served by `aegis serve` from a
+rebuildable projection) until the Phase 4 workspace deletes it. Its
+documentation is kept for reference:
+[`legacy/ARCHITECTURE.md`](legacy/ARCHITECTURE.md) (component tour) ·
 [`docs/RUNNING.md`](docs/RUNNING.md) (commands) ·
 [`docs/ADDING_DATA.md`](docs/ADDING_DATA.md) (data recipes) ·
 [`docs/INGESTION.md`](docs/INGESTION.md) (raw-file ingestion — this toolchain
 remains the front end of the governed landing zone).
 
-![Legacy explorer screenshot](image.png)
+![Legacy explorer screenshot](legacy/explorer-screenshot.png)
