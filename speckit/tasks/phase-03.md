@@ -7,8 +7,8 @@ parentheses. Numbering continues from Phase 2 (T28).
 > **Status: PRE-AUTHORED, NOT ACTIVE.** Phase 2 (T17–T28) must close the ★ MVP
 > gate first. Authored 2026-07-17 ahead of phase start; T29 re-validates this
 > plan and spec 08 against whatever Phase 2 actually shipped before any other
-> task starts. Charter: `phases/phase-03-ontology-v2.md` · spec:
-> `specs/08-ontology-v2.md`.
+> task starts. Charter: `../phases/phase-03-ontology-v2.md` · spec:
+> `../specs/08-ontology-v2.md`.
 
 ## Milestone A — DSL v2 core (semantic layer)
 
@@ -136,7 +136,8 @@ positive case).
 
 **T40. Phase exit review** — walk the charter's exit criteria; update speckit
 docs where reality diverged; append ADRs for changed decisions; write
-`phase-3-exit-review.md`; tag `phase-3-ontology-v2` per the git workflow.
+`../reviews/phase-03-exit-review.md`; tag `phase-3-ontology-v2` per the git
+workflow.
 AC: all exit boxes checked or explicitly deferred with reason.
 
 ## Explicit non-goals for Phase 3

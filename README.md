@@ -46,7 +46,7 @@ The core principle:
 
 **Active phase: Phase 2 — the ★ MVP gate** (identity resolution, provenance
 panels, review-queue UI, basic search; see
-[`speckit/tasks-phase-2.md`](speckit/tasks-phase-2.md)). The full roadmap to
+[`speckit/tasks/phase-02.md`](speckit/tasks/phase-02.md)). The full roadmap to
 production is [`speckit/roadmap.md`](speckit/roadmap.md).
 
 ## Quickstart

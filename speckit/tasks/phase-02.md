@@ -4,7 +4,7 @@ Ordered; each task lists acceptance criteria (AC). Tasks marked ⛓ block everyt
 after them. Reference specs in parentheses. Numbering continues from Phase 1 (T16).
 
 > **Status: PENDING.** Authored with roadmap v2 (ADR-022). Phase 2 closes with the
-> **★ MVP gate** — see `phases/phase-02-mvp-identity-provenance.md`. Anything not
+> **★ MVP gate** — see `../phases/phase-02-mvp-identity-provenance.md`. Anything not
 > needed for the demo loop moves to P3+.
 
 ## Milestone A — Identity core
@@ -101,7 +101,7 @@ fails the phase review.
 
 **T28. Phase exit review** — walk roadmap Phase 2 exit criteria including the
 MVP gate; update speckit docs where reality diverged; append ADRs for changed
-decisions; write `phase-2-exit-review.md`.
+decisions; write `../reviews/phase-02-exit-review.md`.
 AC: all exit boxes checked or explicitly deferred with reason.
 
 ## Explicit non-goals for Phase 2
