@@ -1,8 +1,8 @@
 # Phase 8 Charter — Controlled AI & assisted reasoning
 
-Status: charter (tasks authored at phase start) · Constitutional basis: Articles
-III, IV, VII, X · GOAL.md §26, §38 · promoted from the old P7 trigger table
-(ADR-022)
+Status: charter · tasks pre-authored: `../tasks/phase-08.md` (T90–T101;
+re-validated by T90 at phase start) · Constitutional basis: Articles III, IV,
+VII, X · GOAL.md §26, §38 · promoted from the old P7 trigger table (ADR-022)
 
 ## Objective
 

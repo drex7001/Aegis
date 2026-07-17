@@ -214,7 +214,8 @@ from all projections but remains for the auditor role.
 
 **Goal.** AI accelerates analysts without ever becoming a source of fact —
 promoted from the old trigger table to a real phase. Charter:
-`phases/phase-08-controlled-ai.md`.
+`phases/phase-08-controlled-ai.md` · tasks: `tasks/phase-08.md` (T90–T101,
+pre-authored).
 
 **Deliverables (summary)** — extraction v2 (schema-aware, ontology-grounded
 prompts via the generated SDK); Sinhala/Tamil ↔ English translation stored as
@@ -232,7 +233,8 @@ assistant answers cite claim IDs.
 
 ### Phase 9 — Production readiness & scale-out *(GOAL.md §33–35 · effort: ongoing)*
 
-Charter: `phases/phase-09-production.md`.
+Charter: `phases/phase-09-production.md` · tasks: `tasks/phase-09.md`
+(T102–T113, pre-authored).
 
 **Mandatory baseline** — OpenTelemetry observability + dashboards; SLOs and
 alerting; security hardening pass (secrets, TLS, dependency scanning); backup
