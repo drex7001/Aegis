@@ -157,7 +157,8 @@ type via ontology alone yields a working object view.
 ### Phase 5 — Events, geospatial & time *(GOAL.md §7.3, §16, §17 · effort: M)*
 
 **Goal.** Places and events become first-class, with honest precision.
-Charter: `phases/phase-05-events-geo-time.md`.
+Charter: `phases/phase-05-events-geo-time.md` · tasks: `tasks/phase-05.md`
+(T54–T65, pre-authored).
 
 **Deliverables (summary)** — event object types (meeting, arrest, travel,
 observation) with participants, replacing binary edges where > 2 parties or

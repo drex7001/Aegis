@@ -1,7 +1,8 @@
 # Phase 5 Charter — Events, geospatial & time
 
-Status: charter (tasks authored at phase start) · Constitutional basis: Articles
-I, VIII, XI · GOAL.md §7.3, §16, §17 · plan §2 (PostGIS, MapLibre)
+Status: charter · tasks pre-authored: `../tasks/phase-05.md` (T54–T65;
+re-validated by T54 at phase start) · Constitutional basis: Articles I, VIII,
+XI · GOAL.md §7.3, §16, §17 · plan §2 (PostGIS, MapLibre)
 
 ## Objective
 
@@ -81,7 +82,7 @@ source exists yet; the event model must merely not preclude them), movement
 correlation analytics (P6+), route inference, real-time feeds (Kafka trigger),
 deck.gl.
 
-## Task sketch (milestone level — T-file at phase start)
+## Task sketch (expanded into `../tasks/phase-05.md`, T54–T65)
 
 - **A — Ontology & storage:** event interface + types, geo/precision columns,
   proposal + migration + regen.
