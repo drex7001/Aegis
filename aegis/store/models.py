@@ -94,6 +94,53 @@ class Entity(Base):
     )
 
 
+class Mention(Base):
+    """A name-as-written inside one source record (spec 02 §2).
+
+    ``norm_key`` is a *mention key* (the legacy ``slugify()`` output), not an
+    identity — identity lives in :class:`IdentityMembership`.
+    """
+
+    __tablename__ = "mention"
+    __table_args__ = (Index("ix_mention_norm_key", "norm_key"),)
+
+    mention_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    record_id: Mapped[str] = mapped_column(
+        ForeignKey("source_record.record_id"), nullable=False
+    )
+    raw_text: Mapped[str] = mapped_column(Text, nullable=False)
+    norm_key: Mapped[str] = mapped_column(Text, nullable=False)
+    context: Mapped[str | None] = mapped_column(Text)
+
+
+class IdentityMembership(Base):
+    """Versioned, reversible mention→entity decision (Article V).
+
+    Current membership is the row with ``valid_to IS NULL``; history is never
+    deleted — merge/split close rows and open new ones.
+    """
+
+    __tablename__ = "identity_membership"
+    __table_args__ = (
+        Index("ix_identity_membership_mention", "mention_id", "valid_to"),
+        Index("ix_identity_membership_entity", "entity_id"),
+    )
+
+    membership_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    mention_id: Mapped[str] = mapped_column(
+        ForeignKey("mention.mention_id"), nullable=False
+    )
+    entity_id: Mapped[str] = mapped_column(
+        ForeignKey("entity.entity_id"), nullable=False
+    )
+    decided_by: Mapped[str] = mapped_column(Text, nullable=False)
+    decision_note: Mapped[str | None] = mapped_column(Text)
+    valid_from: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+    valid_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class CaseFile(Base):
     __tablename__ = "case_file"
     __table_args__ = (
@@ -374,6 +421,8 @@ __all__ = [
     "Derivative",
     "Entity",
     "EvidenceItem",
+    "IdentityMembership",
+    "Mention",
     "ReviewQueue",
     "Source",
     "SourceRecord",

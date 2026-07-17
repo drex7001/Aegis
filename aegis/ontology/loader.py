@@ -67,6 +67,9 @@ class ObjectTypeSpec(BaseModel):
 class PredicateSpec(BaseModel):
     model_config = ConfigDict(extra="forbid")
     subject: list[str] = Field(min_length=1)
+    # Either the string 'literal' (literal-only), a list of object types, or a
+    # list of object types that also contains 'literal' — meaning the object may
+    # be an entity of those types *or* a literal value (spec 02 §6).
     object: Union[list[str], Literal["literal"]]
     category: str | None = None
     symmetric: bool = False
@@ -75,7 +78,25 @@ class PredicateSpec(BaseModel):
 
     @property
     def is_literal(self) -> bool:
+        """The object must be a literal value (never an entity)."""
         return self.object == "literal"
+
+    @property
+    def allows_literal(self) -> bool:
+        """A literal object value is acceptable."""
+        return self.is_literal or "literal" in self.object
+
+    @property
+    def entity_object_types(self) -> list[str]:
+        """Object types an entity object may have ([] for literal-only)."""
+        if self.is_literal:
+            return []
+        return [name for name in self.object if name != "literal"]
+
+    @property
+    def allows_entity(self) -> bool:
+        """An entity object is acceptable."""
+        return bool(self.entity_object_types)
 
 
 class CategorySpec(BaseModel):
@@ -216,7 +237,8 @@ def _semantic_errors(ont: Ontology) -> list[str]:
             else:
                 seen[name] = section
 
-    # rule 2: predicate endpoint types exist (object may be the string 'literal')
+    # rule 2: predicate endpoint types exist (object may be the string 'literal',
+    # or a list of object types optionally including 'literal' for mixed objects)
     declared = set(ont.object_types)
     for pname, pred in ont.predicates.items():
         for stype in pred.subject:
@@ -226,7 +248,12 @@ def _semantic_errors(ont: Ontology) -> list[str]:
                     f"(declared object_types: {sorted(declared)})"
                 )
         if not pred.is_literal:
-            for otype in pred.object:
+            if not pred.allows_entity:
+                errors.append(
+                    f"predicates.{pname}.object: ['literal'] is redundant — "
+                    "use the string form object: literal"
+                )
+            for otype in pred.entity_object_types:
                 if otype not in declared:
                     errors.append(
                         f"predicates.{pname}.object: unknown object type {otype!r} "

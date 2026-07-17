@@ -10,7 +10,7 @@
 #   · no credibility words like "suspected_" (grading carries the doubt)
 # Dataset-specific verb mappings live in the migration adapter, not here.
 
-version: 0.2.0
+version: 0.3.0
 namespace: aegis.lk
 
 # Ordered low → high; index = clearance level required (spec 03).
@@ -93,7 +93,10 @@ object_types:
 predicates:
   # ── generic / structural ──────────────────────────────────────────────
   known_as:            {subject: [person, organization], object: literal}
-  affiliated_with:     {subject: [person], object: [organization], category: ideological}
+  # object list may include 'literal': affiliation resolves to an organization
+  # entity when one exists, else the affiliation text is kept as a literal
+  # (spec 02 §6 — migration + extraction both need the fallback).
+  affiliated_with:     {subject: [person], object: [organization, literal], category: ideological}
   merged_into:         {subject: [person, organization, vehicle, phone_number, location],
                         object: [person, organization, vehicle, phone_number, location],
                         category: kinship, system: true}   # written only by adjudication actions

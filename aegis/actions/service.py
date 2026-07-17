@@ -127,6 +127,9 @@ class ActionService:
             )
 
     def _entity(self, entity_id: str, path: str) -> Entity:
+        if not entity_id:
+            # e.g. an extraction draft whose entity reference was never resolved
+            raise ActionValidationError(path, "an entity id is required")
         entity = self.session.get(Entity, entity_id)
         if entity is None:
             raise ActionValidationError(path, f"entity {entity_id!r} does not exist")
@@ -207,18 +210,18 @@ class ActionService:
                 "claim.object", "exactly one of object_id or object_value is required"
             )
 
-        if predicate_spec.is_literal:
-            if object_id is not None:
-                raise ActionValidationError(
-                    f"predicates.{predicate}.object", "requires a literal object_value"
-                )
-        else:
-            if object_id is None:
+        if object_id is None:
+            if not predicate_spec.allows_literal:
                 raise ActionValidationError(
                     f"predicates.{predicate}.object", "requires an entity object_id"
                 )
+        else:
+            if not predicate_spec.allows_entity:
+                raise ActionValidationError(
+                    f"predicates.{predicate}.object", "requires a literal object_value"
+                )
             object_entity = self._entity(object_id, "claim.object_id")
-            if object_entity.entity_type not in predicate_spec.object:
+            if object_entity.entity_type not in predicate_spec.entity_object_types:
                 raise ActionValidationError(
                     f"predicates.{predicate}.object",
                     f"entity type {object_entity.entity_type!r} is not allowed",
@@ -437,11 +440,20 @@ class ActionService:
         suggestion_id: str,
         decision: Literal["accepted", "rejected"],
         note: str | None = None,
+        edits: dict[str, Any] | None = None,
     ) -> ReviewQueue:
+        """Decide a suggestion.  ``edits`` lets the reviewer amend any claim
+        field before acceptance (spec 04 §4); the accepted draft — edits
+        included — is what gets validated, recorded, and kept on the row.
+        """
         self._require_action("review_suggestion")
         if decision not in {"accepted", "rejected"}:
             raise ActionValidationError(
                 f"review_queue.status.{decision}", "must be accepted or rejected"
+            )
+        if edits and decision != "accepted":
+            raise ActionValidationError(
+                "review_queue.edits", "edits are only valid when accepting"
             )
         with self._transaction():
             row = self.session.get(ReviewQueue, suggestion_id)
@@ -453,12 +465,16 @@ class ActionService:
                 raise ActionValidationError("review_queue.status", "suggestion is already decided")
             result: Claim | None = None
             if decision == "accepted":
+                draft = {**row.payload, **(edits or {})}
+                self._validate_suggestion_payload(draft)
                 try:
-                    result = self._create_claim(**self._coerce_claim_payload(row.payload))
+                    result = self._create_claim(**self._coerce_claim_payload(draft))
                 except TypeError as exc:
                     raise ActionValidationError(
                         "review_queue.payload", f"invalid claim draft: {exc}"
                     ) from exc
+                if edits:
+                    row.payload = draft
             row.status = decision
             row.decided_by = context.actor
             row.decided_at = _utcnow()
@@ -471,7 +487,11 @@ class ActionService:
                 resource_type="review_queue",
                 resource_id=suggestion_id,
                 case_id=result.case_id if result is not None else None,
-                detail={"decision": decision, "result_claim": row.result_claim},
+                detail={
+                    "decision": decision,
+                    "result_claim": row.result_claim,
+                    "edited_fields": sorted(edits) if edits else [],
+                },
             )
         return row
 
@@ -631,6 +651,40 @@ class ActionService:
         return row
 
     transfer_custody = add_custody_event
+
+    def release_quarantine(
+        self,
+        context: ActionContext,
+        *,
+        record_id: str,
+        note: str,
+    ) -> SourceRecord:
+        """Release a quarantined source record back to ``landed`` (spec 04 §3)."""
+        self._require_action("release_quarantine")
+        if not note.strip():
+            raise ActionValidationError("source_record.release_note", "must not be empty")
+        with self._transaction():
+            record = self.session.get(SourceRecord, record_id)
+            if record is None:
+                raise ActionValidationError(
+                    "source_record.record_id", f"record {record_id!r} does not exist"
+                )
+            if record.status != "quarantined":
+                raise ActionValidationError(
+                    "source_record.status", "record is not quarantined"
+                )
+            reason = record.quarantine_reason
+            record.status = "landed"
+            record.quarantine_reason = None
+            self.session.flush()
+            self._audit(
+                context,
+                action="release_quarantine",
+                resource_type="source_record",
+                resource_id=record_id,
+                detail={"note": note, "was": reason},
+            )
+        return record
 
     def open_case(
         self,

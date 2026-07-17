@@ -15,10 +15,16 @@ db_app = typer.Typer(help="Database migrations (Alembic)", no_args_is_help=True)
 ontology_app = typer.Typer(help="Ontology artifact tools", no_args_is_help=True)
 audit_app = typer.Typer(help="Audit chain tools", no_args_is_help=True)
 projections_app = typer.Typer(help="Projection builders", no_args_is_help=True)
+ingest_app = typer.Typer(
+    help="Raw landing + extraction passes (spec 04)", no_args_is_help=True
+)
+authz_app = typer.Typer(help="OpenFGA projection tools (ADR-014)", no_args_is_help=True)
 app.add_typer(db_app, name="db")
 app.add_typer(ontology_app, name="ontology")
 app.add_typer(audit_app, name="audit")
 app.add_typer(projections_app, name="projections")
+app.add_typer(ingest_app, name="ingest")
+app.add_typer(authz_app, name="authz")
 
 
 @app.callback()
@@ -110,11 +116,271 @@ def audit_verify() -> None:
     )
 
 
+@app.command("serve")
+def serve(
+    host: str = typer.Option("127.0.0.1", help="Bind address."),
+    port: int = typer.Option(8000, help="Port."),
+    reload: bool = typer.Option(False, "--reload", help="Auto-reload (dev)."),
+) -> None:
+    """Run the governed API + mounted legacy UI (T13/T14)."""
+    import uvicorn
+
+    typer.secho(f"aegis API on http://{host}:{port}  (docs at /docs)", fg=typer.colors.GREEN)
+    uvicorn.run(
+        "aegis.api:create_app" if not reload else "aegis.api:create_app",
+        factory=True,
+        host=host,
+        port=port,
+        reload=reload,
+    )
+
+
+@app.command("migrate-legacy")
+def migrate_legacy(
+    report_path: Path = typer.Option(
+        Path("output/migration_report.json"),
+        "--report",
+        help="Where to write the migration report JSON.",
+    ),
+    actor: str = typer.Option("system:migrate-legacy", help="Audit actor for the run."),
+) -> None:
+    """Migrate the curated legacy dataset into the claim store (T8, idempotent)."""
+    import json
+
+    from aegis.migration import LegacyMigrationError, migrate
+    from aegis.store import get_sessionmaker
+
+    try:
+        with get_sessionmaker()() as session:
+            report = migrate(session, actor=actor)
+    except LegacyMigrationError as exc:
+        typer.secho(f"MIGRATION FAILED: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(
+        json.dumps(report.to_dict(), indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+    d = report.to_dict()
+    typer.secho(
+        "migrate-legacy OK: "
+        f"{d['entities']['created']} entities created ({d['entities']['existing']} existing), "
+        f"{report.claims_created} claims created "
+        f"({d['node_claims']['existing'] + d['edge_claims']['existing']} existing), "
+        f"{d['edges_total']} legacy edges → {len(d['remap_log'])} remap entries "
+        f"({len(d['splits'])} splits, {len(d['credibility_caps'])} caps, "
+        f"{len(d['category_corrections'])} category corrections)",
+        fg=typer.colors.GREEN,
+    )
+    typer.echo(f"report: {report_path}")
+
+
 @projections_app.command("rebuild")
-def projections_rebuild() -> None:
-    """Rebuild all projections from the claim store (Article XIII). Implemented in T10."""
-    typer.secho("projections rebuild: not implemented yet (speckit task T10)", fg=typer.colors.YELLOW, err=True)
-    raise typer.Exit(code=2)
+def projections_rebuild(
+    output_dir: Path = typer.Option(
+        Path("output"), "--output", help="Directory for real_graph.json / real_ingest.cypher."
+    ),
+    concurrently: bool = typer.Option(
+        False, "--concurrently", help="REFRESH MATERIALIZED VIEW CONCURRENTLY."
+    ),
+) -> None:
+    """Rebuild all projections from the claim store (Article XIII, T10)."""
+    from aegis.config import get_settings
+    from aegis.ontology import load
+    from aegis.projections import build_full_graph, refresh_edge_projection, write_outputs
+    from aegis.store import get_sessionmaker
+
+    settings = get_settings()
+    ontology_path = Path(settings.ontology_path)
+    ontology = load(ontology_path if ontology_path.is_absolute() else REPO_ROOT / ontology_path)
+    with get_sessionmaker()() as session:
+        refresh_edge_projection(session, concurrently=concurrently)
+        session.commit()
+        graph = build_full_graph(session, ontology)
+    written = write_outputs(graph, output_dir)
+    typer.secho(
+        f"projections rebuilt: {len(graph['nodes'])} nodes, {len(graph['edges'])} edges, "
+        f"{len(graph['cells'])} cells",
+        fg=typer.colors.GREEN,
+    )
+    for path in written:
+        typer.echo(f"  wrote {path}")
+
+
+@authz_app.command("sync")
+def authz_sync(
+    limit: int = typer.Option(None, "--limit", help="Drain at most N outbox rows."),
+) -> None:
+    """Drain pending authz_outbox rows into OpenFGA (in order; stops on failure)."""
+    from aegis.authz import FGAClient, sync
+    from aegis.store import get_sessionmaker
+
+    fga = FGAClient()
+    with get_sessionmaker()() as session:
+        report = sync(session, fga, limit=limit)
+    if not report.ok:
+        typer.secho(
+            f"sync stopped at outbox row {report.failed_id} after {report.processed} "
+            f"row(s): {report.error} ({report.pending} still pending)",
+            fg=typer.colors.RED,
+            err=True,
+        )
+        raise typer.Exit(code=1)
+    typer.secho(f"authz sync OK: {report.processed} row(s) drained", fg=typer.colors.GREEN)
+
+
+@authz_app.command("rebuild")
+def authz_rebuild() -> None:
+    """Re-derive the full FGA tuple set from Postgres alone (Article XIII)."""
+    from aegis.authz import FGAClient, rebuild
+    from aegis.store import get_sessionmaker
+
+    fga = FGAClient()
+    with get_sessionmaker()() as session:
+        report = rebuild(session, fga)
+    typer.secho(
+        f"authz rebuild OK: {report.desired} desired tuple(s) — "
+        f"{report.written} written, {report.deleted} stale deleted, "
+        f"{report.superseded_outbox_rows} outbox row(s) superseded",
+        fg=typer.colors.GREEN,
+    )
+
+
+@ingest_app.command("land")
+def ingest_land(
+    paths: list[Path] = typer.Argument(..., help="Files or directories to land."),
+    operator: str = typer.Option(..., "--operator", help="Acting user, e.g. user:ayodhya"),
+    source_id: str = typer.Option(
+        None, "--source-id", help="Existing source row (default: the manual-upload source)."
+    ),
+    handling_code: str = typer.Option("open", "--handling"),
+) -> None:
+    """Land raw files: bytes → vault, provenance envelope, source_record row."""
+    from aegis.evidence import get_vault
+    from aegis.ingestion import IngestionError, land_file
+    from aegis.store import get_sessionmaker
+
+    files: list[Path] = []
+    for path in paths:
+        if path.is_dir():
+            files.extend(p for p in sorted(path.rglob("*")) if p.is_file())
+        elif path.is_file():
+            files.append(path)
+        else:
+            typer.secho(f"skip {path}: not found", fg=typer.colors.YELLOW, err=True)
+    if not files:
+        typer.secho("nothing to land", fg=typer.colors.YELLOW, err=True)
+        raise typer.Exit(code=1)
+
+    vault = get_vault()
+    with get_sessionmaker()() as session:
+        for path in files:
+            try:
+                result = land_file(
+                    session,
+                    vault,
+                    path=path,
+                    operator=operator,
+                    source_id=source_id,
+                    handling_code=handling_code,
+                )
+            except IngestionError as exc:
+                typer.secho(f"FAIL {path.name}: {exc}", fg=typer.colors.RED, err=True)
+                raise typer.Exit(code=1) from exc
+            state = (
+                "QUARANTINED"
+                if result.quarantined
+                else ("landed" if result.created else "already landed")
+            )
+            typer.echo(f"{state}: {path.name} → {result.record.record_id}")
+
+
+@ingest_app.command("status")
+def ingest_status() -> None:
+    """Landed/quarantined/processed counts + open quarantine reasons."""
+    import sqlalchemy as sa
+
+    from aegis.store import SourceRecord, get_sessionmaker
+
+    with get_sessionmaker()() as session:
+        counts = dict(
+            session.execute(
+                sa.select(SourceRecord.status, sa.func.count()).group_by(SourceRecord.status)
+            ).all()
+        )
+        typer.echo(
+            "records: "
+            + ", ".join(f"{status}={counts.get(status, 0)}" for status in ("landed", "quarantined", "processed"))
+        )
+        quarantined = session.scalars(
+            sa.select(SourceRecord).where(SourceRecord.status == "quarantined")
+        ).all()
+        for record in quarantined:
+            typer.secho(
+                f"  {record.record_id}: {record.quarantine_reason}", fg=typer.colors.YELLOW
+            )
+
+
+@ingest_app.command("extract")
+def ingest_extract(
+    record_id: str = typer.Argument(..., help="A landed source_record id."),
+    producer: str = typer.Option(..., "--producer", help="structural or semantic"),
+    actor: str = typer.Option(..., "--actor", help="Acting user, e.g. user:ayodhya"),
+    model: str = typer.Option(None, "--model", help="semantic only: provider:model override"),
+    mock: bool = typer.Option(False, "--mock", help="semantic only: offline mock extraction"),
+) -> None:
+    """Run an extraction pass over a landed record → review-queue suggestions.
+
+    Never writes claims (Article VII): review with `review_suggestion`.
+    """
+    from aegis.evidence import get_vault
+    from aegis.ingestion import run_semantic_pass, run_structural_pass
+    from aegis.store import SourceRecord, get_sessionmaker
+
+    if producer not in {"structural", "semantic"}:
+        typer.secho("--producer must be structural or semantic", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+    vault = get_vault()
+    with get_sessionmaker()() as session:
+        record = session.get(SourceRecord, record_id)
+        if record is None:
+            typer.secho(f"record {record_id!r} does not exist", fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1)
+        if record.status == "quarantined":
+            typer.secho(
+                f"record is quarantined ({record.quarantine_reason}); release it first",
+                fg=typer.colors.RED,
+                err=True,
+            )
+            raise typer.Exit(code=1)
+        if record.media_type and not record.media_type.startswith("text/"):
+            typer.secho(
+                f"cannot extract from media type {record.media_type!r} yet "
+                "(produce a text derivative first)",
+                fg=typer.colors.RED,
+                err=True,
+            )
+            raise typer.Exit(code=1)
+        text = vault.get(record.content_hash).decode("utf-8", errors="replace")
+        if producer == "structural":
+            suggestions = run_structural_pass(session, record=record, text=text, actor=actor)
+        else:
+            suggestions = run_semantic_pass(
+                session,
+                vault,
+                record=record,
+                text=text,
+                actor=actor,
+                model_name=model,
+                mock=mock,
+            )
+        session.commit()
+    typer.secho(
+        f"{producer} pass over {record_id}: {len(suggestions)} suggestion(s) queued "
+        "(0 claims written — Article VII)",
+        fg=typer.colors.GREEN,
+    )
 
 
 if __name__ == "__main__":

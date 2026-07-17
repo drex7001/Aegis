@@ -42,7 +42,7 @@ def errors_of(data: dict) -> list[str]:
 def test_committed_ontology_loads() -> None:
     ont = load(ONTOLOGY_PATH)
     assert isinstance(ont, Ontology)
-    assert ont.version == "0.2.0"
+    assert ont.version == "0.3.0"
     assert "person" in ont.object_types
     assert "member_of" in ont.predicates
     assert "record_claim" in ont.actions
@@ -89,6 +89,29 @@ def test_unknown_predicate_subject_type_fails(data: dict) -> None:
 
 def test_literal_object_is_allowed(data: dict) -> None:
     assert load_dict(data).predicate("known_as").is_literal
+
+
+def test_mixed_entity_or_literal_object(data: dict) -> None:
+    """spec 02 §6: affiliated_with resolves to an org entity when one exists, else literal."""
+    pred = load_dict(data).predicate("affiliated_with")
+    assert not pred.is_literal
+    assert pred.allows_literal
+    assert pred.allows_entity
+    assert pred.entity_object_types == ["organization"]
+
+
+def test_literal_only_list_form_is_rejected(data: dict) -> None:
+    data["predicates"]["member_of"]["object"] = ["literal"]
+    errors = errors_of(data)
+    assert any(
+        "predicates.member_of.object: ['literal'] is redundant" in e for e in errors
+    )
+
+
+def test_mixed_object_unknown_type_still_fails(data: dict) -> None:
+    data["predicates"]["member_of"]["object"] = ["ghost", "literal"]
+    errors = errors_of(data)
+    assert any("predicates.member_of.object: unknown object type 'ghost'" in e for e in errors)
 
 
 # ── rule 3: referenced categories / sensitivities exist ─────────────────────
