@@ -1,8 +1,8 @@
 # Phase 9 Charter — Production readiness & scale-out
 
-Status: charter (tasks authored at phase start) · Constitutional basis: Articles
-X, XII, XIII · GOAL.md §33–35, §39 · absorbs the v1 "P7 scale-out options"
-(ADR-022)
+Status: charter · tasks pre-authored: `../tasks/phase-09.md` (T102–T113;
+re-validated by T102 at phase start) · Constitutional basis: Articles X, XII,
+XIII · GOAL.md §33–35, §39 · absorbs the v1 "P7 scale-out options" (ADR-022)
 
 ## Objective
 
