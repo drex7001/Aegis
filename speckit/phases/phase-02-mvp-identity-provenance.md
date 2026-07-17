@@ -2,7 +2,7 @@
 
 Status: ACTIVE (next phase) · Constitutional basis: Articles I, III, V, VII, VIII ·
 GOAL.md §10, §12 (minimal), §18 ("Why connected?"), §40 M-II · ADR-005, ADR-022 ·
-Tasks: `../tasks-phase-2.md`
+Tasks: `../tasks/phase-02.md`
 
 ## Objective
 
@@ -99,5 +99,5 @@ disclosure (P7), watchlists (P6), any new LLM capability (P8).
 
 ## Task breakdown
 
-See `../tasks-phase-2.md` (T17–T28, Milestones A–C) — authored with this
+See `../tasks/phase-02.md` (T17–T28, Milestones A–C) — authored with this
 charter, since this phase is active.

@@ -1,7 +1,8 @@
 # Phase 4 Charter — Investigation workspace & object views
 
-Status: charter (tasks authored at phase start) · Constitutional basis: Articles
-VI, VIII, XI · GOAL.md §18, §29–30, §7.8 (consumption layer) · specs/07
+Status: charter · tasks pre-authored: `../tasks/phase-04.md` (T41–T53;
+re-validated by T41 at phase start) · Constitutional basis: Articles VI, VIII,
+XI · GOAL.md §18, §29–30, §7.8 (consumption layer) · specs/07
 
 ## Objective
 
@@ -92,7 +93,7 @@ Map view (P5), full multilingual search and object sets (P6), compartment UX
 (P7), collaboration features beyond case membership (comments, presence —
 GOAL.md §31 stays future), mobile, offline.
 
-## Task sketch (milestone level — T-file at phase start)
+## Task sketch (expanded into `../tasks/phase-04.md`, T41–T53)
 
 - **A — Shell:** React app, OIDC flow, SDK wiring, nav from descriptors.
 - **B — Object views:** generic entity-360, provenance drill-down, conflict

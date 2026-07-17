@@ -4,7 +4,7 @@ Ordered; each task lists acceptance criteria (AC). Tasks marked ⛓ block everyt
 after them. Reference specs in parentheses.
 
 > **Status: COMPLETE.** T1–T16 all delivered (Milestones A–E). See
-> `phase-1-exit-review.md` for the exit-criteria walkthrough and ADR-017…019 in
+> `../reviews/phase-01-exit-review.md` for the exit-criteria walkthrough and ADR-017…019 in
 > `decisions.md` for decisions changed during implementation. Divergences from the
 > original task text: the identity tables (`mention`, `identity_membership`) shipped
 > with T8 (migration 0005) rather than T4 (ADR-018); `affiliated_with` gained an

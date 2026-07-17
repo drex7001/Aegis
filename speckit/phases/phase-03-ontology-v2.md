@@ -1,6 +1,6 @@
 # Phase 3 Charter — Ontology v2: semantic & kinetic completion
 
-Status: charter · tasks pre-authored: `../tasks-phase-3.md` (T29–T40; re-validated
+Status: charter · tasks pre-authored: `../tasks/phase-03.md` (T29–T40; re-validated
 by T29 at phase start) · Constitutional basis: Articles VII, X, XI ·
 GOAL.md §7.8–7.10 · ADR-021 · Spec: `../specs/08-ontology-v2.md`
 
@@ -103,7 +103,7 @@ Object sets (P6), object views/React UI (P4), new domain predicates beyond the
 worked examples, ontology branching à la Foundry (single-repo proposals
 suffice), OPA policy-as-code.
 
-## Task sketch (expanded into `../tasks-phase-3.md`, T29–T40)
+## Task sketch (expanded into `../tasks/phase-03.md`, T29–T40)
 
 - **A — DSL v2 core:** interfaces + shared properties in loader/validator/
   registry; ontology 0.4.0.

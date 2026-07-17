@@ -67,9 +67,10 @@ idea can be traced to a governing article.
 Delivered T1–T16: governed Postgres claim store, content-addressed evidence
 vault, Keycloak OIDC + OpenFGA ReBAC + row filters, hash-chained audit,
 extraction rewired to a review queue, projection builder feeding the legacy UI,
-API v1, backup/restore drill. See `tasks-phase-1.md` and
-`phase-1-exit-review.md`; divergences recorded as ADR-017…019. All four exit
-boxes checked.
+API v1, backup/restore drill. See `tasks/phase-01.md` and
+`reviews/phase-01-exit-review.md`; divergences recorded as ADR-017…019. All
+four exit boxes checked. Charter (retrospective): `phases/phase-01-claim-store.md`
+(P0: `phases/phase-00-governance.md`).
 
 ---
 
@@ -81,7 +82,7 @@ boxes checked.
 platform becomes **usable end-to-end by an analyst** — land a source →
 extraction suggests claims → review/adjudicate → governed graph with
 provenance. Charter: `phases/phase-02-mvp-identity-provenance.md` · tasks:
-`tasks-phase-2.md`.
+`tasks/phase-02.md`.
 
 **Deliverables**
 1. `mention` extraction from source records; legacy slugs become one-mention
@@ -117,7 +118,7 @@ provenance. Charter: `phases/phase-02-mvp-identity-provenance.md` · tasks:
 **Goal.** `aegis.yaml` grows from vocabulary file into a full ontology-platform
 artifact — the Foundry-class layer the rest of the product is built on.
 Charter: `phases/phase-03-ontology-v2.md` · spec: `specs/08-ontology-v2.md` ·
-tasks: `tasks-phase-3.md` (T29–T40, pre-authored).
+tasks: `tasks/phase-03.md` (T29–T40, pre-authored).
 
 **Deliverables (summary)** — DSL v2: **interfaces** + **shared property
 types**; **functions registry** (declared derivations; prison co-location
@@ -134,7 +135,8 @@ computed predicate regenerates deterministically; CI fails on codegen drift.
 
 **Goal.** Work happens inside access-scoped cases in a real product UI, with
 hypotheses instead of vibes. Charter:
-`phases/phase-04-workspace-object-views.md`.
+`phases/phase-04-workspace-object-views.md` · tasks: `tasks/phase-04.md`
+(T41–T53, pre-authored).
 
 **Deliverables (summary)** — React + TypeScript workspace **built on the
 generated SDK** (ontology-driven screens); **object views** (entity-360:
