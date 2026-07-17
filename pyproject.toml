@@ -21,10 +21,17 @@ dependencies = [
     "uvicorn[standard]>=0.30",
     "pyjwt[crypto]>=2.9",
     "httpx>=0.27",
+    # Projection cell detection reuses pipeline.clustering; networkx is the
+    # pure-python fallback that guarantees `aegis projections rebuild` works
+    # without the optional C-extension leiden backend below.
+    "networkx>=3",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+# python-igraph + leidenalg give true multiplex Leiden (pipeline.clustering
+# prefers them, falls back to networkx Louvain when absent). In dev/CI so the
+# projection tests exercise the leiden path.
+dev = ["pytest>=8", "python-igraph>=0.11", "leidenalg>=0.10"]
 
 [project.scripts]
 aegis = "aegis.cli:app"
