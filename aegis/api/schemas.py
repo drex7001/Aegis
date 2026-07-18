@@ -218,3 +218,82 @@ class AuditOut(BaseModel):
     resource_id: str | None
     decision: str
     detail: dict[str, Any]
+
+
+class MentionOut(BaseModel):
+    """The words a claim's argument came from (ADR-029)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    mention_id: str
+    record_id: str
+    raw_text: str
+    norm_key: str
+    char_start: int | None
+    char_end: int | None
+    script: str | None
+    language: str | None
+
+
+class GradingOut(BaseModel):
+    """The three dimensions, kept apart (Article III).
+
+    There is deliberately no combined score here. A single number would be the
+    one thing every caller reached for, and it cannot be reconstructed back
+    into the judgements that produced it.
+    """
+
+    reliability: str | None  # graded on the source, not the claim
+    credibility: str
+    verification: str
+    analytic_confidence: str | None
+
+
+class ClaimProvenanceOut(BaseModel):
+    """One claim with its evidence — the unit the provenance panel renders."""
+
+    claim: ClaimOut
+    grading: GradingOut
+    source: SourceOut | None
+    record: SourceRecordOut | None
+    #: Both directions are reported. Corroboration never cancels contradiction
+    #: (Article VIII) — the reader is shown the disagreement, not a net score.
+    corroborated_by: list[str]
+    contradicted_by: list[str]
+    subject_mention: MentionOut | None
+    object_mention: MentionOut | None
+
+
+class IdentityDecisionOut(BaseModel):
+    """A human's identity decision: who, when, why, and which revision."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    decision_id: str
+    kind: str
+    decided_by: str
+    decision_note: str
+    parent_revision_id: int
+    result_revision_id: int
+    decided_at: datetime
+    entity_id: str | None = None
+
+
+class WhyConnectedOut(BaseModel):
+    """The answer to GOAL.md §18 for one pair of entities."""
+
+    subject_id: str
+    object_id: str
+    #: Present when the requested ids resolved elsewhere through a merge, so a
+    #: caller following a stale link is told rather than quietly redirected.
+    resolved_subject_id: str
+    resolved_object_id: str
+    claims: list[ClaimProvenanceOut]
+    #: DISTINCT source records. Never "independent sources" (ADR-030 §3).
+    record_count: int
+    contradiction_count: int
+    corroboration_count: int
+    identity_line: list[IdentityDecisionOut]
+    #: True when the claim cap was reached, so a thin panel is never mistaken
+    #: for thin evidence.
+    truncated: bool

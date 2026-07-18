@@ -21,7 +21,16 @@ from slowapi.middleware import SlowAPIMiddleware
 from aegis.api.auth import OIDCAuthenticator
 from aegis.api.deps import public_route
 from aegis.api.errors import install_error_handlers
-from aegis.api.routes import audit, cases, entities, evidence, graph, review, sources
+from aegis.api.routes import (
+    audit,
+    cases,
+    entities,
+    evidence,
+    graph,
+    provenance,
+    review,
+    sources,
+)
 from aegis.api.routes import claims as claims_routes
 from aegis.authz.fga import FGAClient, FGAError
 from aegis.authz.outbox import dispatch_forever
@@ -90,6 +99,7 @@ def create_app() -> FastAPI:
         evidence.router,
         cases.router,
         audit.router,
+        provenance.router,
     ):
         app.include_router(router, prefix="/v1")
     # legacy-compatible projection surface (unversioned, spec 06)

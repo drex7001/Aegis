@@ -10,8 +10,8 @@ lettered subtasks keep the global T-numbering stable for pre-authored P3+ files.
 > non-deferrable (ADR-025). The Phase 1 closure addendum (T16a–T16d), which
 > gated Milestones B–D, closed 2026-07-18 (PRs #11–#14). **Milestones A and
 > B are complete** (T17a–T17d, PRs #17–#20; T17–T20, PRs #22–#26).
-> **Milestone C is in progress**: T21's rebuild half has landed; the
-> why-connected API is next.
+> **Milestone C is in progress**: T21 is complete (PRs #27, #29); T22 (React
+> workspace shell + legacy retirement) is next.
 
 ## Milestone A — Design pack (⛓ blocks B–D; specs rewritten before code) — **COMPLETE 2026-07-18**
 
@@ -214,9 +214,8 @@ rewrites (blocking test); a disjoint-interval fixture yields segmented edges,
 not one continuous edge; every edge resolves to ≥ 1 source record; `aegis`
 package imports nothing from `legacy.*`.
 
-T21 ships as two PRs, matching the two halves of its title: the **rebuild**
-(migration, builder, legacy severance) and then the **why-connected API**,
-which reads what the rebuild produces.
+**COMPLETE.** T21 shipped as two PRs, matching the two halves of its title:
+the **rebuild** (#27) and the **why-connected API** (#29).
 
 *Rebuild half landed* (migration `0008_edge_projection_v2.py`,
 `aegis/projections/edges.py`). The Phase-1 materialized view is replaced by a
@@ -269,6 +268,31 @@ enumerates both exemptions and fails on any third, and separately forbids
 finding itself can never be re-covered by a future exemption. The dependency
 arrow is also inverted: `legacy/` entry points now import the vendored modules
 from `aegis`, never the reverse.
+
+*Why-connected half landed* (`aegis/queries/provenance.py`,
+`aegis/api/routes/provenance.py`). Three routes: `why-connected/{other}`,
+the **generic** `claims/{id}/provenance` (B-14 — property values need
+provenance too, not only edges), and `entities/{id}/identity-history`.
+Decisions: authorization conditions are pushed **into** the query rather than
+filtering the response, so the counts and identity line are computed over
+exactly what the caller may see — a panel reporting evidence it then refuses to
+show would leak the claims' existence; the edge is **undirected** and resolves
+through the canonical map, because a claim written before a merge names the
+absorbed id and asking about the survivor would otherwise answer "no evidence"
+for an edge the graph is actively drawing; `contradiction_count` counts
+**distinct relations**, since two claims contradicting each other are one
+disagreement; and the 200-claim cap is disclosed as `truncated` so a thin panel
+is never mistaken for thin evidence.
+
+**Test-suite performance (found during T21, fixed in #28).** The integration
+suite took **1:59:59** locally against 52s on Linux CI. On Windows `localhost`
+resolves to `::1` first while the compose ports publish IPv4 only, so every
+connection waited ~2s for the IPv6 attempt to fail: **2.05s per connection
+against 0.01s via `127.0.0.1`**. Local defaults moved to the literal loopback
+address and the same 244 tests now run in **37s** — no test changed.
+`keycloak_url` is a named exception: it is the OIDC *issuer identity* and must
+match the `iss` claim Keycloak mints, so an IP there 401s every request.
+`tests/unit/test_config_defaults.py` guards both halves.
 
 **T22. ⛓ Workspace shell + legacy retirement** (ADR-032, ADR-026; specs/07) —
 `ui/`: React 18 + TypeScript + Vite; Keycloak OIDC PKCE via
