@@ -59,9 +59,9 @@ a duplicated catalog of individual test steps.
 | Article X — append-only audit | `tests/contract/test_audit_schema.py`, `tests/integration/test_audit.py`, `tests/integration/test_actions.py` | Implemented |
 | Article XI — ontology is domain truth | `tests/contract/test_ontology.py`, `tests/contract/test_schema.py`, ontology CI gate | Implemented for ontology v1; module/codegen drift planned in Phase 3 |
 | Article XIII — rebuildable projections | `tests/unit/test_projection_weights.py`, `tests/integration/test_projections.py` | Implemented for Phase 1 projection; identity-revision v2 planned in T21 |
-| Phase 2 reversible identity/stale revision | Future identity ledger unit + integration suites | Planned: T17a/T18–T21 |
+| Phase 2 reversible identity/stale revision | Future identity ledger suites: `tests/integration/` (ledger behavior, one-active-membership index, scoped concurrency) + `tests/unit/` (revision arithmetic, canonical-map cycle detection); the seven cases are enumerated in `speckit/specs/05-entity-resolution.md` §8 | Design recorded in T17a; implementation planned T17/T20–T21 |
 | Phase 2 provenance panel/contradictions | Future component + browser E2E suites | Planned: T23 |
-| Phase 2 transliteration quality thresholds | Future ER evaluation contract/system suite | Planned: T26 |
+| Phase 2 transliteration quality thresholds | Future ER evaluation contract/system suite; numeric floors recorded in `speckit/specs/05-entity-resolution.md` §6 | Thresholds recorded in T17a; harness planned T26 |
 | Phase 2 field sensitivity and route matrix | Future contract + integration matrix suite | Planned: T24a/T24b |
 | Phase 2 fictional ingest-to-projection UI loop | Future `tests/e2e/` MVP journey using `data/sample/mvp/` | Planned: T25/T27 |
 

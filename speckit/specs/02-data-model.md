@@ -1,11 +1,12 @@
 # Spec 02 — Data Model (Claim Store)
 
-Status: implemented in Phase 1 (v1 reference) — **§2 (identity), §3 (claim
-arguments + review queue), and §7 (edge projection) are being rewritten by P2
-tasks T17a–T17c under ADR-028 (identity decision ledger), ADR-029 (mention
-anchors + identity-revision resolution), ADR-030 (honest aggregation), and
-ADR-031 (typed suggestion envelope). Where this text conflicts with those
-ADRs, the ADRs win.** · Constitutional basis: Articles I, III, IV, V, VIII, X, XIII
+Status: implemented in Phase 1 (v1 reference) — **§2 (identity) rewritten
+2026-07-18 by T17a under ADR-028 (identity decision ledger). §3 (claim
+arguments) and §7 (edge projection) are still being rewritten by T17b under
+ADR-029 (mention anchors + identity-revision resolution) and ADR-030 (honest
+aggregation); the review-queue section by T17c under ADR-031 (typed suggestion
+envelope). Where this text conflicts with those ADRs, the ADRs
+win.** · Constitutional basis: Articles I, III, IV, V, VIII, X, XIII
 
 DDL below is illustrative Postgres 16; Alembic migrations are authoritative. IDs are
 ULIDs with type prefixes (`ent_`, `clm_`, `src_`, `rec_`, `evd_`, `cas_`) — sortable,
@@ -48,46 +49,123 @@ CREATE TABLE source_record (
 The current provenance headers written by `pipeline/ingest.py` move into `provenance`;
 raw bytes move into the vault.
 
-## 2. Entities and identity
+## 2. Entities and identity — the decision ledger (ADR-028)
+
+Rewritten by P2 T17a. Semantics, stages, thresholds, migration and the reversal
+test plan live in specs/05; this section owns the schema. The Phase-1 shape
+(`mention` + timestamp-versioned `identity_membership`, migration `0005`) is the
+migration substrate — §2.6 of specs/05 describes the upgrade.
 
 ```sql
 CREATE TABLE entity (
   entity_id    TEXT PRIMARY KEY,
   entity_type  TEXT NOT NULL,          -- ontology object type
   label        TEXT NOT NULL,          -- display only; rebuilt from name claims
-  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  tombstoned_at TIMESTAMPTZ            -- no active memberships, no lineage target;
+                                       -- retained forever, ids never reused (specs/05 §5)
 );
 
--- a name-as-written inside one source record (Phase 2 fills these; Phase 1 creates
--- one mention per legacy node)
+-- a name-as-written inside one source record. Offsets and script are the H-06
+-- minimum: without them a mention cannot be re-anchored to its text.
 CREATE TABLE mention (
   mention_id   TEXT PRIMARY KEY,
   record_id    TEXT NOT NULL REFERENCES source_record,
   raw_text     TEXT NOT NULL,
   norm_key     TEXT NOT NULL,          -- slugify() lives on here — a *mention key*, not identity
-  context      TEXT
+  char_start   INTEGER,                -- offsets into the derivative text, when known
+  char_end     INTEGER,
+  script       TEXT,                   -- ISO 15924 when detected: Sinh | Taml | Latn
+  language     TEXT,                   -- BCP-47 when detected
+  context      TEXT,
+  CHECK (char_end IS NULL OR char_start IS NULL OR char_end >= char_start)
 );
 
--- versioned, reversible identity (Article V): current membership is the row with
--- valid_to IS NULL; history is never deleted
+-- the revision chain. Append-only; revision 0 is the migration baseline.
+CREATE TABLE identity_revision (
+  revision_id  BIGSERIAL PRIMARY KEY,  -- monotonic; ordering is the chain
+  decision_id  TEXT REFERENCES identity_decision,  -- NULL only for revision 0
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- one row per human adjudication (Article VII: decided_by is always a person)
+CREATE TABLE identity_decision (
+  decision_id   TEXT PRIMARY KEY,
+  kind          TEXT NOT NULL CHECK (kind IN ('confirm','reject','merge','split','unresolved')),
+  decided_by    TEXT NOT NULL,          -- human actor; never 'rule:<name>' (ADR-027)
+  decision_note TEXT NOT NULL,          -- evidence for the decision — required, always
+  candidate_id  TEXT REFERENCES er_candidate,     -- the machine input, when there was one
+  input_mentions TEXT[] NOT NULL DEFAULT '{}',    -- explicit mention set (splits, manual merges)
+  parent_revision_id BIGINT NOT NULL REFERENCES identity_revision,  -- optimistic concurrency
+  result_revision_id BIGINT NOT NULL REFERENCES identity_revision,  -- exactly one per decision
+  decided_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (result_revision_id)
+);
+
+-- revision-keyed, reversible identity (Article V). A membership names the revision
+-- that opened it and the revision that closed it; history is never deleted.
 CREATE TABLE identity_membership (
-  membership_id TEXT PRIMARY KEY,
-  mention_id    TEXT NOT NULL REFERENCES mention,
-  entity_id     TEXT NOT NULL REFERENCES entity,
-  decided_by    TEXT NOT NULL,          -- user id or 'rule:<name>' for deterministic rules
-  decision_note TEXT,                   -- evidence for the decision (required for manual)
-  valid_from    TIMESTAMPTZ NOT NULL DEFAULT now(),
-  valid_to      TIMESTAMPTZ             -- set when superseded by split/merge
+  membership_id     TEXT PRIMARY KEY,
+  mention_id        TEXT NOT NULL REFERENCES mention,
+  entity_id         TEXT NOT NULL REFERENCES entity,
+  opened_revision_id BIGINT NOT NULL REFERENCES identity_revision,
+  closed_revision_id BIGINT REFERENCES identity_revision   -- NULL = active
+);
+
+-- THE invariant (ADR-028 §2): at most one active membership per mention.
+-- Enforced by the database, not by application code.
+CREATE UNIQUE INDEX ux_membership_one_active
+  ON identity_membership (mention_id) WHERE closed_revision_id IS NULL;
+
+-- every candidate pair the machine ever produced, with its explanation
+CREATE TABLE er_candidate (
+  candidate_id     TEXT PRIMARY KEY,
+  mention_a        TEXT NOT NULL REFERENCES mention,
+  mention_b        TEXT NOT NULL REFERENCES mention,
+  producer         TEXT NOT NULL,       -- 'rule:nic' | 'rule:same-norm-key-in-doc' | 'splink'
+  producer_version TEXT NOT NULL,       -- settings version (aegis/er/settings.py), git-tracked
+  graph_snapshot_id TEXT,               -- projection snapshot used for context features (H-07)
+  score            NUMERIC,             -- match probability; NULL for rule producers
+  features         JSONB NOT NULL,      -- per-feature waterfall, verbatim (GOAL.md §10.4)
+  pre_verified     BOOLEAN NOT NULL DEFAULT false,  -- rule band: batch-confirmable in one action
+  disposition      TEXT NOT NULL DEFAULT 'open'
+                   CHECK (disposition IN ('open','confirmed','rejected','unresolved','superseded')),
+  decision_id      TEXT REFERENCES identity_decision,  -- set when adjudicated
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (mention_a < mention_b)         -- canonical pair ordering — one row per pair
+);
+
+-- a reject is durable: the pair is not re-suggested while the constraint holds
+CREATE TABLE identity_negative_constraint (
+  constraint_id  TEXT PRIMARY KEY,
+  mention_a      TEXT NOT NULL REFERENCES mention,
+  mention_b      TEXT NOT NULL REFERENCES mention,
+  version        INTEGER NOT NULL DEFAULT 1,   -- superseded by new evidence *type*, never erased
+  decision_id    TEXT NOT NULL REFERENCES identity_decision,
+  evidence_basis TEXT NOT NULL,         -- what was known when it was written (specs/05 §3.3)
+  superseded_by  TEXT REFERENCES identity_negative_constraint,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (mention_a < mention_b)
+);
+
+-- rebuildable projection of merge lineage (Article XIII) — losing it loses nothing
+CREATE TABLE entity_canonical_map (
+  entity_id           TEXT PRIMARY KEY REFERENCES entity,
+  canonical_entity_id TEXT NOT NULL REFERENCES entity,
+  at_revision_id      BIGINT NOT NULL REFERENCES identity_revision
 );
 ```
 
-> **Superseded by ADR-028 (P2 T17a rewrites this section).** The Phase-1 shape
-> above is the migration substrate only. The P2 model adds `identity_decision`
-> (revision chain, actor, evidence, optimistic concurrency), revision-keyed
-> memberships with a one-active-membership-per-mention DB invariant,
-> `er_candidate` + versioned negative constraints, and merge lineage as ledger
-> metadata (**not** a `merged_into` claim). Timestamps alone cannot prove
-> exact merge reversal — the ledger can.
+`identity_revision` and `identity_decision` reference each other, so the
+migration creates both tables first and adds `identity_revision.decision_id` as
+a deferred constraint afterwards. Revision 0 carries `decision_id IS NULL` — it
+is a baseline, not a decision anyone made.
+
+Merge lineage is **ledger metadata** — reconstructed from `identity_decision` and
+the membership rows it closed and opened. There is no `merged_into` claim: a
+claim requires a source record (Article I), and administrative metadata has
+none. The `merged_into` predicate is retired from the ontology by the T17
+migration.
 
 ## 3. Claims
 
