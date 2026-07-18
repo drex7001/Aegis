@@ -281,6 +281,43 @@ def authz_rebuild() -> None:
     )
 
 
+@identity_app.command("run-rules")
+def identity_run_rules(
+    record_id: str = typer.Option(
+        None, "--record", help="Limit the same-document rule to one source record."
+    ),
+) -> None:
+    """Run deterministic ER rules, emitting candidates for human adjudication.
+
+    Emits candidates only — nothing here merges anything (ADR-027).  Safe to
+    re-run: a pair that already has a candidate is not proposed twice, and a
+    pair a reviewer rejected is not proposed again at all.
+    """
+    from aegis.config import get_settings
+    from aegis.er.rules import run_rules
+    from aegis.ontology import load
+    from aegis.store import get_sessionmaker
+
+    settings = get_settings()
+    ontology_path = Path(settings.ontology_path)
+    ontology = load(ontology_path if ontology_path.is_absolute() else REPO_ROOT / ontology_path)
+    with get_sessionmaker()() as session:
+        report = run_rules(session, ontology=ontology, record_id=record_id)
+        session.commit()
+    typer.secho(
+        f"emitted {report.emitted} candidates ({report.pre_verified} pre-verified)",
+        fg=typer.colors.GREEN,
+    )
+    typer.echo(
+        f"  skipped: {report.already_open} already awaiting review, "
+        f"{report.same_entity} already one entity"
+    )
+    typer.echo(
+        f"  suppressed: {report.suppressed_conflict} identifier conflicts (H-07), "
+        f"{report.suppressed_constraint} previously rejected pairs"
+    )
+
+
 @identity_app.command("backfill-anchors")
 def identity_backfill_anchors(
     dry_run: bool = typer.Option(
