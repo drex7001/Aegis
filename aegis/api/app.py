@@ -7,7 +7,8 @@ the mounted legacy UI (T14) into one app.
 
 from __future__ import annotations
 
-from contextlib import suppress
+import asyncio
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -23,6 +24,7 @@ from aegis.api.errors import install_error_handlers
 from aegis.api.routes import audit, cases, entities, evidence, graph, review, sources
 from aegis.api.routes import claims as claims_routes
 from aegis.authz.fga import FGAClient, FGAError
+from aegis.authz.outbox import dispatch_forever
 from aegis.config import get_settings
 from aegis.ontology import load
 from aegis.store import get_sessionmaker
@@ -33,10 +35,34 @@ _STATIC_DIR = _REPO_ROOT / "legacy" / "app" / "static"
 
 def create_app() -> FastAPI:
     settings = get_settings()
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        dispatcher = None
+        if app.state.fga is not None:
+            dispatcher = asyncio.create_task(
+                dispatch_forever(
+                    app.state.sessionmaker,
+                    app.state.fga,
+                    interval_seconds=settings.authz_outbox_interval_seconds,
+                    batch_size=settings.authz_outbox_batch_size,
+                ),
+                name="aegis-authz-outbox",
+            )
+        app.state.authz_dispatcher_task = dispatcher
+        try:
+            yield
+        finally:
+            if dispatcher is not None:
+                dispatcher.cancel()
+                with suppress(asyncio.CancelledError):
+                    await dispatcher
+
     app = FastAPI(
         title="Aegis API",
         version="1.0.0",
         description="Governed claims-based intelligence platform (speckit Phase 1).",
+        lifespan=lifespan,
     )
 
     app.state.settings = settings

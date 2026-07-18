@@ -125,6 +125,8 @@ actions:
   adjudicate_identity: {roles: [analyst], audit: true, dual_control_for: [protected_person]}
   register_evidence:   {roles: [analyst, investigator], audit: true}
   transfer_custody:    {roles: [evidence_officer, analyst], audit: true}
+  assign_case_member:  {roles: [supervisor], audit: true}
+  remove_case_member:  {roles: [supervisor], audit: true}
   seal_record:         {roles: [supervisor], audit: true}     # Phase 7
 ```
 `audit: true` is currently mandatory for all actions; the key exists so the validator
@@ -133,7 +135,7 @@ can *reject* any action declared without it.
 ## 4. Versioning rules
 
 - **Patch**: display hints, docs.
-- **Minor**: additive — new types, predicates, grading schemes, categories.
+- **Minor**: additive — new types, predicates, grading schemes, categories, actions.
 - **Major**: renames/removals/retyping. Requires a data migration script shipped in
   the same change, and the previous ontology version kept in `ontology/history/`.
 - Claims store the ontology version current at `recorded_at`; the loader must be able

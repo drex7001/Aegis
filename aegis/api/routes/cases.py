@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Response
 
 from aegis.actions import ActionContext, ActionService
+from aegis.actions.service import CASE_MEMBER_RELATIONS
 from aegis.api.deps import (
     AuthContext,
     DbSession,
@@ -14,7 +15,8 @@ from aegis.api.deps import (
     get_fga,
 )
 from aegis.api.schemas import CaseIn, CaseMemberIn, CaseOut
-from aegis.store import CaseFile
+from aegis.authz.outbox import delete_inline_best_effort
+from aegis.store import CaseFile, CaseMember
 
 router = APIRouter(tags=["cases"])
 
@@ -71,6 +73,14 @@ def add_member(
     auth: AuthContext = Depends(authorize("supervisor")),
 ) -> dict:
     fga_check_or_404(fga, auth.user, "can_approve", f"case:{case_id}")
+    existing = session.get(CaseMember, (case_id, body.user_id))
+    revoked_tuple = None
+    if existing is not None and existing.role != body.role:
+        revoked_tuple = {
+            "user": f"user:{body.user_id}",
+            "relation": CASE_MEMBER_RELATIONS[existing.role],
+            "object": f"case:{case_id}",
+        }
     service = ActionService(session, ontology)
     row = service.assign_case_member(
         ActionContext(actor=auth.user.sub, purpose=auth.purpose),
@@ -79,4 +89,38 @@ def add_member(
         role=body.role,
     )
     session.commit()
+    if revoked_tuple is not None:
+        delete_inline_best_effort(fga, revoked_tuple)
     return {"case_id": row.case_id, "user_id": row.user_id, "role": row.role}
+
+
+@router.delete(
+    "/cases/{case_id}/members/{user_id}",
+    status_code=204,
+    response_class=Response,
+)
+def remove_member(
+    case_id: str,
+    user_id: str,
+    session: DbSession,
+    ontology: OntologyDep,
+    fga=Depends(get_fga),
+    auth: AuthContext = Depends(authorize("supervisor")),
+) -> Response:
+    fga_check_or_404(fga, auth.user, "can_approve", f"case:{case_id}")
+    member = session.get(CaseMember, (case_id, user_id))
+    if member is None:
+        raise HTTPException(404, "not found")
+    revoked_tuple = {
+        "user": f"user:{user_id}",
+        "relation": CASE_MEMBER_RELATIONS[member.role],
+        "object": f"case:{case_id}",
+    }
+    ActionService(session, ontology).remove_case_member(
+        ActionContext(actor=auth.user.sub, purpose=auth.purpose),
+        case_id=case_id,
+        user_id=user_id,
+    )
+    session.commit()
+    delete_inline_best_effort(fga, revoked_tuple)
+    return Response(status_code=204)

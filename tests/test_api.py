@@ -26,7 +26,7 @@ from aegis.actions import new_id
 from aegis.api import create_app
 from aegis.api.auth import OIDCAuthenticator
 from aegis.api.deps import find_ungated_routes
-from aegis.store import Entity, Source, SourceRecord
+from aegis.store import AuthzOutbox, Entity, Source, SourceRecord
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 ISSUER = "http://localhost:8180/realms/aegis"
@@ -42,6 +42,50 @@ class _StubKey:
 class _StubJWKS:
     def get_signing_key_from_jwt(self, token: str) -> _StubKey:
         return _StubKey()
+
+
+class _FakeFGA:
+    """Small relation evaluator for request-path revocation tests."""
+
+    def __init__(self) -> None:
+        self.tuples: set[tuple[str, str, str]] = set()
+        self.deleted: list[tuple[str, str, str]] = []
+
+    def add(self, user: str, relation: str, object_: str) -> None:
+        self.tuples.add((user, relation, object_))
+
+    def delete(self, tuple_: dict[str, str]) -> None:
+        key = (tuple_["user"], tuple_["relation"], tuple_["object"])
+        self.tuples.discard(key)
+        self.deleted.append(key)
+
+    def check(self, user: str, relation: str, object_: str) -> bool:
+        if (user, relation, object_) in self.tuples:
+            return True
+        if object_.startswith("case:"):
+            memberships = {
+                tuple_relation
+                for tuple_user, tuple_relation, tuple_object in self.tuples
+                if tuple_user == user and tuple_object == object_
+            }
+            if relation == "can_approve":
+                return "supervisor" in memberships
+            if relation in {"can_view", "can_edit"}:
+                return bool(
+                    memberships
+                    & {"analyst", "investigator", "supervisor", "auditor_grant"}
+                )
+        if object_.startswith("evidence_item:"):
+            if relation == "can_transfer" and (user, "custodian", object_) in self.tuples:
+                return True
+            parent_cases = {
+                tuple_user
+                for tuple_user, tuple_relation, tuple_object in self.tuples
+                if tuple_relation == "case" and tuple_object == object_
+            }
+            inherited = "can_approve" if relation == "can_transfer" else relation
+            return any(self.check(user, inherited, parent_case) for parent_case in parent_cases)
+        return False
 
 
 def token(sub: str, *roles: str, clearance: int = 2) -> str:
@@ -93,6 +137,16 @@ def client(api_db: str) -> TestClient:
     app = create_app()
     app.state.authenticator = OIDCAuthenticator(app.state.settings, jwks_client=_StubJWKS())
     return TestClient(app)
+
+
+@pytest.fixture()
+def fake_fga(client: TestClient):
+    previous = client.app.state.fga
+    fake = _FakeFGA()
+    client.app.state.fga = fake
+    client.app.state.authz_dispatcher_task = None
+    yield fake
+    client.app.state.fga = previous
 
 
 @pytest.fixture(scope="module")
@@ -269,6 +323,125 @@ def test_unknown_source_type_rejected(client: TestClient) -> None:
         headers=auth("ana", "analyst"),
     )
     assert resp.status_code == 422
+
+
+# ── revocations: commit first, then inline FGA delete (T16b) ───────────────
+
+
+def _open_authorized_case(client: TestClient, fake_fga: _FakeFGA, owner: str) -> str:
+    created = client.post(
+        "/v1/cases",
+        json={"title": "Revocation case", "purpose": "T16b verification"},
+        headers=auth(owner, "analyst", "supervisor"),
+    )
+    assert created.status_code == 201, created.text
+    case_id = created.json()["case_id"]
+    fake_fga.add(f"user:{owner}", "supervisor", f"case:{case_id}")
+    return case_id
+
+
+def test_revoked_member_is_denied_with_dispatcher_paused(
+    client: TestClient, fake_fga: _FakeFGA
+) -> None:
+    owner = f"owner-{new_id('u')}"
+    member = f"member-{new_id('u')}"
+    case_id = _open_authorized_case(client, fake_fga, owner)
+
+    assigned = client.post(
+        f"/v1/cases/{case_id}/members",
+        json={"user_id": member, "role": "analyst"},
+        headers=auth(owner, "supervisor"),
+    )
+    assert assigned.status_code == 201, assigned.text
+    member_tuple = (f"user:{member}", "analyst", f"case:{case_id}")
+    fake_fga.add(*member_tuple)
+    assert client.get(
+        f"/v1/cases/{case_id}", headers=auth(member, "analyst")
+    ).status_code == 200
+
+    revoked = client.delete(
+        f"/v1/cases/{case_id}/members/{member}",
+        headers=auth(owner, "supervisor"),
+    )
+    assert revoked.status_code == 204, revoked.text
+    assert member_tuple in fake_fga.deleted
+    assert client.app.state.authz_dispatcher_task is None
+    assert client.get(
+        f"/v1/cases/{case_id}", headers=auth(member, "analyst")
+    ).status_code == 404
+
+    with client.app.state.sessionmaker() as session:
+        pending_delete = session.scalar(
+            sa.select(AuthzOutbox).where(
+                AuthzOutbox.op == "delete",
+                AuthzOutbox.processed_at.is_(None),
+                AuthzOutbox.fga_tuple == {
+                    "user": member_tuple[0],
+                    "relation": member_tuple[1],
+                    "object": member_tuple[2],
+                },
+            )
+        )
+    assert pending_delete is not None
+
+
+def test_role_and_custody_changes_delete_old_grants_inline(
+    client: TestClient, fake_fga: _FakeFGA
+) -> None:
+    owner = f"owner-{new_id('u')}"
+    member = f"member-{new_id('u')}"
+    case_id = _open_authorized_case(client, fake_fga, owner)
+
+    assert client.post(
+        f"/v1/cases/{case_id}/members",
+        json={"user_id": member, "role": "analyst"},
+        headers=auth(owner, "supervisor"),
+    ).status_code == 201
+    old_member_tuple = (f"user:{member}", "analyst", f"case:{case_id}")
+    fake_fga.add(*old_member_tuple)
+    changed = client.post(
+        f"/v1/cases/{case_id}/members",
+        json={"user_id": member, "role": "investigator"},
+        headers=auth(owner, "supervisor"),
+    )
+    assert changed.status_code == 201, changed.text
+    assert old_member_tuple in fake_fga.deleted
+
+    evidence = client.post(
+        "/v1/evidence",
+        json={"description": "T16b evidence", "case_id": case_id},
+        headers=auth(owner, "investigator"),
+    )
+    assert evidence.status_code == 201, evidence.text
+    evidence_id = evidence.json()["evidence_id"]
+    fake_fga.add(f"case:{case_id}", "case", f"evidence_item:{evidence_id}")
+
+    first_at = datetime.now(timezone.utc)
+    first = client.post(
+        f"/v1/evidence/{evidence_id}/custody-events",
+        json={
+            "to_actor": member,
+            "occurred_at": first_at.isoformat(),
+            "purpose": "intake",
+        },
+        headers=auth(owner, "investigator"),
+    )
+    assert first.status_code == 201, first.text
+    old_custodian_tuple = (f"user:{member}", "custodian", f"evidence_item:{evidence_id}")
+    fake_fga.add(*old_custodian_tuple)
+
+    second = client.post(
+        f"/v1/evidence/{evidence_id}/custody-events",
+        json={
+            "to_actor": owner,
+            "from_actor": member,
+            "occurred_at": (first_at + timedelta(minutes=1)).isoformat(),
+            "purpose": "return",
+        },
+        headers=auth(member, "investigator"),
+    )
+    assert second.status_code == 201, second.text
+    assert old_custodian_tuple in fake_fga.deleted
 
 
 # ── legacy projection surface: public, unchanged shape (T13/T14) ────────────

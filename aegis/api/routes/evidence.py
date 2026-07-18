@@ -15,6 +15,7 @@ from aegis.api.deps import (
     get_fga,
 )
 from aegis.api.schemas import CustodyEventIn, EvidenceIn, EvidenceOut
+from aegis.authz.outbox import delete_inline_best_effort
 from aegis.store import CustodyEvent, EvidenceItem
 
 router = APIRouter(tags=["evidence"])
@@ -87,5 +88,14 @@ def add_custody_event(
         evidence_id=evidence_id,
         **body.model_dump(),
     )
+    revoked_tuple = None
+    if row.from_actor is not None:
+        revoked_tuple = {
+            "user": f"user:{row.from_actor}",
+            "relation": "custodian",
+            "object": f"evidence_item:{evidence_id}",
+        }
     session.commit()
+    if revoked_tuple is not None:
+        delete_inline_best_effort(fga, revoked_tuple)
     return {"evidence_id": row.evidence_id, "seq": row.seq, "to_actor": row.to_actor}

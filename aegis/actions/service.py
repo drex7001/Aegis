@@ -777,6 +777,46 @@ class ActionService:
             )
         return row
 
+    def remove_case_member(
+        self,
+        context: ActionContext,
+        *,
+        case_id: str,
+        user_id: str,
+    ) -> CaseMember:
+        self._require_action("remove_case_member")
+        if not user_id.strip():
+            raise ActionValidationError("case_member.user_id", "must not be empty")
+        with self._transaction():
+            row = self.session.get(CaseMember, (case_id, user_id))
+            if row is None:
+                raise ActionValidationError("case_member", "membership does not exist")
+            relation = CASE_MEMBER_RELATIONS.get(row.role)
+            if relation is None:
+                raise ActionValidationError(
+                    f"case_member.role.{row.role}", "cannot be revoked as a case membership"
+                )
+            old_role = row.role
+            self._outbox(
+                "delete",
+                {
+                    "user": f"user:{user_id}",
+                    "relation": relation,
+                    "object": f"case:{case_id}",
+                },
+            )
+            self.session.delete(row)
+            self.session.flush()
+            self._audit(
+                context,
+                action="remove_case_member",
+                resource_type="case_member",
+                resource_id=f"{case_id}:{user_id}",
+                case_id=case_id,
+                detail={"old_role": old_role, "user_id": user_id},
+            )
+        return row
+
 
 def _service(session: Session, ontology: Ontology | None) -> ActionService:
     return ActionService(session, ontology)
@@ -816,3 +856,7 @@ def open_case(session: Session, context: ActionContext, *, ontology: Ontology | 
 
 def assign_case_member(session: Session, context: ActionContext, *, ontology: Ontology | None = None, **kwargs: Any) -> CaseMember:
     return _service(session, ontology).assign_case_member(context, **kwargs)
+
+
+def remove_case_member(session: Session, context: ActionContext, *, ontology: Ontology | None = None, **kwargs: Any) -> CaseMember:
+    return _service(session, ontology).remove_case_member(context, **kwargs)

@@ -10,14 +10,21 @@ against the store, which both repairs drift and proves the projection property
 
 from __future__ import annotations
 
+import asyncio
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+import time
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from aegis.authz.fga import FGAClient, FGAError, Tuple3
+from aegis.logging import get_logger
 from aegis.store import AuthzOutbox, CaseMember, CustodyEvent, EvidenceItem
+
+logger = get_logger(__name__)
 
 # case_member.role → FGA relation (mirrors aegis.actions.service.CASE_MEMBER_RELATIONS)
 _CASE_RELATIONS = {
@@ -34,6 +41,7 @@ class SyncReport:
     pending: int = 0
     failed_id: int | None = None
     error: str | None = None
+    max_delete_staleness_seconds: float = 0.0
 
     @property
     def ok(self) -> bool:
@@ -80,9 +88,93 @@ def sync(session: Session, fga: FGAClient, *, limit: int | None = None) -> SyncR
                 break
             row.processed_at = _utcnow()
             row.last_error = None
+            if row.op == "delete":
+                report.max_delete_staleness_seconds = max(
+                    report.max_delete_staleness_seconds,
+                    (row.processed_at - row.created_at).total_seconds(),
+                )
             report.processed += 1
         report.pending = sum(1 for row in rows if row.processed_at is None)
     return report
+
+
+def delete_inline_best_effort(fga: FGAClient | None, tuple_: Tuple3) -> bool:
+    """Try to remove a grant after its canonical Postgres commit.
+
+    The transactional outbox is the durability guarantee.  This request-path
+    optimization only shrinks the exposure window, so an unavailable FGA must
+    never roll back (or misreport) the already-committed canonical revocation.
+    """
+    if fga is None:
+        logger.warning(
+            "authz_inline_delete_deferred",
+            fga_tuple=tuple_,
+            error="OpenFGA is not configured",
+        )
+        return False
+    try:
+        fga.delete(tuple_)
+    except FGAError as exc:
+        logger.warning(
+            "authz_inline_delete_deferred",
+            fga_tuple=tuple_,
+            error=str(exc),
+        )
+        return False
+    logger.info("authz_inline_delete_succeeded", fga_tuple=tuple_)
+    return True
+
+
+def _dispatch_once(
+    session_factory: Callable[[], Any],
+    fga: FGAClient,
+    batch_size: int,
+    sync_fn: Callable[..., SyncReport],
+) -> SyncReport:
+    with session_factory() as session:
+        return sync_fn(session, fga, limit=batch_size)
+
+
+async def dispatch_forever(
+    session_factory: Callable[[], Any],
+    fga: FGAClient,
+    *,
+    interval_seconds: float = 5.0,
+    batch_size: int = 100,
+    _sync_fn: Callable[..., SyncReport] = sync,
+) -> None:
+    """Drain the authorization outbox on a fixed start-to-start cadence.
+
+    ``_sync_fn`` is an internal test seam used to measure the retry cadence
+    without a database or OpenFGA process.  Production callers use ``sync``.
+    """
+    while True:
+        started = time.monotonic()
+        try:
+            report = await asyncio.to_thread(
+                _dispatch_once, session_factory, fga, batch_size, _sync_fn
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("authz_outbox_dispatch_failed")
+        else:
+            if report.error:
+                logger.warning(
+                    "authz_outbox_dispatch_deferred",
+                    failed_id=report.failed_id,
+                    error=report.error,
+                    pending=report.pending,
+                )
+            elif report.processed:
+                logger.info(
+                    "authz_outbox_drained",
+                    processed=report.processed,
+                    pending=report.pending,
+                    max_delete_staleness_seconds=report.max_delete_staleness_seconds,
+                )
+        elapsed = time.monotonic() - started
+        await asyncio.sleep(max(0.0, interval_seconds - elapsed))
 
 
 def desired_tuples(session: Session) -> set[tuple[str, str, str]]:
