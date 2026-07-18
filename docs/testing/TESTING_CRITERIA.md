@@ -67,6 +67,28 @@ a duplicated catalog of individual test steps.
 | Phase 2 field sensitivity and route matrix | Future contract + integration matrix suite; every route's gate, filters, purpose, limits and owning test are enumerated in `speckit/specs/06-api.md` §2 | Matrix authored in T17d; executable suite planned T24a/T24b |
 | Phase 2 fictional ingest-to-projection UI loop | Future `tests/e2e/` MVP journey using `data/sample/mvp/` | Planned: T25/T27 |
 
+## Running the suite locally
+
+Point `AEGIS_TEST_DATABASE_URL` at a disposable database and use
+**`127.0.0.1`, never `localhost`**. On Windows `localhost` resolves to `::1`
+first while the compose ports publish IPv4 only, so every connection stalls
+~2 s on the failed IPv6 attempt before falling back. Nothing errors — it is
+pure latency, invisible per call and ruinous in aggregate:
+
+| Same 244 tests | Wall clock |
+|---|---|
+| `localhost` | 1:59:59 |
+| `127.0.0.1` | 0:00:37 |
+
+`make test*` exports the correct URL by default, and
+`tests/unit/test_config_defaults.py` fails if a local-service default
+regresses to `localhost`. The one deliberate exception is `keycloak_url`,
+which is the OIDC **issuer identity** and must match the `iss` claim Keycloak
+mints — an IP there 401s every request.
+
+If a local run takes minutes per module, check this before suspecting the
+tests.
+
 ## Manual test case format
 
 Use IDs such as `MAN-P2-001`. Record requirement, owner, environment,

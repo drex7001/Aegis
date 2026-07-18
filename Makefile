@@ -3,6 +3,13 @@
 
 ENVFILE := $(wildcard .env)
 COMPOSE = docker compose $(if $(ENVFILE),--env-file $(ENVFILE)) -f infra/docker-compose.yml
+
+# 127.0.0.1, never localhost. On Windows `localhost` resolves to ::1 first and
+# the compose ports bind IPv4 only, so every connection pays a ~2s failed-IPv6
+# stall: measured 2.05s vs 0.01s per connection. The suite opens thousands.
+AEGIS_TEST_DATABASE_URL ?= postgresql+psycopg://aegis:aegis-dev@127.0.0.1:5433/aegis
+export AEGIS_TEST_DATABASE_URL
+
 PYTEST = uv run pytest
 
 up:            ## start postgres+postgis, minio, keycloak, openfga; wait for health
