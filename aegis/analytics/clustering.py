@@ -1,4 +1,11 @@
-"""Community detection: find criminal cells/clusters in the multiplex graph.
+"""Community detection over a weighted multiplex graph (Leiden).
+
+Vendored into the core by T21 (H-36).  The prototype kept this in
+``legacy.pipeline``, which meant a documented core command — ``aegis
+projections rebuild`` — depended on quarantined code that the packaged wheel
+does not ship.  Community detection is a **generic algorithm**, not domain
+scaffolding: nothing here knows what a node represents, so it belongs in
+``aegis.analytics`` and the quarantine loses one more reason to exist.
 
 Primary path: true Leiden via python-igraph + leidenalg. Because the graph is
 multiplex, when more than one layer is present we build one igraph per layer
@@ -7,10 +14,15 @@ optimises the partition across all layers jointly — the correct multiplex
 treatment, not just flattening.
 
 Fallback: if igraph/leidenalg are unavailable, NetworkX Louvain on the
-flattened confidence-weighted graph (with a printed warning).
+flattened weighted graph (with a printed warning).
 
-Edge weights are the confidence weights (EXTRACTED=1.0 / INFERRED=0.7 /
-AMBIGUOUS=0.4), so hard-fact links pull nodes together harder than suspicions.
+Edge weights come from the caller.  The graph emitter passes its display
+weight, so better-supported links pull nodes together harder — but that is the
+*caller's* interpretation of its own numbers, and this module makes no claim
+about what a weight means.
+
+Under Article IX a partition is an analytic finding, never a claim: cells are
+a question to investigate, not an assertion about anyone in them.
 """
 
 from __future__ import annotations

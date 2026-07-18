@@ -14,7 +14,7 @@ from __future__ import annotations
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from aegis.actions.ids import new_id
+from aegis.ids import new_id
 from aegis.store import IdentityMembership, IdentityRevision, Mention
 
 #: The migration baseline.  Phase-1 one-mention clusters are *verified* as this

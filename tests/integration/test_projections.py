@@ -15,11 +15,12 @@ from sqlalchemy.orm import Session
 from aegis.evidence import LocalFilesystemVault
 from aegis.migration import migrate, remap_edge
 from aegis.ontology import load
+from aegis.er.canonical import rebuild_canonical_map
 from aegis.projections import (
     CONFIDENCE_TAGS,
     WEIGHTS,
     build_full_graph,
-    refresh_edge_projection,
+    rebuild_edge_projection,
 )
 from tests.support.paths import ONTOLOGY_PATH, REPO_ROOT, SNAPSHOT_ROOT
 from tests.support.database import (
@@ -57,7 +58,8 @@ def rebuilt(projection_engine: sa.Engine, ontology, tmp_path_factory) -> dict:
     with Session(projection_engine) as session:
         migrate(session, vault=vault)
     with Session(projection_engine) as session:
-        refresh_edge_projection(session)
+        rebuild_canonical_map(session)
+        rebuild_edge_projection(session, ontology=ontology)
         session.commit()
         return build_full_graph(session, ontology)
 
@@ -161,22 +163,26 @@ def test_snapshot_cells_and_meta_shape(rebuilt: dict, baseline: dict) -> None:
 
 
 @pytest.mark.integration
-def test_sql_weight_function_agrees_with_python(projection_engine: sa.Engine) -> None:
+def test_handling_rank_sql_is_the_single_definition(projection_engine: sa.Engine) -> None:
+    """`projection_weight()` was dropped with the Phase-1 view (T21, ADR-030).
+
+    Only the display weight in the emitter survives, and it has no SQL twin to
+    disagree with.  `handling_code_rank` stays because the v2 builder and the
+    row filters both key off it, and an unknown code must still fail closed.
+    """
     with projection_engine.connect() as connection:
-        for credibility, weight in WEIGHTS.items():
-            got = connection.execute(
-                sa.text("SELECT projection_weight(:c)"), {"c": credibility}
-            ).scalar_one()
-            assert got == pytest.approx(weight), credibility
         assert connection.execute(
             sa.text("SELECT handling_code_rank('open'), handling_code_rank('restricted'), "
                     "handling_code_rank('sensitive'), handling_code_rank('mystery')")
         ).one() == (0, 1, 2, 999)
+        assert not connection.execute(
+            sa.text("SELECT 1 FROM pg_proc WHERE proname = 'projection_weight'")
+        ).all(), "the aggregate weight function must not survive T21"
 
 
 @pytest.mark.integration
 def test_cypher_export_path_preserved(rebuilt: dict) -> None:
-    from legacy.pipeline.neo4j_export import generate_cypher
+    from aegis.projections.cypher import generate_cypher  # vendored by T21 (H-36)
 
     cypher = generate_cypher(rebuilt)
     assert "MERGE (c:Criminal" in cypher

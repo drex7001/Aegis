@@ -23,9 +23,9 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from legacy.pipeline.clustering import detect_cells
+from aegis.analytics.clustering import detect_cells  # vendored into the core by T21 (H-36)
 from legacy.pipeline.models import ExtractionResult
-from legacy.pipeline.neo4j_export import generate_cypher, push_to_neo4j
+from aegis.projections.cypher import generate_cypher, push_to_neo4j  # vendored by T21 (H-36)
 from legacy.pipeline.pdf_loader import split_paragraphs
 from legacy.pipeline.real_dataset import build_curated_network, sources_for_meta
 from legacy.pipeline.semantic_pass import extract_semantic, resolve_model_name

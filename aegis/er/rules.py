@@ -32,7 +32,7 @@ from typing import Any, Iterable
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from aegis.actions.ids import new_id
+from aegis.ids import new_id
 from aegis.er.settings import (
     IDENTIFIER_RULE_PREFIX,
     RULES_VERSION,

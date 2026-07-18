@@ -18,7 +18,7 @@ from typing import Any, Iterator, Literal, Sequence
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from aegis.actions.ids import new_id
+from aegis.ids import new_id
 from aegis.audit import append as append_audit
 from aegis.config import get_settings
 from aegis.er.adjudication import (
@@ -30,6 +30,7 @@ from aegis.er.adjudication import (
     reject_match,
     split_entity,
 )
+from aegis.er.canonical import canonical_entity
 from aegis.er.ledger import (
     active_entity_for_mention,
     active_revision_id,
@@ -671,10 +672,29 @@ class ActionService:
         claim = self.session.get(Claim, claim_id)
         if claim is None or result.new_entity_id is None:
             return
+        # Repoint whichever argument actually named the split entity. A claim
+        # can reach here from either position (a symmetric predicate is
+        # order-normalized at write time) and may name an id that was absorbed
+        # by an earlier merge, so both ends are compared *after* resolution.
+        # Repointing the subject unconditionally would propose a claim about
+        # the wrong pair.
+        surviving = result.surviving_entity_id
+        subject_id = claim.subject_id
+        object_id = claim.object_id
+        subject_resolves = canonical_entity(self.session, claim.subject_id)
+        object_resolves = (
+            canonical_entity(self.session, claim.object_id)
+            if claim.object_id is not None
+            else None
+        )
+        if subject_resolves == surviving and claim.subject_mention_id is None:
+            subject_id = result.new_entity_id
+        elif object_resolves == surviving and claim.object_mention_id is None:
+            object_id = result.new_entity_id
         payload = {
-            "subject_id": result.new_entity_id,
+            "subject_id": subject_id,
             "predicate": claim.predicate,
-            "object_id": claim.object_id,
+            "object_id": object_id,
             "object_value": claim.object_value,
             "assertion_type": claim.assertion_type,
             "record_id": claim.record_id,

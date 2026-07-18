@@ -19,9 +19,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 from pydantic import ValidationError
 
-from legacy.pipeline.clustering import detect_cells
+from aegis.analytics.clustering import detect_cells  # vendored into the core by T21 (H-36)
 from legacy.pipeline.models import ConfidenceTag, LayerType, TemporalEdge
-from legacy.pipeline.neo4j_export import generate_cypher, push_to_neo4j
+from aegis.projections.cypher import generate_cypher, push_to_neo4j  # vendored by T21 (H-36)
 from legacy.pipeline.semantic_pass import extract_semantic
 from legacy.pipeline.structural_pass import extract_structural
 

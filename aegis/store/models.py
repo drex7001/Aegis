@@ -675,6 +675,47 @@ class AuditLog(Base):
     entry_hash: Mapped[str] = mapped_column(Text, nullable=False)
 
 
+class EdgeProjection(Base):
+    """Time-segmented traversal projection v2 (spec 02 §7, ADR-029, ADR-030).
+
+    A rebuildable cache with no authority of its own (Article XIII): every row
+    is derived from claims, and dropping the table loses nothing.  Three
+    properties distinguish it from the Phase-1 view it replaced — entity
+    arguments are canonical at build time, one row is one maximal interval
+    rather than one collapsed span, and there is **no aggregate weight
+    column**.  ``support`` carries the per-claim grading references instead, so
+    a contradiction stays visible rather than being averaged away.
+    """
+
+    __tablename__ = "edge_projection"
+    __table_args__ = (
+        Index("ix_edge_projection_subject", "subject_id"),
+        Index("ix_edge_projection_object", "object_id"),
+        Index("ix_edge_projection_predicate", "predicate"),
+        Index("ix_edge_projection_handling", "handling_rank"),
+    )
+
+    edge_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    subject_id: Mapped[str] = mapped_column(
+        ForeignKey("entity.entity_id"), nullable=False
+    )
+    object_id: Mapped[str] = mapped_column(
+        ForeignKey("entity.entity_id"), nullable=False
+    )
+    predicate: Mapped[str] = mapped_column(Text, nullable=False)
+    segment_from: Mapped[date | None] = mapped_column(Date)
+    segment_to: Mapped[date | None] = mapped_column(Date)
+    claim_ids: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False)
+    record_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    support: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    handling_rank: Mapped[int] = mapped_column(Integer, nullable=False)
+    built_at_revision_id: Mapped[int] = mapped_column(
+        ForeignKey("identity_revision.revision_id"), nullable=False
+    )
+    ontology_version: Mapped[str] = mapped_column(Text, nullable=False)
+    builder_version: Mapped[str] = mapped_column(Text, nullable=False)
+
+
 __all__ = [
     "AuditLog",
     "AuthzOutbox",
@@ -684,6 +725,7 @@ __all__ = [
     "ClaimRelation",
     "CustodyEvent",
     "Derivative",
+    "EdgeProjection",
     "Entity",
     "EntityCanonicalMap",
     "ErCandidate",

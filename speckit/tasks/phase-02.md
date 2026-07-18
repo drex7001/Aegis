@@ -9,8 +9,9 @@ lettered subtasks keep the global T-numbering stable for pre-authored P3+ files.
 > closes with the **★ MVP gate** — see the charter. Gate criteria are
 > non-deferrable (ADR-025). The Phase 1 closure addendum (T16a–T16d), which
 > gated Milestones B–D, closed 2026-07-18 (PRs #11–#14). **Milestones A and
-> B are complete** (T17a–T17d, PRs #17–#20; T17–T20, PRs #22–#26);
-> Milestone C is the active work.
+> B are complete** (T17a–T17d, PRs #17–#20; T17–T20, PRs #22–#26).
+> **Milestone C is in progress**: T21's rebuild half has landed; the
+> why-connected API is next.
 
 ## Milestone A — Design pack (⛓ blocks B–D; specs rewritten before code) — **COMPLETE 2026-07-18**
 
@@ -212,6 +213,62 @@ AC: merge collapses nodes/edges and split restores them with zero claim-row
 rewrites (blocking test); a disjoint-interval fixture yields segmented edges,
 not one continuous edge; every edge resolves to ≥ 1 source record; `aegis`
 package imports nothing from `legacy.*`.
+
+T21 ships as two PRs, matching the two halves of its title: the **rebuild**
+(migration, builder, legacy severance) and then the **why-connected API**,
+which reads what the rebuild produces.
+
+*Rebuild half landed* (migration `0008_edge_projection_v2.py`,
+`aegis/projections/edges.py`). The Phase-1 materialized view is replaced by a
+table, because one row per maximal interval is not a `GROUP BY`.
+
+Two latent bugs surfaced, both found by the §7.1 blocking cases rather than by
+review, and both fixed here:
+
+- **Symmetric predicates did not collapse on merge.** Symmetric arguments are
+  order-normalized at *write* time, but identity resolution happens later and
+  can reverse a pair — so after a merge, two claims describing one undirected
+  edge pointed opposite ways and projected as two mirror-image edges. The
+  builder re-normalizes after resolution.
+- **`_unattributable_claims` (T20) missed most of what rule 4 covers.** It
+  scanned only the subject side for the split entity's literal id, so it
+  silently found nothing for claims naming the entity as their *object*
+  (≈ half of them, given symmetric normalization) and nothing at all in the
+  merge-then-split case — where the claim names the **absorbed** id, not the
+  survivor. It now covers both argument positions and every id resolving to
+  the split entity; the queued draft repoints whichever end named it.
+
+Decisions taken while implementing: resolution goes **through the mention
+anchor first**, falling back to `entity_canonical_map` only when unanchored —
+the anchor is what makes a split *restore* edges rather than merely add new
+ones, and the map alone cannot follow a split (specs/02 §7 updated); `edge_id`
+is a **content digest**, so a rebuild is idempotent in identity as well as
+content and two builds are diffable; the SQL `projection_weight()` is dropped
+while `handling_code_rank()` stays, since the v2 builder and the row filters
+both key off it; the display weight survives only in the legacy emitter, which
+is where ADR-030 wants a display score — computed from visible claims, at the
+point of rendering.
+
+`new_id` moved again, from `aegis/actions/ids.py` to **`aegis/ids.py`**: T17's
+split did not actually break the `actions → er.ledger → actions` cycle, because
+importing `aegis.actions.ids` still executes the package `__init__`. The cycle
+stayed latent only because `actions` happened to be imported first, and
+importing `aegis.projections` first tripped it.
+
+**Legacy severance (H-36).** `clustering.py` (Leiden) → `aegis/analytics/`,
+`neo4j_export.py` → `aegis/projections/cypher.py`; the exporter's layer
+whitelist was a legacy `LayerType` enum and is now a **structural** identifier
+check, which is domain-neutral (Article XIV) and strictly stronger. The AC as
+written — "imports nothing from `legacy.*`" — is met for everything ADR-023
+does not exempt; the two survivors are the one-time migration adapter and the
+governed wrapper around the prototype extraction passes, which ADR-023 exempts
+by name and `legacy/README.md` schedules against later work (extraction v2).
+Rather than narrow the AC in prose, `tests/component/test_core_independence.py`
+enumerates both exemptions and fails on any third, and separately forbids
+`legacy` imports anywhere under `projections/` or `analytics/` — so the H-36
+finding itself can never be re-covered by a future exemption. The dependency
+arrow is also inverted: `legacy/` entry points now import the vendored modules
+from `aegis`, never the reverse.
 
 **T22. ⛓ Workspace shell + legacy retirement** (ADR-032, ADR-026; specs/07) —
 `ui/`: React 18 + TypeScript + Vite; Keycloak OIDC PKCE via

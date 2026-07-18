@@ -215,28 +215,38 @@ def projections_rebuild(
     output_dir: Path = typer.Option(
         Path("output"), "--output", help="Directory for real_graph.json / real_ingest.cypher."
     ),
-    concurrently: bool = typer.Option(
-        False, "--concurrently", help="REFRESH MATERIALIZED VIEW CONCURRENTLY."
-    ),
 ) -> None:
-    """Rebuild all projections from the claim store (Article XIII, T10)."""
+    """Rebuild every projection from canonical state (Article XIII, T10/T21).
+
+    Order matters and is not incidental: edges resolve their endpoints through
+    ``entity_canonical_map``, so the map is rebuilt from the ledger first.
+    Rebuilding edges against a stale map would resolve identity as it was at
+    the last adjudication rather than as it is now.
+    """
     from aegis.config import get_settings
+    from aegis.er.canonical import rebuild_canonical_map
     from aegis.ontology import load
-    from aegis.projections import build_full_graph, refresh_edge_projection, write_outputs
+    from aegis.projections import build_full_graph, rebuild_edge_projection, write_outputs
     from aegis.store import get_sessionmaker
 
     settings = get_settings()
     ontology_path = Path(settings.ontology_path)
     ontology = load(ontology_path if ontology_path.is_absolute() else REPO_ROOT / ontology_path)
     with get_sessionmaker()() as session:
-        refresh_edge_projection(session, concurrently=concurrently)
+        identity = rebuild_canonical_map(session)
+        edges = rebuild_edge_projection(session, ontology=ontology)
         session.commit()
         graph = build_full_graph(session, ontology)
     written = write_outputs(graph, output_dir)
     typer.secho(
-        f"projections rebuilt: {len(graph['nodes'])} nodes, {len(graph['edges'])} edges, "
-        f"{len(graph['cells'])} cells",
+        f"projections rebuilt: {edges.edges} edges over {edges.segments} segments, "
+        f"{identity.entities} entities ({identity.merged} merged, "
+        f"{identity.tombstoned} tombstoned), {len(graph['cells'])} cells",
         fg=typer.colors.GREEN,
+    )
+    typer.echo(
+        f"  stamped: revision {edges.built_at_revision_id}, "
+        f"ontology {edges.ontology_version}, builder {edges.builder_version}"
     )
     for path in written:
         typer.echo(f"  wrote {path}")

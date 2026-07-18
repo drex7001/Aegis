@@ -24,7 +24,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from aegis.actions.ids import new_id
+from aegis.ids import new_id
 from aegis.er.features import FeatureFrame, build_feature_frame
 from aegis.er.settings import (
     SPLINK_MATCH_THRESHOLD,

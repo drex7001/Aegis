@@ -13,8 +13,11 @@ Keycloak hold **projections/config** — FGA is rebuilt from Postgres
 | PostgreSQL `aegis` | claims, entities, sources, cases, evidence rows, **audit_log** | `pg_dump -Fc` |
 | MinIO `evidence` / `raw-landing` / `exports` | vault objects + `.provenance.json` sidecars | `mc mirror` |
 
-Not backed up (derived/config, reproducible): `edge_projection` matview,
-`output/*.json`, FGA tuples, Keycloak realm.
+Not backed up (derived/config, reproducible): the `edge_projection` and
+`entity_canonical_map` tables, `output/*.json`, FGA tuples, Keycloak realm.
+Both tables are rebuilt from claims and the identity ledger (Article XIII), so
+losing them loses nothing — but they must be rebuilt *after* restore, not
+assumed present.
 
 ## Backup
 
@@ -38,7 +41,9 @@ bash scripts/restore.sh backups/<UTC-timestamp>
 `restore.sh` is **destructive**: it drops and recreates the target database,
 `pg_restore`s the dump, mirrors the vault buckets back, then:
 
-1. `aegis projections rebuild` — rebuilds `edge_projection` + `output/real_graph.json`;
+1. `aegis projections rebuild` — rebuilds `entity_canonical_map`, then
+   `edge_projection`, then `output/real_graph.json` (that order matters: edges
+   resolve their endpoints through the map);
 2. `aegis audit verify` — confirms the hash chain survived the round-trip;
 3. (run manually if FGA tuples are needed) `aegis authz rebuild` — re-derives the
    FGA tuple set from the restored `case_member` / evidence rows.

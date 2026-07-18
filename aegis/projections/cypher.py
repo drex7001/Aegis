@@ -1,15 +1,22 @@
 """Neo4j export: graph JSON -> executable Cypher file, or live push via the driver.
 
+Vendored into the core by T21 (H-36): the platform must not import quarantined
+prototype code, and an exporter is a generic algorithm rather than domain
+scaffolding.
+
 Two paths:
   - generate_cypher(graph): a self-contained .cypher file with literal MERGE
     statements. Because we know each edge's layer at generation time, the
     relationship TYPE is the layer (e.g. -[:FINANCIAL]->) with no APOC needed.
   - push_to_neo4j(graph, ...): parameterized UNWIND batches over the official
-    driver. Relationship types come from the LayerType whitelist only, so the
-    f-string interpolation cannot inject arbitrary Cypher.
+    driver.
 
-See cypher/ingest.cypher for the standalone parameterized/APOC variants and
-the analyst queries (temporal as-of filters, layer projections, cells).
+A relationship type cannot be parameterized in Cypher, so it is interpolated —
+and therefore has to be constrained.  The prototype constrained it with an
+enum of the five criminal-network layers; a domain-neutral core cannot name
+those (Article XIV), so the guard is now **structural**: a layer must look like
+an identifier.  That is both domain-free and strictly stronger, since it holds
+for ontology categories nobody has declared yet.
 """
 
 from __future__ import annotations
@@ -17,12 +24,23 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 from collections import defaultdict
 from pathlib import Path
 
-from legacy.pipeline.models import LayerType
+#: A Cypher relationship type: upper-case identifier characters only. Anything
+#: else — quotes, brackets, whitespace, backticks — cannot reach the query.
+LAYER_PATTERN = re.compile(r"^[A-Z][A-Z0-9_]*$")
 
-VALID_LAYERS = {layer.value for layer in LayerType}
+
+def _check_layer(layer: str) -> str:
+    """Reject anything that is not a bare identifier, before interpolation."""
+    if not isinstance(layer, str) or not LAYER_PATTERN.match(layer):
+        raise ValueError(
+            f"unsafe relationship type {layer!r} — refusing to emit; a layer "
+            "must match " + LAYER_PATTERN.pattern
+        )
+    return layer
 
 
 def _lit(value) -> str:
@@ -60,9 +78,7 @@ def generate_cypher(graph: dict) -> str:
     lines.append("")
 
     for e in graph["edges"]:
-        layer = e["layer"]
-        if layer not in VALID_LAYERS:
-            raise ValueError(f"unknown layer {layer!r} - refusing to emit relationship type")
+        layer = _check_layer(e["layer"])
         lines.append(
             f'MATCH (a:Criminal {{node_id: {_lit(e["source"])}}})\n'
             f'MATCH (b:Criminal {{node_id: {_lit(e["target"])}}})\n'
@@ -95,8 +111,7 @@ SET c.name = n.name,
 
 
 def _edge_ingest_query(layer: str) -> str:
-    if layer not in VALID_LAYERS:  # whitelist guard: rel type is never free text
-        raise ValueError(f"unknown layer {layer!r}")
+    _check_layer(layer)  # structural guard: a rel type is never free text
     return f"""
 UNWIND $edges AS e
 MATCH (a:Criminal {{node_id: e.source}})

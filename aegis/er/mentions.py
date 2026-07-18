@@ -27,7 +27,7 @@ from dataclasses import dataclass
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from aegis.actions.ids import new_id
+from aegis.ids import new_id
 from aegis.er.normalize import detect_script, norm_key
 from aegis.store import Mention, SourceRecord
 

@@ -266,7 +266,8 @@ analyst-authored and assessment claims legitimately have no textual mention.
    revision at `recorded_at`. This records *what identity meant when the claim
    was made*; it is not a resolution instruction.
 3. **Resolution.** Projections and queries resolve `subject_id`/`object_id`
-   through the **active** revision via `entity_canonical_map` (specs/05 §5).
+   through the **active** revision: via the argument's mention anchor where it
+   has one, and via `entity_canonical_map` otherwise (specs/05 §5, §7 above).
    An as-of query may pin an explicit revision instead — that pinning is what
    makes the P4 as-of answer defensible (B-11).
 4. **Split behavior.** When a split affects a claim's entity:
@@ -284,6 +285,18 @@ analyst-authored and assessment claims legitimately have no textual mention.
      A `claim_draft` can, it keeps the closed kind list at three (ADR-031 §1),
      and it satisfies rule 5 below by construction: the original row is never
      touched, and a human decides whether a superseding claim should exist.)*
+
+     **"A claim's entity" means either argument, resolved.** T20 implemented
+     this rule as a subject-side scan for the split entity's literal id, which
+     silently found nothing in the two cases that matter most, both caught by
+     the T21 projection tests. A claim naming the split entity as its *object*
+     was never surfaced — and since symmetric predicates are order-normalized
+     at write time, that is roughly half of them. A claim written *before* a
+     merge names the **absorbed** id, not the survivor now being split, so
+     matching the survivor's id alone missed precisely the merge-then-split
+     case the rule exists for. The scan therefore covers both argument
+     positions and every id that currently resolves to the split entity, and
+     the queued draft repoints whichever end actually named it.
 5. **No claim row is ever rewritten by an identity decision.** Merges and
    splits change memberships and the canonical map; `claim.subject_id` and
    `claim.object_id` are immutable after write. This is the property the
@@ -570,9 +583,26 @@ labels distinct records `independent_records`. Together those three produce
 precisely the "authoritative rumor engine" GOAL.md forbids. The v2 semantics:
 
 **Identity resolution.** Subject and object resolve through the **active**
-identity revision via `entity_canonical_map` before grouping, so a merge
-collapses two nodes into one and a split restores them — with zero claim-row
-rewrites (ADR-029 §3, specs/05 §5).
+identity revision before grouping, so a merge collapses two nodes into one and
+a split restores them — with zero claim-row rewrites (ADR-029 §3, specs/05 §5).
+
+Resolution has two paths, and T21 established that the order between them is
+load-bearing. An argument carrying a **mention anchor** resolves through that
+mention's active membership: adjudication moves memberships, so the claim
+follows the mention through both merges *and* splits. An **unanchored**
+argument can only resolve through `entity_canonical_map`, which follows merges
+but cannot follow a split, because nothing records which side it belonged to —
+so those claims stay with the surviving entity and are queued for
+re-adjudication (§3.1 rule 4) rather than guessed at. The build reports the
+ratio of anchor-resolved to map-resolved endpoints, which is a live measure of
+how reversible the graph actually is.
+
+**Symmetric predicates are re-normalized after resolution.** Symmetric
+arguments are ordered at write time, but resolution happens later and can
+reverse a pair: after a merge, `A allied_with C` and `C allied_with B(→A)`
+describe one undirected edge while pointing opposite ways. The builder
+re-normalizes the pair post-resolution, or the merge silently fails to collapse
+and the graph keeps two mirror-image edges (found by the T21 blocking tests).
 
 **Time — interval sets, never collapsed.** An edge is emitted as
 **time-segmented rows**: one row per maximal interval over which the same
@@ -600,8 +630,14 @@ builder version it ran at, so any rendered edge is fully attributable and a
 stale projection is detectable rather than silently wrong.
 
 ```sql
--- illustrative shape; T21 owns the implementation. A TABLE, not a matview:
--- segmentation is not expressible as a single GROUP BY.
+-- Implemented by T21 in migration 0008; `aegis.projections.edges` owns the
+-- build. A TABLE, not a matview: segmentation is not a single GROUP BY.
+-- `edge_id` is a content digest of (subject, object, predicate, segment
+-- bounds), so a segment keeps its id across rebuilds and two builds are
+-- diffable; the stamps, not the id, mark a row fresh or stale. A partial
+-- UNIQUE ... NULLS NOT DISTINCT index over (subject, object, predicate,
+-- segment_from) enforces "one row per maximal interval" in the database
+-- rather than by convention.
 CREATE TABLE edge_projection (
   edge_id        TEXT PRIMARY KEY,
   subject_id     TEXT NOT NULL REFERENCES entity,   -- canonical at build revision
@@ -626,6 +662,9 @@ export read it. Losing the whole table loses nothing (Article XIII).
 
 ### 7.1 Blocking tests (ADR-029 §5, ADR-030)
 
+All green in `tests/integration/test_edge_projection.py` (T21), with the
+interval algebra itself covered in `tests/unit/test_edge_segmentation.py`.
+
 | Case | Assertion |
 |---|---|
 | Merge collapse | Merging B into A collapses their nodes and edges; **no claim row is modified** |
@@ -635,6 +674,15 @@ export read it. Losing the whole table loses nothing (Article XIII).
 | Attribution | Every rendered edge resolves to ≥ 1 source record (Article I) |
 | Stamp freshness | An edge built at an older revision is detectable as stale via `built_at_revision_id` |
 | Unanchored on split | An ambiguous unanchored claim appears in the review inbox rather than being reassigned (§3.1 rule 4) |
+
+T21 added four cases the plan did not anticipate, each covering a way the
+projection could fabricate or lose an edge: **adjacency** (a claim ending
+2019-12-31 and one starting 2020-01-01 must not leave a phantom uncovered day
+— the segmenter is half-open internally for this reason), **both-endpoint
+merge** (if A and B turn out to be one person, "A allied with B" leaves the
+graph rather than becoming a self-loop), **retraction** (soft in the store,
+total in the cache), and **id-stable idempotency** (rebuilding twice yields
+identical rows *and* identical ids).
 
 ## 8. Indexing (Phase 1 minimum)
 

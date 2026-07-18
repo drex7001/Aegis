@@ -6,10 +6,17 @@ Cypher exporter consume — from the canonical claim store:
 * nodes come from entities, their mention (slug + note + backing source), and
   their node-property claims (``known_as`` → aliases, ``affiliated_with`` →
   affiliations);
-* edges come from the ``edge_projection`` materialized view, detail fields
-  from the strongest claim in each group;
-* cells come from the unchanged prototype clustering
-  (:func:`legacy.pipeline.clustering.detect_cells`) running on the projection.
+* edges come from the ``edge_projection`` **table** (T21), one legacy edge per
+  segment, detail fields from the strongest claim supporting that segment;
+* cells come from :func:`aegis.analytics.detect_cells` over the result.
+
+This emitter is scheduled for deletion at T22 with the explorer it feeds
+(ADR-026).  It is also the one place a **display weight** is still computed:
+ADR-030 removed the aggregate weight from the projection itself, and this
+module recomputes one from the visible claims for the legacy schema's
+``weight`` field.  That is the ADR's intended shape — a display score derived
+where it is rendered, from claims the reader can inspect — not a survival of
+the thing the ADR condemned.
 
 Everything here is derived state (Article XIII): safe to delete and rebuild.
 """
@@ -21,11 +28,20 @@ import json
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import select, text
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from aegis.er.normalize import norm_key
 from aegis.ontology import Ontology
-from aegis.store import Claim, Entity, IdentityMembership, Mention, Source, SourceRecord
+from aegis.store import (
+    Claim,
+    EdgeProjection,
+    Entity,
+    IdentityMembership,
+    Mention,
+    Source,
+    SourceRecord,
+)
 
 # Display/traversal weight per normalized credibility (spec 02 §6; the SQL twin
 # lives in migration 0006 — test_projections asserts they agree).
@@ -84,14 +100,13 @@ CONFIDENCE_DESCRIPTIONS = {
 
 
 def _slugify(label: str) -> str:
-    from legacy.pipeline.models import slugify
+    """Fallback node id for an entity with no mention.
 
-    return slugify(label)
-
-
-def refresh_edge_projection(session: Session, *, concurrently: bool = False) -> None:
-    keyword = "CONCURRENTLY " if concurrently else ""
-    session.execute(text(f"REFRESH MATERIALIZED VIEW {keyword}edge_projection"))
+    ``norm_key`` is the platform's replacement for the prototype's ``slugify``
+    and is deliberately compatible with it on Latin text, so ids written by the
+    Phase-1 migration still match (T17).
+    """
+    return norm_key(label)
 
 
 def build_graph(
@@ -103,7 +118,15 @@ def build_graph(
     case-less claims: this artifact backs the token-less legacy UI and the
     committed output files, so nothing above the public floor may enter it.
     """
-    entities = session.scalars(select(Entity).order_by(Entity.entity_id)).all()
+    # Tombstoned entities are excluded: an entity absorbed by a merge keeps its
+    # id forever (specs/05 §5), but rendering it would put a node on the canvas
+    # that no edge can reach and no mention belongs to.  A split clears the
+    # tombstone and it returns.
+    entities = session.scalars(
+        select(Entity)
+        .where(Entity.tombstoned_at.is_(None))
+        .order_by(Entity.entity_id)
+    ).all()
 
     # entity → mention (slug, note) + backing source publication
     mention_info: dict[str, tuple[str, str | None, str]] = {}
@@ -161,12 +184,15 @@ def build_graph(
         for e in entities
     ]
 
-    # edges from the materialized view; detail from the strongest claim
-    view_rows = session.execute(
-        text(
-            "SELECT subject_id, object_id, predicate, valid_from, valid_to, "
-            "       claim_count, independent_records, weight, claim_ids, handling_rank "
-            "FROM edge_projection ORDER BY subject_id, object_id, predicate"
+    # edges from the v2 table — one legacy edge per *segment*, so an entity
+    # pair with disjoint validity intervals renders as separate edges rather
+    # than one fabricated span (ADR-030).
+    segments = session.scalars(
+        select(EdgeProjection).order_by(
+            EdgeProjection.subject_id,
+            EdgeProjection.object_id,
+            EdgeProjection.predicate,
+            EdgeProjection.segment_from,
         )
     ).all()
     source_by_record: dict[str, str] = dict(
@@ -177,7 +203,7 @@ def build_graph(
         ).all()
     )
     edges: list[dict[str, Any]] = []
-    for row in view_rows:
+    for row in segments:
         if row.predicate in NODE_PROPERTY_PREDICATES:
             continue
         claims = session.scalars(
@@ -202,12 +228,14 @@ def build_graph(
                 "relation": row.predicate,
                 "layer": category.upper(),
                 "confidence": CONFIDENCE_TAGS.get(best.credibility_normalized, "AMBIGUOUS"),
-                # recomputed over the visible claims so the open-only floor holds
+                # The display score ADR-030 allows: computed here, from the
+                # claims visible to this caller, so the open-only floor holds
+                # and a reader can reach every claim behind the number.
                 "weight": max(
                     WEIGHTS.get(c.credibility_normalized, 0.4) for c in claims
                 ),
-                "start_date": _iso(row.valid_from),
-                "end_date": _iso(row.valid_to),
+                "start_date": _iso(row.segment_from),
+                "end_date": _iso(row.segment_to),
                 "location": best.location_text,
                 "source_file": source_by_record.get(best.record_id, ""),
                 "source_excerpt": best.excerpt,
@@ -221,7 +249,7 @@ def build_graph(
 
 def build_full_graph(session: Session, ontology: Ontology) -> dict[str, Any]:
     """Graph + cells + meta — the complete legacy output/real_graph.json shape."""
-    from legacy.pipeline.clustering import detect_cells
+    from aegis.analytics import detect_cells
 
     graph = build_graph(session, ontology)
     cells = detect_cells(graph)  # also stamps cluster_id onto every node
@@ -248,7 +276,7 @@ def build_full_graph(session: Session, ontology: Ontology) -> dict[str, Any]:
 
 def write_outputs(graph: dict[str, Any], output_dir: Path) -> list[Path]:
     """real_graph.json + real_ingest.cypher (the preserved Cypher export path)."""
-    from legacy.pipeline.neo4j_export import generate_cypher
+    from aegis.projections.cypher import generate_cypher
 
     output_dir.mkdir(parents=True, exist_ok=True)
     graph_path = output_dir / "real_graph.json"

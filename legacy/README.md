@@ -11,6 +11,8 @@ each piece:
 | Item | Role today | Replaced by |
 |---|---|---|
 | `pipeline/` | Prototype extraction scaffolding still called by the governed wrapper; historical ingestion instructions are unsafe reference only | Phase 2 mention extraction and later extraction v2 |
+| ~~`pipeline/clustering.py`~~ | **Moved into the core at P2 T21** (H-36) — Leiden is a generic algorithm, not domain scaffolding | `aegis/analytics/clustering.py` |
+| ~~`pipeline/neo4j_export.py`~~ | **Moved into the core at P2 T21** (H-36) | `aegis/projections/cypher.py` |
 | `app/static/index.html` | Explorer UI served by `aegis serve` off the rebuildable projection | React + TS workspace (`ui/`, deleted at P2 T22) |
 | `app/server.py` | Deprecated offline-demo server (ADR-019) | Already superseded by `aegis serve` |
 | `build_real_graph.py`, `demo.py` | Prototype entry points, kept for reference | `aegis` CLI |
@@ -24,8 +26,14 @@ Rules:
 - **Do not add features here.** New capability is designed from the ontology
   outward (Article XIV); if legacy behavior is needed, rebuild it on platform
   APIs.
-- Bug fixes only where a platform code path (ingestion, migration, projection)
-  still calls into this package.
+- Bug fixes only where a platform code path (ingestion, migration) still calls
+  into this package. Since T21 the projection path no longer does.
+- **The core does not import this directory**, except at the two ADR-023
+  exemptions (the one-time migration adapter and the governed extraction
+  wrapper). That rule is executable, not advisory:
+  `tests/component/test_core_independence.py` enumerates the exemptions and
+  fails on any other `legacy.*` import under `aegis/`. The arrow points this
+  way only — the entry points here import `aegis`, never the reverse.
 - The `/api/*` legacy-shaped projection surface is loopback-contained until it
   is deleted with the Phase 2 T22 workspace change; this directory is deleted
   piecewise as the table above completes.

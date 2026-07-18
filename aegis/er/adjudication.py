@@ -14,14 +14,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from sqlalchemy import select
+from sqlalchemy import and_ as sa_and, or_ as sa_or, select
 from sqlalchemy.orm import Session
 
-from aegis.actions.ids import new_id
+from aegis.ids import new_id
 from aegis.er.canonical import rebuild_canonical_map
 from aegis.store import (
     Claim,
     Entity,
+    EntityCanonicalMap,
     ErCandidate,
     IdentityDecision,
     IdentityMembership,
@@ -224,13 +225,43 @@ def _unattributable_claims(
     entity, so the attribution is already decided and no human is asked.  An
     **unanchored** claim has nothing to follow, so it is surfaced for
     re-adjudication rather than silently assigned to either side.
+
+    Two things this has to get right, both found by the T21 projection tests:
+
+    *Both argument positions count.*  Checking only the subject would miss
+    every claim naming the split entity as its object — and since symmetric
+    predicates are order-normalized at write time, that is roughly half of
+    them.  A claim nobody can attribute is equally unattributable whichever end
+    it hangs from.
+
+    *Absorbed ids count too.*  A claim written before a merge still names the
+    entity that was absorbed, not the survivor being split now.  Matching the
+    survivor's id alone would find nothing precisely in the merge-then-split
+    case this rule exists for, so the search covers every id that currently
+    resolves to it.
     """
+    affected = {entity_id} | {
+        absorbed
+        for (absorbed,) in session.execute(
+            select(EntityCanonicalMap.entity_id).where(
+                EntityCanonicalMap.canonical_entity_id == entity_id
+            )
+        )
+    }
     return list(
         session.scalars(
             select(Claim.claim_id)
             .where(
-                Claim.subject_id == entity_id,
-                Claim.subject_mention_id.is_(None),
+                sa_or(
+                    sa_and(
+                        Claim.subject_id.in_(affected),
+                        Claim.subject_mention_id.is_(None),
+                    ),
+                    sa_and(
+                        Claim.object_id.in_(affected),
+                        Claim.object_mention_id.is_(None),
+                    ),
+                ),
                 Claim.retracted_at.is_(None),
             )
             .order_by(Claim.claim_id)
