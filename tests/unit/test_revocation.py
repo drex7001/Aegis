@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import suppress
-import time
 
 import pytest
 
@@ -50,12 +48,17 @@ def test_inline_delete_is_best_effort() -> None:
 
 
 def test_dispatcher_retries_on_the_configured_cadence() -> None:
-    interval = 0.05
+    clock = iter((10.0, 10.012))
+    requested_delays: list[float] = []
 
-    async def measure() -> float:
-        attempts: list[float] = []
-        retry_seen = asyncio.Event()
-        loop = asyncio.get_running_loop()
+    class StopDispatcher(Exception):
+        pass
+
+    async def fake_sleep(delay: float) -> None:
+        requested_delays.append(delay)
+        raise StopDispatcher
+
+    async def measure() -> None:
 
         def fake_sync(
             session: object,
@@ -63,28 +66,18 @@ def test_dispatcher_retries_on_the_configured_cadence() -> None:
             *,
             limit: int,
         ) -> SyncReport:
-            attempts.append(time.monotonic())
-            if len(attempts) == 1:
-                return SyncReport(pending=1, failed_id=1, error="simulated outage")
-            loop.call_soon_threadsafe(retry_seen.set)
-            return SyncReport(processed=1)
+            return SyncReport(pending=1, failed_id=1, error="simulated outage")
 
-        task = asyncio.create_task(
-            dispatch_forever(
+        with pytest.raises(StopDispatcher):
+            await dispatch_forever(
                 _SessionContext,
                 object(),  # type: ignore[arg-type]
-                interval_seconds=interval,
+                interval_seconds=0.05,
                 batch_size=1,
                 _sync_fn=fake_sync,
+                _clock_fn=lambda: next(clock),
+                _sleep_fn=fake_sleep,
             )
-        )
-        try:
-            await asyncio.wait_for(retry_seen.wait(), timeout=0.5)
-        finally:
-            task.cancel()
-            with suppress(asyncio.CancelledError):
-                await task
-        return attempts[1] - attempts[0]
 
-    measured = asyncio.run(measure())
-    assert interval * 0.75 <= measured <= interval + 0.15
+    asyncio.run(measure())
+    assert requested_delays == pytest.approx([0.038])
