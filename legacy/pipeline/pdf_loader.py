@@ -1,7 +1,7 @@
 """PDF text extraction for PCoI reports / judgments (pdfplumber).
 
 Usage as a library:
-    from pipeline.pdf_loader import load_pdf_text, split_paragraphs
+    from legacy.pipeline.pdf_loader import load_pdf_text, split_paragraphs
 
 Usage from the shell (dumps extracted text to stdout):
     python -m pipeline.pdf_loader path/to/report.pdf

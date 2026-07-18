@@ -4,146 +4,134 @@ Ordered; each task lists acceptance criteria (AC). Tasks marked ⛓ block everyt
 after them; narrower dependencies are noted in the task text. Reference specs in
 parentheses. Numbering continues from Phase 2 (T28).
 
-> **Status: PRE-AUTHORED, NOT ACTIVE.** Phase 2 (T17–T28) must close the ★ MVP
-> gate first. Authored 2026-07-17 ahead of phase start; T29 re-validates this
-> plan and spec 08 against whatever Phase 2 actually shipped before any other
-> task starts. Charter: `../phases/phase-03-ontology-v2.md` · spec:
+> **Status: PRE-AUTHORED, NOT ACTIVE.** Rewritten 2026-07-18 to the narrowed
+> charter (ADR-033): module composition is the headline; functions execution,
+> side-effect engine, and the Python SDK moved out to their consumer phases.
+> Phase 2 (T17–T28) must close the ★ MVP gate first. T29 re-validates this plan
+> and spec 08 against whatever Phase 2 actually shipped before any other task
+> starts. Charter: `../phases/phase-03-ontology-v2.md` · spec:
 > `../specs/08-ontology-v2.md`.
 
-## Milestone A — DSL v2 core (semantic layer)
+## Milestone A — Spec finalization & module composition
 
-**T29. ⛓ Spec 08 finalization** (specs/08, charter §Specs) — walk the draft
-against the P2-as-built system and the named consumers (P4 workspace, P6 object
-sets, P8 AI grounding); close the open surfaces: the closed parameter type list
-(spec 08 §6), the submission-criteria and side-effect registry names, SDK
-package layouts (`sdk/python/aegis_sdk/`, `sdk/ts/`); add SDK-facing API
-conventions (stable operation IDs, error envelope) to specs/06. Divergences
-from the draft become ADRs.
-AC: spec 08 status flips draft → final; every v2 DSL feature in it names its
-consumer phase (charter risk: no feature without a consumer); specs/06 has the
-SDK conventions section; anything dropped is listed in spec 08 §10.
+**T29. ⛓ Spec 08 finalization (narrowed)** — walk the draft against the
+P2-as-built system; specify the **module manifest** format (name, namespace,
+version, imports + version constraints, type ownership, enable/disable);
+close the closed parameter type list (spec 08 §6) and submission-criteria
+registry names; move functions execution, side effects, and Python SDK
+sections to an explicit "future consumers" appendix (spec 08 §10); add stable
+operation IDs + error envelope to specs/06. Divergences become ADRs.
+AC: spec 08 status flips draft → final with the module section; every retained
+v2 feature names its consumer; excluded machinery is listed in §10 with its
+trigger phase.
 
-**T30. ⛓ Shared properties + interfaces** (specs/08 §3–4, §9) — extend loader,
-validator, and registry: parse `shared_properties:` and `interfaces:`;
-validation rules §9.1–9.3 and §9.6 (a v1-shaped file still validates);
-predicates may target interfaces, expanded to member types at validation time;
-registry exposes interface → members. Ontology **0.4.0** (minor — additive)
-ships the starter set: shared `alias`, `registered_identifier`, `notes`;
-interfaces `party` (person, organization), `identifiable` (person, vehicle,
-phone_number). Version-pin test updated.
-AC: `aegis ontology validate` lists interfaces and shared properties; a claim
-whose predicate declares `subject: [party]` validates for both member types
-and rejects a non-member; a `shared:` reference overriding type or sensitivity
-fails validation; all Phase 1–2 tests green on 0.4.0.
+**T30. ⛓ Module loader & composition** (spec 08 §modules; needs T29) — loader
+resolves a set of module files (platform + domains) into one registry:
+namespace prefixes, import resolution, cross-module reference validation
+(reference without declared import = precise error), name-collision detection,
+per-module versions in the release metadata. Split the current `aegis.yaml`
+into `ontology/platform.yaml` + `ontology/modules/criminal-network.yaml`
+(pure reorganization — no vocabulary change; claims' `ontology_version`
+interpretation unchanged).
+AC: composed registry passes all Phase 1–2 tests; a fixture with a
+cross-module reference and no import fails with a precise error; a name
+collision across modules fails validation; `aegis ontology validate` reports
+per-module versions.
 
-**T31. Codegen v2 for existing targets** (specs/08 §8; needs T30) — the three
-Phase-1 targets emit the v2 semantics: Pydantic models for interface types,
-FGA stubs including interface object types, UI descriptors carrying
-interface/shared-property metadata for P4's generic screens.
-AC: `aegis ontology generate` touches only `_generated` files; the committed
-outputs regenerate byte-identical in CI (drift gate green); FGA stub diff shows
-the interface types.
+**T31. Second-domain proof fixture** (Article XIV; needs T30) — a tiny
+fictional `border-cargo` module (≈2 object types, 3 predicates, 1 interface
+implementation) in `tests/fixtures/ontology/`; CI loads core + fixture module,
+runs claim record/read + projection round-trip against it.
+AC: the fixture round-trips through actions, API, and projection with **zero
+core-code change** (the test fails if any `aegis/` file needs domain edits);
+disabling the module removes its vocabulary from validation.
 
-## Milestone B — Functions (kinetic layer: derivations)
+## Milestone B — Semantic layer v2
 
-**T32. Functions registry + execution harness** (specs/08 §5; needs T30) —
-parse/validate `functions:` (output predicate exists, implementation path
-importable, `system_claim` mode carries an ADR reference field); harness
-executes `trigger: rebuild` functions; every output row records source_type
-`algorithmic`, function name + version, and input claim IDs; `suggestion` mode
-routes to the review queue (Article VII); CI check: implementation-hash change
-without a function version bump fails.
-AC: a fixture function in suggestion mode lands fully-attributed rows in
-`review_queue`; validator rejects a function with a missing predicate,
-unimportable path, or `system_claim` without an ADR ref; the hash-vs-version
-CI check fails on a doctored fixture.
+**T32. ⛓ Shared properties + interfaces** (spec 08 §3–4, §9; needs T30) —
+extend loader/validator/registry: `shared_properties:` and `interfaces:`;
+predicates may target interfaces (expanded at validation); starter set:
+shared `alias`, `registered_identifier`, `notes`; interfaces `party`,
+`identifiable`. Ontology minor bump via the T35 proposal workflow once it
+lands (sequence the bump after T35 if needed).
+AC: a predicate with `subject: [party]` validates for member types and rejects
+non-members; a `shared:` reference overriding type/sensitivity fails; all
+prior tests green.
 
-**T33. Prison co-location derivation** (specs/08 §5; needs T32) —
-`derive_prison_co_location` v1 (`aegis/functions/prison_overlap.py`) computes
-`co_located_in_prison_with` from remand-window overlap claims, replacing the
-bare `computed: true` flag as the place the derivation lives. Electing
-`system_claim` mode requires the ADR naming the derivation deterministic
-(charter risk table) — write it in this task or default to `suggestion`.
-AC: deleting the function's outputs and re-running reproduces them
-byte-for-byte (exit criterion); every output row carries function name +
-version + input claim IDs; the projection renders the derived edges with their
-algorithmic source visible.
+**T33. Codegen v2 for existing targets** (spec 08 §8; needs T32) — Pydantic
+models, FGA stubs, and UI descriptors emit interface + shared-property +
+module metadata for P4's generic screens.
+AC: `aegis ontology generate` touches only `_generated` files; committed
+outputs regenerate byte-identical in CI; FGA stub diff shows interface types.
 
-## Milestone C — Actions v2 (kinetic layer: writes)
+## Milestone C — Actions v2 schema
 
-**T34. ⛓ Actions v2 schema + enforcement** (specs/08 §6, §9.5) — extend the
-`actions:` schema with `parameters` (closed type list → generated Pydantic
-request models; undeclared parameters rejected), `submission_criteria` (named
-predicates over actor + target state, evaluated in `aegis/actions/`; failures
-are audited denials), and declared `side_effects`; migrate all 12 existing
-actions to declare their parameters. Blocks the SDKs (T37–T39): call wrappers
-are generated from `parameters`.
-AC: a request with an undeclared parameter is rejected with the generated
-model's error; a non-qualifying actor fails a declared criterion and the
-denial appears in audit (exit criterion); validator rejects an unknown
-parameter type, criterion, or side-effect name; ontology bump stays within
-0.4.x (additive).
+**T34. ⛓ Actions v2 declarations + enforcement** (spec 08 §6, §9.5) —
+`parameters` (closed type list → generated Pydantic request models; undeclared
+parameters rejected) and `submission_criteria` (named predicates evaluated in
+`aegis/actions/`; failures are audited denials); migrate all existing actions
+to declared parameters. **No side-effect engine** — existing hardcoded
+refresh paths stay; `side_effects:` keys parse and are stored for the future
+consumer phase.
+AC: an undeclared parameter is rejected with the generated model's error; a
+non-qualifying actor fails a declared criterion and the denial is audited
+(charter exit); validator rejects unknown parameter types/criteria names.
 
-**T35. Side-effect outbox** (specs/08 §6; needs T34) — post-commit execution
-via the outbox pattern (ADR-014 precedent): built-ins `refresh_projection` and
-`notify` (log-backed stub; webhook stub allowed); failures retry, never roll
-back the action; execution audited.
-AC: accepting a suggestion via an action declaring
-`refresh_projection: edge_projection` refreshes the projection through the
-outbox; a side effect that throws retries without affecting the committed
-action; effect runs visible in audit.
+## Milestone D — Change management
 
-## Milestone D — Change management (governance layer)
+**T35. Proposals, history, release metadata, CI gates** (spec 08 §7; needs
+T30) — `ontology/proposals/NNN-title.md` template (motivation, diff,
+competency questions, migration plan); `ontology/history/`; **release
+metadata** carries proposal id + previous content hash + compatibility class
+(compared against the previous release artifact, not git history — H-16); CI:
+version monotonicity per module, minor/patch bumps introduce no
+removals/renames, major bumps carry history copy + migration. Backfill
+proposal 001 documenting the modularization bump itself.
+AC: a bump without a proposal reference in release metadata fails CI; a minor
+bump removing a predicate fails the diff check; proposal 001 exists.
 
-**T36. Proposals, history, CI gates** (specs/08 §7; needs T30) —
-`ontology/proposals/NNN-title.md` template (motivation, YAML diff, competency
-questions, migration plan); `ontology/history/`; CI enforces: version
-monotonicity, minor/patch bumps introduce no removals/renames (diff vs the
-previous committed version), major bumps carry history copy + migration
-script, a bump commit references a proposal. Backfill **proposal 001**
-documenting the 0.4.0 v2 bump itself, so the discipline is self-hosting from
-its first version.
-AC: a test fixture with a version bump and no proposal fails CI; a minor bump
-that removes a predicate fails the diff check; proposal 001 exists and the
-0.4.0 commit references it.
+## Milestone E — Contract & TypeScript client
 
-## Milestone E — Generated SDKs (consumption layer)
+**T36. ⛓ API contract conventions** (specs/06; needs T29) — stable operation
+IDs on every route, uniform RFC 7807 error envelope, versioned OpenAPI
+document committed as an artifact; contract-diff check in CI (breaking API
+change fails unless flagged).
+AC: OpenAPI artifact committed + regenerated cleanly; a renamed operation ID
+fails the contract-diff check.
 
-**T37. ⛓ Python SDK** (specs/08 §8; needs T31, T34) — `aegis ontology
-generate` target `python-sdk` → `sdk/python/aegis_sdk/`: typed object +
-interface models, predicate constants, action call wrappers generated from
-`parameters`, thin OIDC-authed HTTP client (token = app grant ∩ user
-permission, GOAL.md §7.8). Generated files committed; drift gate.
-AC: an example script records a claim end-to-end through a typed action
-wrapper against the dev server; interface types importable and correct; CI
-fails on drift.
+**T37. ⛓ TypeScript client generation** (spec 08 §8 narrowed; needs T33, T34,
+T36) — client generated from the OpenAPI document (openapi-typescript-class
+generator — adopt-before-build, H-11), enriched with ontology-derived
+constants (predicates, kinds, handling codes) from codegen; committed under
+`sdk/ts/`; drift gate.
+AC: generated package type-checks in CI; an example script lists entities with
+correct types; ontology constants match the registry; CI fails on drift.
 
-**T38. TypeScript SDK** (specs/08 §8; needs T31, T34) — target `ts-sdk` →
-`sdk/ts/` (npm workspace): the same surface for the P4 workspace; `tsc
---noEmit` type-check wired into CI.
-AC: the generated package type-checks in CI; an example node script lists
-entities with correct types; drift gate covers `sdk/ts/`.
+**T38. UI migration to the generated client** (needs T37) — `ui/` swaps its
+P2-era generated client for `sdk/ts/` with no screen rewrites (types only);
+action calls use generated parameter types from T34.
+AC: UI type-checks and its e2e smoke passes against the new client; no
+hand-written request/response types remain in `ui/src`.
 
-**T39. Ontology-change end-to-end proof** (charter exit №1; needs T36–T38) —
-land a new test predicate on an interface **via the proposal workflow**, as
-the automated demonstration that the platform is ontology-driven: the change
-flows to API validation, FGA stubs, and both SDKs with zero hand-written
-domain code.
-AC: the change's diff touches only the ontology, the proposal, and regenerated
-files; a test proves the API accepts the new predicate and both SDKs expose
-it; the run is reproducible in CI (this test is the codegen-drift gate's
-positive case).
+**T39. Ontology-change end-to-end proof** (charter exit №1; needs T35–T38) —
+land a new test predicate on an interface **in a domain module via the
+proposal workflow**: the change flows to API validation and the TS client
+with zero hand-written domain code.
+AC: the change's diff touches only the module file, the proposal, and
+regenerated artifacts; a test proves the API accepts the new predicate and
+the client exposes it; reproducible in CI.
 
-**T40. Phase exit review** — walk the charter's exit criteria; update speckit
-docs where reality diverged; append ADRs for changed decisions; write
-`../reviews/phase-03-exit-review.md`; tag `phase-3-ontology-v2` per the git
-workflow.
-AC: all exit boxes checked or explicitly deferred with reason.
+**T40. Phase exit review** — walk the charter's gate criteria (non-deferrable,
+ADR-025); update speckit docs where reality diverged; append ADRs; write
+`../reviews/phase-03-exit-review.md`; tag per the git workflow.
+AC: every gate criterion checked; non-blocking deliverables carried over with
+owner + target phase recorded.
 
 ## Explicit non-goals for Phase 3
 
-Object sets (P6), object views / React workspace (P4 — the TS SDK ships here,
-its consumer does not), new domain predicates beyond the worked examples
-(prison co-location, the T39 test predicate), events/geometry (P5), Foundry-
-style live ontology branching (single-repo proposals suffice), OPA
-policy-as-code, compartments (P7), any new AI capability (P8).
+Functions execution machinery and derived-record runs (P5/P6, ADR-027
+semantics), side-effect outbox engine (first consumer phase), Python SDK (P8),
+object sets (P6), object views / workspace features (P4), new domain
+predicates beyond the worked examples, events/geometry (P5), Foundry-style
+live branching, OPA policy-as-code, compartments (P7), any new AI capability
+(P8).

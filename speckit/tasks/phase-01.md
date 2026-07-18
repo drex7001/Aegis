@@ -3,13 +3,16 @@
 Ordered; each task lists acceptance criteria (AC). Tasks marked ⛓ block everything
 after them. Reference specs in parentheses.
 
-> **Status: COMPLETE.** T1–T16 all delivered (Milestones A–E). See
+> **Status: COMPLETE with closure addendum.** T1–T16 all delivered (Milestones
+> A–E); Milestone F (T16a–T16d, added 2026-07-18 per ADR-033) is open and blocks
+> Phase 2's implementation milestones (not its design tasks). See
 > `../reviews/phase-01-exit-review.md` for the exit-criteria walkthrough and ADR-017…019 in
 > `decisions.md` for decisions changed during implementation. Divergences from the
 > original task text: the identity tables (`mention`, `identity_membership`) shipped
 > with T8 (migration 0005) rather than T4 (ADR-018); `affiliated_with` gained an
 > entity-or-literal object and the ontology bumped to 0.3.0 (ADR-017); the legacy
-> `/api/*` surface is public and open-only (ADR-019).
+> `/api/*` surface was public and open-only (ADR-019 — **superseded by ADR-026**,
+> retirement scheduled in P2 T22).
 
 ## Milestone A — Ground
 
@@ -113,7 +116,47 @@ AC: documented runbook; drill executed once successfully.
 
 **T16. Phase exit review** — walk `roadmap.md` Phase 1 exit criteria; update
 speckit docs where reality diverged; append ADRs for any decision changed.
-AC: all exit boxes checked or explicitly deferred with reason.
+AC: every gate criterion checked (gate criteria are non-deferrable, ADR-025);
+non-blocking deliverables carried over with owner + target phase recorded.
+*(Executed 2026-07-17 under the old deferral language; verdict revised
+2026-07-18 — see the closure addendum below.)*
+
+## Milestone F — Closure addendum (added 2026-07-18, ADR-033)
+
+Blocks Phase 2 Milestones B–D (implementation); Phase 2 Milestone A (design
+pack) may run in parallel.
+
+**T16a. Interim exposure containment** (ADR-026 §2) — `aegis serve` binds to
+loopback by default (explicit opt-out flag logs a warning); legacy `/api/*`
+routes gain response-size caps and basic rate limiting. This is containment,
+not authorization — full retirement is P2 T22.
+AC: default serve refuses non-loopback binds without the flag; an oversized
+`/api/graph` response is truncated/rejected per the cap; both behaviors tested.
+
+**T16b. Revocation safety** (ADR-014; Phase-1 exit-review follow-up) —
+implement the inline best-effort FGA delete on revocation paths
+(`assign_case_member` removal, custody change); document the measured maximum
+revocation staleness (outbox drain interval) and add a test that a revoked
+member is denied after the inline delete even with the dispatcher stopped.
+AC: revocation test green with dispatcher paused; staleness bound recorded in
+specs/03 §3.
+
+**T16c. Dependency lockfile** (H-33 minimum) — commit a resolved lockfile
+(`uv lock` or `pip-tools`); CI installs from it; document the update policy in
+`docs/GIT_WORKFLOW.md`.
+AC: CI fails when the lockfile and `pyproject.toml` disagree; a fresh clone
+installs identical versions.
+
+**T16d. Documentation honesty pass** (B-15, M-01, M-25) — README and speckit
+statuses match reality (no "every route is authorized" claim until T22 makes
+it true again); legacy-only runbooks (`docs/INGESTION.md` §legacy paths,
+`docs/RUNNING.md` LLM-merge instructions) move under `legacy/` with an
+"unsafe for governed data" banner; the active ingestion runbook is rewritten
+around `aegis ingest`; `docs/GIT_WORKFLOW.md` drops `[skip ci]` (conflicts
+with AGENTS.md) and parameterizes AI attribution.
+AC: no living doc instructs writing to `data/real` outside the governed path;
+grep for `[skip ci]` in workflow docs is clean; README status section matches
+the roadmap.
 
 ## Explicit non-goals for Phase 1
 

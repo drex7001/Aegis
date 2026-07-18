@@ -19,14 +19,14 @@ from pathlib import Path
 from dotenv import load_dotenv
 from pydantic import ValidationError
 
-from pipeline.clustering import detect_cells
-from pipeline.models import ConfidenceTag, LayerType, TemporalEdge
-from pipeline.neo4j_export import generate_cypher, push_to_neo4j
-from pipeline.semantic_pass import extract_semantic
-from pipeline.structural_pass import extract_structural
+from legacy.pipeline.clustering import detect_cells
+from legacy.pipeline.models import ConfidenceTag, LayerType, TemporalEdge
+from legacy.pipeline.neo4j_export import generate_cypher, push_to_neo4j
+from legacy.pipeline.semantic_pass import extract_semantic
+from legacy.pipeline.structural_pass import extract_structural
 
-ROOT = Path(__file__).parent
-SAMPLES = ROOT / "sample_data"
+ROOT = Path(__file__).resolve().parents[1]
+SAMPLES = ROOT / "data/sample"
 OUTPUT = ROOT / "output"
 
 
@@ -64,7 +64,7 @@ def main() -> None:
     prove_guardrails()
 
     print("\n== 1. Structural pass (regex, deterministic) ==")
-    arrest_file = "sample_data/pcoi_arrest_list.txt"
+    arrest_file = "data/sample/pcoi_arrest_list.txt"
     structural = extract_structural(
         (SAMPLES / "pcoi_arrest_list.txt").read_text(encoding="utf-8"), arrest_file
     )
@@ -75,7 +75,7 @@ def main() -> None:
         print(f"    {e.source} <-> {e.target} @ {e.location} [{e.start_date} to {end}] (EXTRACTED, w=1.0)")
 
     print(f"\n== 2. Semantic pass ({'MOCK' if args.mock else 'live LLM'}) ==")
-    report_file = "sample_data/b_report_excerpt.txt"
+    report_file = "data/sample/b_report_excerpt.txt"
     semantic = extract_semantic(
         (SAMPLES / "b_report_excerpt.txt").read_text(encoding="utf-8"),
         report_file,

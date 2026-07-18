@@ -4,11 +4,17 @@ Ordered; each task lists acceptance criteria (AC). Tasks marked ⛓ block everyt
 after them; narrower dependencies are noted in the task text. Reference specs in
 parentheses. Numbering continues from Phase 6 (T77).
 
-> **Status: PRE-AUTHORED, NOT ACTIVE.** Phases 2–4 must close first (P4:
-> workspace for redaction preview and compartment UX); P6 is a soft dependency
-> (export packages take an object set as input — a case is the fallback export
-> unit if P6 slips). Authored 2026-07-17 ahead of phase start; T78 re-validates
-> this plan against the as-built system before any other task starts. Charter:
+> **Status: PRE-AUTHORED, NOT ACTIVE.** Phases 2–6 must close first (strict
+> sequence, ADR-025; package-format work may start after P6 T70 per the
+> charter). Authored 2026-07-17 ahead of phase start; **the charter was
+> amended 2026-07-18 (ADR-033): canonical Postgres compartment model projected
+> to FGA + precedence matrix (H-26), BagIt-based package profile (H-28),
+> response-mode policy — base field filtering shipped in P2 T24a, this phase
+> adds marked-redaction/counts modes (H-25), request-time break-glass expiry
+> (M-21), and enforcement of the P2 governance seams: legal authority,
+> purpose vocabulary, retention/disposition (B-08)**. T78 re-validates this
+> plan against the amended charter and dispositions the findings tagged P7
+> before any other task starts. Charter:
 > `../phases/phase-07-sharing-governance.md` · specs: `../specs/03-security.md`
 > (promoted), `../specs/13-disclosure-packages.md` (authored by T78).
 
@@ -125,7 +131,8 @@ fails CI until it registers in the inventory and the matrix.
 docs where reality diverged; append ADRs; write
 `../reviews/phase-07-exit-review.md`; tag `phase-7-governance` per the git
 workflow.
-AC: all exit boxes checked or explicitly deferred with reason.
+AC: every gate criterion checked (non-deferrable, ADR-025); non-blocking
+deliverables carried over with owner + target phase recorded.
 
 ## Explicit non-goals for Phase 7
 

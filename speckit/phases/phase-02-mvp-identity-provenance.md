@@ -1,103 +1,135 @@
-# Phase 2 Charter — MVP: Identity, provenance & analyst console ★
+# Phase 2 Charter — MVP: Identity, provenance & analyst workspace ★
 
-Status: ACTIVE (next phase) · Constitutional basis: Articles I, III, V, VII, VIII ·
-GOAL.md §10, §12 (minimal), §18 ("Why connected?"), §40 M-II · ADR-005, ADR-022 ·
-Tasks: `../tasks/phase-02.md`
+Status: ACTIVE · Constitutional basis: Articles I, III, V, VI, VII, VIII ·
+GOAL.md §10, §12 (minimal), §18 ("Why connected?"), §40 M-II ·
+ADR-005, ADR-022, **ADR-025…ADR-033** (2026-07 recomposition) ·
+Tasks: `../tasks/phase-02.md` · Effort: **XL**
 
 ## Objective
 
-Two things close this phase, and both must hold at once:
+Three things close this phase, and all must hold at once:
 
-1. **Slugs stop being identity.** Entity identity becomes a versioned cluster of
-   source mentions, resolved deterministically and probabilistically, adjudicated
-   by humans, and reversible without loss (Article V).
-2. **Aegis becomes a usable product — the MVP gate.** An analyst (not the
-   developer) can run the entire loop from the UI: land a source → extraction
-   suggests claims → review and adjudicate → explore the governed graph where
-   every edge explains itself.
+1. **Slugs stop being identity.** Entity identity becomes a versioned decision
+   ledger over source mentions (ADR-028), resolved deterministically and
+   probabilistically into *candidates*, adjudicated by humans (ADR-027), and
+   reversible without loss — including through intervening edits and concurrent
+   decisions (Article V).
+2. **Claims survive identity change.** Entity-valued claim arguments carry
+   mention evidence and resolve through the active identity revision, so a
+   merge collapses the graph and a split restores it without rewriting a
+   single claim (ADR-029); projections aggregate honestly (ADR-030).
+3. **Aegis becomes a usable product — the MVP gate.** An analyst (not the
+   developer) runs the entire loop from **one durable UI** (ADR-032): land a
+   source → extraction suggests → review and adjudicate → explore the governed
+   graph where every edge explains itself.
 
-Everything in this phase serves one of those two outcomes; anything that serves
-neither is out of scope (see non-goals).
+Everything in this phase serves one of those outcomes; anything that serves
+none is out of scope (see non-goals).
+
+## Prerequisites
+
+- Phase 1 closure addendum T16a–T16d (blocks Milestones B–D; Milestone A may
+  run in parallel with it).
 
 ## Architecture layers touched
 
-- **Semantic:** identity model (mention → identity cluster → entity) becomes
-  real; no ontology DSL changes beyond what adjudication needs.
-- **Kinetic:** `adjudicate_identity` action implemented with dual-control hook;
-  review/accept/reject actions get their first UI.
-- **Consumption:** provenance panel, review-queue UI, basic entity search on the
-  existing explorer (React workspace waits for P4).
-- **Governance:** identity decisions audited with evidence notes; merge history
-  queryable.
+- **Semantic:** identity model (mention → decision ledger → entity) becomes
+  real; claim arguments gain mention anchors + identity-revision stamps.
+- **Kinetic:** adjudication actions over the ledger with optimistic
+  concurrency; typed-suggestion acceptance dispatches through declared actions
+  (ADR-031).
+- **Consumption:** the durable React + TypeScript workspace shell — source
+  landing, review queue, adjudication, graph + provenance, search.
+- **Governance:** field-level sensitivity filtering on reads; cursor
+  pagination; route-by-route authorization matrix; no anonymous route
+  survives this phase (ADR-026).
 
 ## Deliverables
 
-1. **Mention extraction** from source records; legacy slugs become one-mention
-   clusters (`decided_by='rule:legacy-slug'` rows already seeded by T8).
-2. **Deterministic ER** on exact registry identifiers (specs/05 §2).
-3. **Splink pipeline** (DuckDB backend) with transliteration-aware features for
-   Sinhala/English name variants; candidate pairs persisted with score
-   breakdowns (specs/05 §3).
-4. **Adjudication action + queue UI**: confirm/reject/split/merge with a
-   required evidence note; versioned identity-cluster history; merge→split
-   restores prior state exactly.
-5. **"Why connected?" API + panel**: for any edge, the claims, source records,
-   gradings, and contradictions behind it.
-6. **Contradiction/corroboration surfacing** (`claim_relation`) in the detail
-   panel.
-7. **Review-queue UI** for suggested claims — accept / edit-then-accept /
-   reject, with producer metadata (model, prompt) visible.
-8. **Basic entity search**: `pg_trgm` over names, aliases, and mention keys,
-   authorization-filtered; search box in the explorer. (Pulled forward from old
-   P5 in minimal form; full multilingual search stays in P6.)
-9. **MVP demo runbook** `docs/MVP_DEMO.md`: a scripted, repeatable walkthrough
-   of the full loop on the real OSINT corpus (Easter-attacks PDF or narcotics
-   narrative → suggestions → review → graph).
+**A — Design pack (blocking; specs rewritten before code):**
+1. Identity decision ledger schema (spec 05 + spec 02 §2 rewrite — ADR-028).
+2. Claim-argument attribution + identity-revision-aware projection semantics
+   (spec 02 §3/§7 rewrite — ADR-029/030).
+3. Typed suggestion envelope + per-kind dispatch (spec 02 queue rewrite —
+   ADR-031).
+4. Route authorization matrix + governance schema seams (spec 06 update —
+   B-14, B-08).
 
-## Dependencies
+**B — Identity core:**
+5. Mention extraction from source records; legacy slugs verified as
+   one-mention clusters.
+6. Deterministic ER as **pre-verified candidates** (never auto-merge —
+   ADR-027) + Splink pipeline (DuckDB) with transliteration-aware features
+   and versioned settings + graph-context snapshot.
+7. Adjudication actions (`confirm/reject/split/unresolved`) writing ledger
+   decisions + revisions; negative constraints; concurrency control.
 
-- Phase 1 complete: claim store, review-queue API, `mention` /
-  `identity_membership` tables (migration 0005), evidence vault, authz row
-  filters, projection builder.
-- No new infrastructure services (Splink runs embedded on DuckDB — Article XII
-  without new containers).
+**C — Workspace & governed UI loop (ADR-032):**
+8. React + TS + Vite shell: Keycloak OIDC (PKCE, `oidc-client-ts`),
+   OpenAPI-generated client, CSP/security headers.
+9. Screens (function over polish): source landing/extraction status (B-04),
+   review queue (typed suggestions), identity adjudication (score waterfall),
+   graph view (Cytoscape-in-React) + "why connected?" provenance panel,
+   entity search.
+10. **Legacy explorer + anonymous `/api/*` deleted** when the graph view
+    lands (ADR-026); the deny-by-default lint loses its exemption branch.
+11. Projection rebuild v2: identity-revision resolution, honest aggregation,
+    core no longer imports `legacy.pipeline` (H-36).
 
-## Exit criteria — the MVP gate
+**D — Quality & close-out:**
+12. Field-level sensitivity filtering; cursor pagination; authz-matrix tests.
+13. ER evaluation harness with **numeric** precision/recall thresholds and a
+    review-load bound, in CI.
+14. MVP demo: fictional deterministic fixture drives the blocking gate;
+    real-corpus walkthrough as authorized manual smoke (H-09);
+    `docs/MVP_DEMO.md`.
 
-- [ ] Merging then splitting two identities restores the exact prior state
-      (history test).
-- [ ] Every rendered edge opens a provenance panel listing ≥ 1 source record.
-- [ ] A seeded transliteration variant pair (Sinhala/English spellings) is found
-      by Splink, adjudicated, and merges cleanly; the graph reflects the merge.
-- [ ] **The full ingest → suggest → review → accept → projection loop runs live
-      in one sitting, driven from the UI by someone who didn't build it,
-      following `docs/MVP_DEMO.md`.**
+## Exit criteria — the MVP gate (non-deferrable, ADR-025)
+
+- [ ] Merge → intervening claim edits → split restores mention-attributable
+      state exactly; a concurrent adjudication against a stale revision is
+      rejected and re-presented (ledger history tests).
+- [ ] Every rendered edge opens a provenance panel listing ≥ 1 source record
+      with reliability/credibility/verification shown independently; seeded
+      contradictions render side by side.
+- [ ] A seeded transliteration variant pair (Sinhala/English) scores above the
+      recorded numeric threshold, is adjudicated in the UI, and the graph
+      reflects the merge; the seeded distinct same-name pair stays unmerged.
+- [ ] A field with `sensitivity: restricted` is absent from responses to a
+      low-clearance caller on every shipped route; the route lint passes with
+      **no** public exemption.
+- [ ] **The full ingest → suggest → review → accept → projection loop runs on
+      the fictional fixture, driven entirely from the UI by someone who didn't
+      build it, following `docs/MVP_DEMO.md`.**
 
 ## Risks
 
 | Risk | Mitigation |
 |---|---|
-| Splink quality on Sinhala transliteration is poor | Deterministic rules carry the demo; probabilistic threshold tuned on the seeded golden pairs; failure feeds the ADR-012 evidence base, not a blocker |
-| UI effort sunk into the legacy explorer feels throwaway | It is throwaway by design — legacy is replaced, never extended (ADR-023). Panels stay minimal HTML/JS; their *APIs* (why-connected, review, search) are the durable artifact and carry unchanged into P4 |
-| Wrong merge contaminates the graph | Article V reversibility test is a blocking task, not an afterthought |
-| MVP scope creep | Non-goals list below is enforced in review; anything not needed for the demo loop moves to P3+ |
+| XL scope for a solo developer | Design pack is small and front-loaded; screens are function-over-polish; anything cosmetic moves to P4; non-goals enforced in review |
+| Splink quality on Sinhala transliteration is poor | Deterministic candidates carry the demo; numeric thresholds make quality visible; failure feeds the ADR-012 evidence base — the *fictional-fixture* gate does not depend on Splink quality on real data |
+| React toolchain drag (build, CI, e2e) | Vite defaults; one minimal e2e (the demo loop) — not a test pyramid; OpenAPI client is generated, not hand-written |
+| Wrong merge contaminates the graph | ADR-028 ledger + ADR-029 attribution make reversal provable; blocking tests incl. concurrency |
+| Typed-envelope migration breaks Phase-1 suggestions | T17c includes a data migration for existing queue rows; Phase-1 accept/reject tests keep running |
 
 ## Specs to author or update
 
-- `specs/05-entity-resolution.md` — promote from draft to final as
-  implementation lands; record threshold choices.
-- `specs/06-api.md` — add why-connected, identity-adjudication, and search
-  routes.
-- `specs/07-ui.md` — stage-2 (explorer + panels) is this phase; confirm stage-3
-  handoff points for P4.
+- `specs/05-entity-resolution.md` — rewritten by T17a (ledger, candidates,
+  negative constraints, thresholds).
+- `specs/02-data-model.md` — §2/§3/§7/queue rewritten by T17a–T17c.
+- `specs/06-api.md` — authz matrix authoritative table (T17d); search,
+  identity, provenance routes; pagination convention implemented.
+- `specs/07-ui.md` — rewritten for the single durable workspace (ADR-032).
 
 ## Explicit non-goals
 
-React workspace (P4), ontology interfaces/functions/SDK (P3), PostGIS and
-events (P5), OpenSearch and full multilingual search (P6), compartments and
-disclosure (P7), watchlists (P6), any new LLM capability (P8).
+Object views/cases/hypotheses/timeline (P4 — the shell ships without them),
+ontology modules/interfaces/TS-SDK-from-ontology (P3 — P2 uses the
+OpenAPI-generated client), PostGIS and events (P5), OpenSearch and full
+multilingual FTS (P6), object sets and watchlists (P6), compartments and
+disclosure (P7), any new LLM capability (P8), UI polish beyond function.
 
 ## Task breakdown
 
-See `../tasks/phase-02.md` (T17–T28, Milestones A–C) — authored with this
-charter, since this phase is active.
+See `../tasks/phase-02.md` (T17–T28 with lettered subtasks, Milestones A–D) —
+rewritten 2026-07-18 with this charter (ADR-033).

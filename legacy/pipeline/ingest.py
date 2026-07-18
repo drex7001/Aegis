@@ -4,10 +4,10 @@ NOTE (speckit T9): governed ingestion now lives in `aegis ingest land` /
 `aegis ingest extract` — raw bytes go to the content-addressed evidence vault
 with a provenance envelope and a source_record row, and extraction output lands
 in the review queue instead of the graph. This module remains for the legacy
-file-based prototype flow (real_data/*.txt + build_real_graph.py) until Phase 3.
+file-based prototype flow (data/real/*.txt + build_real_graph.py) until Phase 3.
 
 Routes every file by extension and writes a provenance-headed .txt into
-real_data/, where the extraction passes (and `build_real_graph.py --semantic`)
+data/real/, where the extraction passes (and `build_real_graph.py --semantic`)
 pick it up:
 
     .pdf                          → opendataloader-pdf structured markdown
@@ -23,8 +23,8 @@ Usage:
     python -m pipeline.ingest somefolder/ --force    # re-ingest even if output exists
     python -m pipeline.ingest Files/ --max-minutes 2 # quick-test slice for media files
 
-Already-ingested files (output already in real_data/) are skipped unless --force.
-After ingesting, register each new real_data/*.txt in NARRATIVE_DOCS
+Already-ingested files (output already in data/real/) are skipped unless --force.
+After ingesting, register each new data/real/*.txt in NARRATIVE_DOCS
 (build_real_graph.py) and run:  python build_real_graph.py --semantic
 """
 
@@ -35,12 +35,12 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from pipeline.models import slugify
-from pipeline.transcribe import MEDIA_EXTS
+from legacy.pipeline.models import slugify
+from legacy.pipeline.transcribe import MEDIA_EXTS
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 DROP_ZONE = ROOT / "Files"
-REAL_DATA = ROOT / "real_data"
+REAL_DATA = ROOT / "data/real"
 
 PDF_EXTS = {".pdf"}
 TEXT_EXTS = {".txt", ".md"}
@@ -66,16 +66,16 @@ def _header(source: Path, method: str, extra: str = "") -> str:
 
 
 def target_for(path: Path, max_minutes: float | None = None) -> Path:
-    """Deterministic real_data/ output path for a raw file (slugged stem)."""
+    """Deterministic data/real/ output path for a raw file (slugged stem)."""
     if path.suffix.lower() in MEDIA_EXTS:
-        from pipeline.transcribe import default_output_path
+        from legacy.pipeline.transcribe import default_output_path
 
         return default_output_path(path, max_minutes)
     return REAL_DATA / f"{slugify(path.stem)}.txt"
 
 
 def ingest_file(path: Path, force: bool = False, max_minutes: float | None = None) -> Path | None:
-    """Ingest one file into real_data/. Returns the output path, or None if skipped."""
+    """Ingest one file into data/real/. Returns the output path, or None if skipped."""
     ext = path.suffix.lower()
     if ext not in SUPPORTED:
         print(f"[skip] {path.name}: unsupported extension {ext}")
@@ -87,7 +87,7 @@ def ingest_file(path: Path, force: bool = False, max_minutes: float | None = Non
     REAL_DATA.mkdir(exist_ok=True)
 
     if ext in PDF_EXTS:
-        from pipeline.pdf_ingest import AUDIT_DIR, convert_pdf
+        from legacy.pipeline.pdf_ingest import AUDIT_DIR, convert_pdf
 
         print(f"[pdf ] {path.name} → {_relative(target)}")
         markdown = convert_pdf(path)
@@ -100,7 +100,7 @@ def ingest_file(path: Path, force: bool = False, max_minutes: float | None = Non
         return target
 
     if ext in MEDIA_EXTS:
-        from pipeline.transcribe import transcribe_to_file
+        from legacy.pipeline.transcribe import transcribe_to_file
 
         print(f"[stt ] {path.name} → {_relative(target)}")
         return transcribe_to_file(path, out_path=target, max_minutes=max_minutes)
@@ -132,7 +132,7 @@ def iter_candidates(paths: list[str]) -> list[Path]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Ingest raw files (PDF/media/text) into real_data/.")
+    parser = argparse.ArgumentParser(description="Ingest raw files (PDF/media/text) into data/real/.")
     parser.add_argument(
         "paths",
         nargs="*",
@@ -157,7 +157,7 @@ def main() -> None:
             produced.append(out)
 
     if produced:
-        print("\nIngested", len(produced), "file(s) into real_data/. Next steps:")
+        print("\nIngested", len(produced), "file(s) into data/real/. Next steps:")
         print("  1. Open each output and review it (transcripts especially — machine output).")
         print("  2. Register the file name(s) in NARRATIVE_DOCS in build_real_graph.py:")
         for out in produced:

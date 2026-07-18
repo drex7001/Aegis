@@ -224,7 +224,7 @@ def test_sql_weight_function_agrees_with_python(projection_engine: sa.Engine) ->
 
 @pytest.mark.integration
 def test_cypher_export_path_preserved(rebuilt: dict) -> None:
-    from pipeline.neo4j_export import generate_cypher
+    from legacy.pipeline.neo4j_export import generate_cypher
 
     cypher = generate_cypher(rebuilt)
     assert "MERGE (c:Criminal" in cypher

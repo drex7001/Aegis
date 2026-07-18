@@ -80,7 +80,7 @@ temp_pdfs/
 # Project-local tool runtimes (JRE for opendataloader-pdf — scripts/setup_ingestion.sh)
 .tools/
 
-# Raw source-material drop zone (large PDFs/videos; ingested text goes to real_data/)
+# Raw source-material drop zone (large PDFs/videos; ingested text goes to data/real/)
 Files/
 *.mp4
 *.mkv
@@ -106,8 +106,8 @@ Thumbs.db
 launch.json
 
 # Keep sample data but ignore large local datasets
-real_data/*.txt
-!real_data/README.md
+data/real/*.txt
+!data/real/README.md
 
 Files/videoplayback.mp4
 

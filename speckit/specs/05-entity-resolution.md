@@ -1,6 +1,10 @@
 # Spec 05 — Entity Resolution
 
-Status: draft for Phase 2 · Constitutional basis: Article V · GOAL.md §10 · ADR-005
+Status: draft for Phase 2 — **being rewritten by T17a under ADR-027/ADR-028**
+(identity decision ledger, persisted candidates, negative constraints, no
+auto-decide; `merged_into` becomes ledger metadata, not a claim). Until the
+rewrite lands, where this text conflicts with ADR-027/028 the ADRs win. ·
+Constitutional basis: Articles V, VII · GOAL.md §10 · ADR-005, ADR-027, ADR-028
 
 Wrong merges are the most dangerous failure mode in the platform. Everything here is
 reversible, explained, and audited.
@@ -20,13 +24,18 @@ source_record ──▶ mention (raw_text, norm_key)
 
 ## 2. Stages (GOAL.md §10.1, scaled)
 
-### 2.1 Deterministic rules (auto-decide, audited as `rule:<name>`)
+### 2.1 Deterministic rules (pre-verified **candidates** — never auto-decide, ADR-027)
 - NIC exact match (when lawfully present — note current dataset omits NICs for real
   people, so this mostly serves fictional/test data and future authorized data).
-- Exact registry identifiers: vehicle registration + jurisdiction, passport + country.
-- Same `norm_key` **within one document** (the current implicit rule, now scoped:
-  cross-document same-slug is a *candidate*, not an auto-merge — this is the key
-  behavior change vs the prototype).
+- Exact registry identifiers: vehicle registration + jurisdiction, passport + country
+  — with issuer/validity conflict checks (identifiers contain errors, fraud,
+  duplicates, and reuse — H-07).
+- Same `norm_key` **within one document** — also a candidate (ranked below
+  identifier matches).
+
+Rule output is a **pre-verified candidate**: top-of-queue, evidence attached,
+batch-confirmable in one human action. `decided_by` on the resulting decision
+is always the human; `rule:<name>` survives as the candidate's producer.
 
 ### 2.2 Probabilistic (Splink, DuckDB backend)
 Features (comparison levels):
@@ -54,20 +63,23 @@ participating in ≥ N recorded claims (impact threshold), protected-person flag
 
 | Action | Effect |
 |---|---|
-| `confirm_match` | close B-memberships → open A-memberships; `merged_into` claim on B; note required |
-| `reject_match` | records a *negative constraint* (pair never re-suggested unless new evidence type appears) |
-| `split_entity` | selected mentions move to a new (or restored) entity; note required |
+| `confirm_match` | ledger decision + new revision: close B-memberships → open A-memberships; merge lineage recorded as **ledger metadata** (ADR-028 — not a claim); note required |
+| `reject_match` | records a versioned *negative constraint* (pair never re-suggested unless new evidence type appears) |
+| `split_entity` | ledger decision + new revision: selected mentions move to a new (or restored) entity; unanchored claims on the split entity route to re-adjudication (ADR-029); note required |
 | `mark_unresolved` | keeps pair visible in an "unresolved identities" list (Article VIII) |
 
-All are single transactions writing membership history + audit + FGA-neutral (identity
+All are single transactions writing a ledger decision + revision + audit, with
+optimistic concurrency on the parent revision (ADR-028); FGA-neutral (identity
 changes don't change access; case scoping does).
 
 ## 4. Consequences downstream
 
-- Projections rebuild after adjudication (claim subjects/objects reference entities,
-  so merges re-aggregate edges automatically).
-- Analytics jobs record the identity-cluster version they ran against; findings from
-  stale versions are flagged.
+- Projections resolve entity-valued claim arguments **through the active
+  identity revision** via the rebuildable `entity_canonical_map` (ADR-029) —
+  merges collapse edges and splits restore mention-attributable edges without
+  rewriting any claim row.
+- Analytics jobs record the identity revision they ran against; findings from
+  stale revisions are flagged.
 - The UI shows a "identity decided by / when / why" line on every entity page.
 
 ## 5. Evaluation

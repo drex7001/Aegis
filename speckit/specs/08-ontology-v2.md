@@ -1,7 +1,12 @@
 # Spec 08 — Ontology DSL v2: interfaces, functions, actions v2, change management, SDKs
 
-Status: draft for Phase 3 · Constitutional basis: Articles VII, X, XI ·
-GOAL.md §7.8–7.10 · ADR-021 · Extends spec 01 (which remains the v1 reference)
+Status: draft for Phase 3 — **narrowed 2026-07-18 (ADR-033)**: module
+composition is added as the headline (manifest format specced by T29);
+functions *execution*, the side-effect engine, and the Python SDK move to
+their first consumer phases; `system_claim` mode is **removed** (ADR-027 —
+where this draft still mentions it, the ADR wins until T29's rewrite). ·
+Constitutional basis: Articles VII, X, XI, XIV · GOAL.md §7.8–7.10 · ADR-021,
+ADR-027, ADR-033 · Extends spec 01 (which remains the v1 reference)
 
 ## 1. Purpose
 
@@ -98,24 +103,30 @@ functions:
       - claim_pattern: {predicate: remanded_in, object: location}   # illustrative
     output:
       predicate: co_located_in_prison_with
-      mode: system_claim        # suggestion (default) | system_claim
+      mode: derived_record      # suggestion (default) | derived_record
     trigger: rebuild            # rebuild | on_write
-    implementation: aegis.functions.prison_overlap   # python path, versioned in git
+    implementation: prison_overlap_v1   # registered function id (allowlist, H-13) — not an arbitrary import path
 ```
 
 Rules:
 - **Attribution.** Every output row records source_type `algorithmic`,
   function name + version, and input claim IDs. Anonymous derivation is a
   defect.
-- **Mode.** `suggestion` (default) routes through the review queue
-  (Article VII). `system_claim` writes recorded claims directly and is
-  reserved for *deterministic, fully-derived* facts; electing it requires an
-  ADR naming the derivation deterministic. Deleting a function's outputs and
-  re-running must reproduce them exactly.
+- **Mode (ADR-027).** `suggestion` (default) routes through the review queue
+  (Article VII). `derived_record` writes rows into **rebuildable derived
+  tables** (projections/findings, Article XIII), typed and displayed as
+  derived — never rows in `claim`. There is no machine path into canonical
+  tables. Reproducibility = canonical-digest equality over inputs + config +
+  output (not byte-identical DB rows — H-14).
 - **Supersedes `computed: true`.** The v1 predicate flag remains as a marker;
   the function entry is where the derivation actually lives. First real
-  function: prison co-location from remand-window overlap.
-- Validator: output predicate exists; implementation path importable; version
+  function: prison co-location from remand-window overlap (lands with its
+  consumer phase, P5/P6 — ADR-033).
+- **Implementation allowlist (H-13).** The ontology selects a *registered*
+  function id + version from a code-side registry with declared capabilities
+  and input/output schemas; arbitrary import paths are rejected (an ontology
+  deployer must not be able to select unreviewed code).
+- Validator: output predicate exists; implementation id registered; version
   bump required when implementation hash changes (CI check).
 
 ## 6. `actions` v2
@@ -184,8 +195,8 @@ Scaled-to-one-repo version of Foundry's proposals/branching:
 | Pydantic validators | `aegis/ontology/_generated/models.py` | actions, API bodies | P1 (exists) |
 | FGA object-type stubs | `infra/fga/_generated.fga` | authz model review | P1 (exists) |
 | UI descriptors | `aegis/api/_generated/ui_meta.json` | generic screens | P1 (exists) → P4 |
-| **Python SDK** | `sdk/python/aegis_sdk/` | pipelines, notebooks, P8 AI producers | P3 |
-| **TypeScript SDK** | `sdk/ts/` (npm workspace) | P4 workspace | P3 |
+| **TypeScript client** | `sdk/ts/` (npm workspace; generated from the FastAPI OpenAPI document + ontology constants — ADR-033/H-11) | P2-born workspace, P4 screens | P3 |
+| **Python SDK** | `sdk/python/aegis_sdk/` | P8 AI producers (its first consumer — ADR-033) | P8 |
 
 SDK contents: typed object/interface models, predicate constants, action call
 wrappers (from `parameters`), query/object-set builders (P6 extends). Auth:
@@ -199,8 +210,9 @@ unchanged).
    member; no cycles.
 2. `shared:` references resolve; no type/sensitivity overrides.
 3. Predicates targeting interfaces expand to valid member sets.
-4. Function output predicates exist; `system_claim` mode carries an ADR
-   reference field; implementation path resolves.
+4. Function output predicates exist; output mode ∈ {suggestion,
+   derived_record} (no canonical-write mode exists — ADR-027); implementation
+   id is registered in the code-side allowlist.
 5. Action parameters use closed types; criteria/side-effect names registered.
 6. v2 sections are optional — a v1-shaped file (with empty new sections) still
    validates, so the bump to 0.4.0 is minor.

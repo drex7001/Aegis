@@ -31,9 +31,14 @@ Tiered per roadmap v2: **MVP** = P0–P2 (★ gate closes P2), **Core** = P3–P
 
 ### Knowledge (MVP)
 - Claim store: graded, sourced, time-bounded claims (GOAL.md §7.4).
-- Entities as identifier containers; identity clusters with reversible merges.
+- Entities as identifier containers; identity as a versioned decision ledger
+  with reversible merges (ADR-028) and mention-anchored claim arguments
+  (ADR-029).
 - Contradiction / corroboration links between claims.
-- Projections: the existing multiplex graph JSON + Cypher export, rebuilt from claims.
+- Projections: identity-revision-aware graph + Cypher export, rebuilt from
+  claims with honest aggregation (ADR-030).
+- One durable React workspace: ingest → review → adjudicate → explore
+  (ADR-032).
 
 ### Evidence (MVP)
 - Content-addressed vault for raw source files (`Files/` → MinIO/object store).
@@ -90,7 +95,7 @@ Directly from GOAL.md §2, binding at every phase:
 | `real_dataset.py` curated facts in code | fine for bootstrap | Migration script → sources + claims in Postgres |
 | `structural_pass.py`, `semantic_pass.py` | keep | Emit suggested claims instead of edges |
 | `pipeline/ingest.py`, `transcribe.py`, `pdf_ingest.py` | keep | Front end of the governed landing zone (provenance envelope, idempotency key) |
-| `output/real_graph.json` + Cytoscape UI | keep working | Served from a projection built off the claim store — UI unchanged in Phase 1 |
+| `output/real_graph.json` + Cytoscape UI | kept through Phase 1 | Replaced by the durable React workspace in Phase 2 (ADR-032); explorer + anonymous `/api/*` deleted at T22 (ADR-026) |
 | `neo4j_export.py` | keep | Optional projection target (ADR-002) |
 | `clustering.py` (Leiden) | keep | Analytics service; results become findings, not node attributes |
 | No auth, no audit | gap | Keycloak + OpenFGA + audit log — Phase 1, before new features |

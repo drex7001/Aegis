@@ -18,7 +18,7 @@ text, off-page text) stay on, which matters here because extracted text is later
 fed to the LLM semantic pass.
 
 Usage as a library:
-    from pipeline.pdf_ingest import convert_pdf
+    from legacy.pipeline.pdf_ingest import convert_pdf
     markdown = convert_pdf("docs/report.pdf")
 
 Usage from the shell:
@@ -34,7 +34,7 @@ import shutil
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 LOCAL_JRE_BIN = ROOT / ".tools" / "jre" / "bin"
 AUDIT_DIR = ROOT / "output" / "ingest"
 
@@ -108,7 +108,7 @@ def convert_pdf(pdf_path: str | Path, audit_dir: str | Path | None = None) -> st
             file=sys.stderr,
         )
 
-    from pipeline.pdf_loader import load_pdf_text
+    from legacy.pipeline.pdf_loader import load_pdf_text
 
     return load_pdf_text(pdf)
 

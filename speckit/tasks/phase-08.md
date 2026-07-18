@@ -4,12 +4,17 @@ Ordered; each task lists acceptance criteria (AC). Tasks marked ⛓ block everyt
 after them; narrower dependencies are noted in the task text. Reference specs in
 parentheses. Numbering continues from Phase 7 (T89).
 
-> **Status: PRE-AUTHORED, NOT ACTIVE.** Phases 3 and 4 must close first (P3
-> supplies the SDK/ontology grounding for prompts and output schemas; P4 supplies
-> the workspace assistant surfaces and reuses the P2 review-queue UI); P6 is a
-> soft dependency (its findings/caveat plumbing is reused for AI-origin
-> suggestions). Authored 2026-07-18 ahead of phase start; T90 re-validates this
-> plan against the as-built system before any other task starts. Charter:
+> **Status: PRE-AUTHORED, NOT ACTIVE.** Phases 2–7 must close first (strict
+> sequence, ADR-025 — the egress policy builds on P7's legal-authority and
+> purpose enforcement). Authored 2026-07-18 ahead of phase start; **the
+> charter was amended 2026-07-18 (ADR-033): the AI data-egress policy and
+> least-privilege producer runtime are the blocking first deliverable (B-18);
+> citations must resolve within the authorized retrieval set with sampled
+> faithfulness checks (H-29); evaluation uses held-out multilingual sets with
+> absolute minimums (H-30); reproducibility = immutable inputs/config + cached
+> outputs, never regeneration; the Python SDK lands here as its first
+> consumer**. T90 re-validates this plan against the amended charter and
+> dispositions the findings tagged P8 before any other task starts. Charter:
 > `../phases/phase-08-controlled-ai.md` · specs: `../specs/14-controlled-ai.md`
 > (authored by T90), `../specs/04-ingestion.md` (extraction-v2 producer
 > registration).
@@ -132,7 +137,8 @@ the contract and the matrix; the script joins the demo runbook.
 docs where reality diverged; append ADRs; write
 `../reviews/phase-08-exit-review.md`; tag `phase-8-controlled-ai` per the git
 workflow.
-AC: all exit boxes checked or explicitly deferred with reason.
+AC: every gate criterion checked (non-deferrable, ADR-025); non-blocking
+deliverables carried over with owner + target phase recorded.
 
 ## Explicit non-goals for Phase 8
 

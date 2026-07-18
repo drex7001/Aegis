@@ -4,11 +4,15 @@ Ordered; each task lists acceptance criteria (AC). Tasks marked ⛓ block everyt
 after them; narrower dependencies are noted in the task text. Reference specs in
 parentheses. Numbering continues from Phase 5 (T65).
 
-> **Status: PRE-AUTHORED, NOT ACTIVE.** Phases 2–4 must close first (P3:
-> interfaces for the filter grammar + SDK regen; P4: the workspace the search
-> bar, set builder, and findings panel live in); P5 is a soft dependency (sets
-> ship typed against whatever the ontology holds). Authored 2026-07-17 ahead of
-> phase start; T66 re-validates this plan against the as-built system before
+> **Status: PRE-AUTHORED, NOT ACTIVE.** Phases 2–5 must close first (strict
+> sequence, ADR-025; design work may start after P5 T54 per the charter).
+> Authored 2026-07-17 ahead of phase start; **the charter was amended
+> 2026-07-18 (ADR-033): authorization in candidate generation not only
+> hydration (B-17), AST-only set storage with complexity limits and
+> ontology-version pinning, one-snapshot set evaluation (M-16), immutable
+> analytic run manifests (H-23), typed alert suggestions (H-24), numeric
+> search targets defined at phase start (H-22)**. T66 re-validates this plan
+> against the amended charter and dispositions the findings tagged P6 before
 > any other task starts. Charter:
 > `../phases/phase-06-search-object-sets-analytics.md` · specs:
 > `../specs/11-search.md` and `../specs/12-object-sets-analytics.md` (authored
@@ -121,7 +125,8 @@ assertion; the script joins the demo runbook.
 docs where reality diverged; append ADRs; write
 `../reviews/phase-06-exit-review.md`; tag `phase-6-search-analytics` per the
 git workflow.
-AC: all exit boxes checked or explicitly deferred with reason.
+AC: every gate criterion checked (non-deferrable, ADR-025); non-blocking
+deliverables carried over with owner + target phase recorded.
 
 ## Explicit non-goals for Phase 6
 

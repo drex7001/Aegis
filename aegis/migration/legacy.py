@@ -49,7 +49,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 
 LEGACY_SOURCE_SYSTEM = "legacy-migration"
 LEGACY_SCHEME = "legacy-confidence-tag"
-SNAPSHOT_RELPATH = Path("pipeline") / "real_dataset.py"
+SNAPSHOT_RELPATH = Path("legacy") / "pipeline" / "real_dataset.py"
 DECIDED_BY_RULE = "rule:legacy-slug"
 
 # ConfidenceTag → (credibility_normalized, verification_status)  (spec 02 §6)
@@ -356,8 +356,8 @@ def migrate(
     """
     # Imported here: the legacy prototype lives beside the package in the repo,
     # not inside the installed distribution.
-    from pipeline.models import slugify
-    from pipeline.real_dataset import SOURCES, build_curated_network
+    from legacy.pipeline.models import slugify
+    from legacy.pipeline.real_dataset import SOURCES, build_curated_network
 
     service = ActionService(session, ontology)
     ontology = service.ontology
@@ -448,7 +448,7 @@ def migrate(
             except KeyError:
                 raise LegacyMigrationError(
                     f"{what}: source citation {publication!r} is not in "
-                    "pipeline.real_dataset.SOURCES"
+                    "legacy.pipeline.real_dataset.SOURCES"
                 ) from None
 
         # 2. Entities — one mention + one membership per legacy node.

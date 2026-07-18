@@ -25,7 +25,7 @@ from aegis.ontology import load
 from aegis.store import get_sessionmaker
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-_STATIC_DIR = _REPO_ROOT / "app" / "static"
+_STATIC_DIR = _REPO_ROOT / "legacy" / "app" / "static"
 
 
 def create_app() -> FastAPI:

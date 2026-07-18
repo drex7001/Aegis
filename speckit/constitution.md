@@ -87,23 +87,35 @@ loses the prior mapping.
 
 Every read and write is authorized against role + relationship (case assignment,
 handler-of) + handling code, **in the backend**, before data leaves the store. There is
-no unrestricted global graph view. The policy engine is a first-class dependency from
-Phase 1 — retrofitting access control is forbidden by this constitution.
-(GOAL.md Rule 6, §23)
+no unrestricted global graph view and **no anonymous route**: "open" is a data
+classification, not an authorization decision — an authenticated actor, a decision, and
+an audit row exist for every access. Authorization applies at row *and* field level:
+a property whose sensitivity exceeds the caller's clearance is absent from the
+response. The policy engine is a first-class dependency from Phase 1 — retrofitting
+access control is forbidden by this constitution. If a public demonstration is ever
+needed, it is a statically generated fictional artifact outside the governed API
+(ADR-026). (GOAL.md Rule 6, §23)
 
-**Test:** every API route has an explicit authorization dependency; direct DB access in
+**Test:** every API route has an explicit authorization dependency — no exemption
+marker exists; field-sensitivity filtering has a blocking test; direct DB access in
 handlers without the policy filter fails code review.
 
-## Article VII — AI suggests, humans decide
+## Article VII — Machines suggest, humans decide
 
-Model output (LLM extraction, ER candidates, link prediction, alerts) enters a
-**review queue** as suggestions with explanations. Nothing algorithmic writes to the
-canonical claim store, identity clusters, or evidence without human adjudication.
-An AI model is a source of *analytic suggestions*, never of observed fact.
-(GOAL.md §7.6, §26)
+Algorithmic output of every kind — LLM extraction, deterministic rules, ER candidates,
+link prediction, alerts — enters a **review queue** as typed suggestions with
+explanations. Nothing algorithmic writes to the canonical claim store, identity
+clusters, or evidence: there is no auto-accept mode, no auto-merge rule, and no
+machine-written claim class (ADR-027). Deterministic derivations of accepted claims
+are **rebuildable derived records** (projections/findings, Article XIII), typed and
+displayed as derived — never canonical claims. Exact-identifier identity matches are
+pre-verified *candidates* a human confirms (batch confirmation is fine; the actor is
+always human). An AI model is a source of *analytic suggestions*, never of observed
+fact. (GOAL.md §7.6, §26)
 
-**Test:** the only writer to canonical tables from extraction code paths is the
-adjudication action, executed by a human actor recorded in audit.
+**Test:** the only writer to canonical tables from any algorithmic code path is a
+human-executed adjudication action recorded in audit; `decided_by` on identity
+decisions is always a human actor.
 
 ## Article VIII — Disagreement is preserved
 

@@ -26,7 +26,7 @@ validated identically (weights derived from tags, temporal windows checked, IDs 
 
 from __future__ import annotations
 
-from pipeline.models import (
+from legacy.pipeline.models import (
     ConfidenceTag,
     CriminalNode,
     ExtractionMethod,

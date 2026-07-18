@@ -28,8 +28,8 @@ from aegis.ingestion import (
 from aegis.store import Claim, Entity, IdentityMembership, Mention, ReviewQueue, SourceRecord
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-ARREST_LIST = REPO_ROOT / "sample_data" / "pcoi_arrest_list.txt"
-B_REPORT = REPO_ROOT / "sample_data" / "b_report_excerpt.txt"
+ARREST_LIST = REPO_ROOT / "data/sample" / "pcoi_arrest_list.txt"
+B_REPORT = REPO_ROOT / "data/sample" / "b_report_excerpt.txt"
 
 
 @pytest.fixture(scope="module")

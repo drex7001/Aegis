@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import os
 
-from pipeline.models import (
+from legacy.pipeline.models import (
     ConfidenceTag,
     CriminalNode,
     ExtractionMethod,
@@ -128,7 +128,7 @@ def extract_semantic(
 
 def mock_extraction_result() -> ExtractionResult:
     """Deterministic stand-in for the LLM: the expected output for
-    sample_data/b_report_excerpt.txt. Lets the full pipeline run offline."""
+    data/sample/b_report_excerpt.txt. Lets the full pipeline run offline."""
     return ExtractionResult(
         nodes=[
             CriminalNode(

@@ -31,7 +31,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 GRAPH_PATH = ROOT / "output" / "real_graph.json"
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 

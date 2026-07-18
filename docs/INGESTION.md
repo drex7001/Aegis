@@ -8,30 +8,30 @@
 How to take **raw source material** (a scanned commission report, a news video, an
 interview recording, a pasted article) and get it into the extraction pipeline. This is
 the step *before* [`ADDING_DATA.md`](ADDING_DATA.md): ingestion produces the
-extraction-ready `.txt` files in `real_data/` that the structural/semantic passes and
-`build_real_graph.py --semantic` consume.
+extraction-ready `.txt` files in `data/real/` that the structural/semantic passes and
+`legacy/build_real_graph.py --semantic` consume.
 
 Commands are Linux/macOS (`.venv/bin/...`); on Windows use `.venv\Scripts\...`.
 
 ```
 Files/  (drop zone: .pdf .mp4 .mp3 .wav .txt …)
    │
-   │   python -m pipeline.ingest
+   │   python -m legacy.pipeline.ingest
    ▼
 ┌───────────────────────────────────────────────────────────────────────┐
-│  .pdf   → pipeline/pdf_ingest.py   opendataloader-pdf (Java CLI):     │
+│  .pdf   → legacy/pipeline/pdf_ingest.py   opendataloader-pdf (Java CLI):     │
 │           structure-aware markdown; audit copies in output/ingest/;   │
 │           pdfplumber plain-text fallback if Java is unavailable       │
-│  media  → pipeline/transcribe.py   whisper-small-sinhala (local,      │
+│  media  → legacy/pipeline/transcribe.py   whisper-small-sinhala (local,      │
 │           CPU-friendly but slow): timestamped Sinhala transcript      │
 │  .txt   → verbatim copy with a provenance header                      │
 └───────────────────────────────────────────────────────────────────────┘
    │
    ▼
-real_data/<slug>.txt          ← review it, then register in NARRATIVE_DOCS
-   │                             (build_real_graph.py) and run:
+data/real/<slug>.txt          ← review it, then register in NARRATIVE_DOCS
+   │                             (legacy/build_real_graph.py) and run:
    ▼
-python build_real_graph.py --semantic
+python legacy/build_real_graph.py --semantic
 ```
 
 Every produced file starts with a **provenance header** (source file, method, timestamp)
@@ -58,7 +58,7 @@ The script is idempotent and needs **no root**. It sets up:
 | `imageio-ffmpeg` | static ffmpeg binary for audio decoding — no system ffmpeg needed | `.venv` |
 | `Lingalingeswaran/whisper-small-sinhala` | Whisper-small fine-tuned for Sinhala (Apache-2.0); downloads on first use | `~/.cache/huggingface` |
 
-On Windows, run the pip commands from `requirements.txt` manually and install a JRE from
+On Windows, run the pip commands from `legacy/requirements.txt` manually and install a JRE from
 [adoptium.net](https://adoptium.net) — everything else is identical.
 
 ---
@@ -74,17 +74,17 @@ at any other file or folder.)
 ### Step 2 — run the ingester
 
 ```bash
-.venv/bin/python -m pipeline.ingest                     # everything new in Files/
-.venv/bin/python -m pipeline.ingest docs/report.pdf     # or specific files/folders
+.venv/bin/python -m legacy.pipeline.ingest                     # everything new in Files/
+.venv/bin/python -m legacy.pipeline.ingest docs/report.pdf     # or specific files/folders
 ```
 
 What you'll see, per file type:
 
 ```
-[pdf ] sc-april-attacks-report-en.pdf → real_data/sc_april_attacks_report_en.txt
-[stt ] videoplayback.mp4 → real_data/videoplayback_transcript.txt
+[pdf ] sc-april-attacks-report-en.pdf → data/real/sc_april_attacks_report_en.txt
+[stt ] videoplayback.mp4 → data/real/videoplayback_transcript.txt
 transcribing videoplayback.mp4: 00:33:32 of audio with Lingalingeswaran/whisper-small-sinhala
-  (CPU is ~6x real-time — expect roughly 03:21:12; watch with: tail -f real_data/videoplayback_transcript.txt)
+  (CPU is ~6x real-time — expect roughly 03:21:12; watch with: tail -f data/real/videoplayback_transcript.txt)
   [00:10:00 / 00:33:32] 42 segments
 ```
 
@@ -92,8 +92,8 @@ Files whose output already exists are skipped — `--force` re-ingests. A media 
 be **test-sliced** first (highly recommended before committing to a multi-hour run):
 
 ```bash
-.venv/bin/python -m pipeline.ingest Files/interview.mp4 --max-minutes 2
-# → real_data/interview_transcript_first2min.txt in a few minutes
+.venv/bin/python -m legacy.pipeline.ingest Files/interview.mp4 --max-minutes 2
+# → data/real/interview_transcript_first2min.txt in a few minutes
 ```
 
 Long transcriptions are safe to leave running: the output file is rewritten after every
@@ -102,7 +102,7 @@ interrupted run keeps everything transcribed so far.
 
 ### Step 3 — review the output (do not skip)
 
-Open the new `real_data/*.txt` and check it honestly:
+Open the new `data/real/*.txt` and check it honestly:
 
 - **Transcripts are machine output.** Whisper misrecognises exactly what matters most —
   proper names, amounts, dates — and can emit repetition artifacts on noisy audio. Fix
@@ -116,7 +116,7 @@ Open the new `real_data/*.txt` and check it honestly:
 
 ### Step 4 — register the document for the semantic pass
 
-Add the filename to `NARRATIVE_DOCS` in `build_real_graph.py`:
+Add the filename to `NARRATIVE_DOCS` in `legacy/build_real_graph.py`:
 
 ```python
 NARRATIVE_DOCS = [
@@ -129,7 +129,7 @@ NARRATIVE_DOCS = [
 ### Step 5 — run the extraction
 
 ```bash
-.venv/bin/python build_real_graph.py --semantic
+.venv/bin/python legacy/build_real_graph.py --semantic
 ```
 
 Long documents are **chunked automatically** (~12k characters per LLM call, results
@@ -137,9 +137,9 @@ merged and deduped by the shared Pydantic contract) — a 200-page report become
 calls, so expect it to take a while and to consume API quota. Everything the LLM emits
 is validated, weight-corrected, pruned of dangling edges, clustered, and written to
 `output/real_graph.json` + `output/real_ingest.cypher` exactly as described in
-[`../ARCHITECTURE.md`](../ARCHITECTURE.md).
+[`../legacy/ARCHITECTURE.md`](../legacy/ARCHITECTURE.md).
 
-Then refresh the UI (`python -m app.server` → http://127.0.0.1:8000).
+Then refresh the UI (`python -m legacy.app.server` → http://127.0.0.1:8000).
 
 ---
 
@@ -152,7 +152,7 @@ Ingestion gives you *text*; what you do with it depends on what the text is
 |---|---|---|
 | Narrative prose (reports, articles, transcripts) | **Semantic pass** (LLM) | register in `NARRATIVE_DOCS`, `--semantic` |
 | A numbered arrest/remand annex | **Structural pass** (regex, deterministic) | format per `ARREST_LINE_RE`, see ADDING_DATA §B |
-| A fact you verified yourself against sources | **Curated layer** | encode in `pipeline/real_dataset.py` with a citation |
+| A fact you verified yourself against sources | **Curated layer** | encode in `legacy/legacy/pipeline/real_dataset.py` with a citation |
 
 A Sinhala transcript can go straight to the semantic pass — Gemini/Claude read Sinhala —
 but for high-stakes facts prefer to verify and encode them in the curated layer, citing
@@ -164,24 +164,24 @@ the source media + timestamp as the excerpt.
 
 ```bash
 # PDF → markdown to stdout / file (audit copies always land in output/ingest/)
-.venv/bin/python -m pipeline.pdf_ingest docs/report.pdf
-.venv/bin/python -m pipeline.pdf_ingest docs/report.pdf -o extracted.txt
+.venv/bin/python -m legacy.pipeline.pdf_ingest docs/report.pdf
+.venv/bin/python -m legacy.pipeline.pdf_ingest docs/report.pdf -o extracted.txt
 
 # Speech-to-text with full control
-.venv/bin/python -m pipeline.transcribe Files/videoplayback.mp4 --max-minutes 5
-.venv/bin/python -m pipeline.transcribe interview.mp3 --out real_data/interview.txt \
+.venv/bin/python -m legacy.pipeline.transcribe Files/videoplayback.mp4 --max-minutes 5
+.venv/bin/python -m legacy.pipeline.transcribe interview.mp3 --out data/real/interview.txt \
     --model Lingalingeswaran/whisper-small-sinhala --language sinhala --batch-size 4
 ```
 
 As a library:
 
 ```python
-from pipeline.pdf_ingest import convert_pdf
-from pipeline.transcribe import transcribe_media, transcribe_to_file
+from legacy.pipeline.pdf_ingest import convert_pdf
+from legacy.pipeline.transcribe import transcribe_media, transcribe_to_file
 
 markdown = convert_pdf("docs/report.pdf")                 # str (structured markdown)
 result = transcribe_media("clip.mp4", max_minutes=2)      # {"text", "lines", ...}
-path = transcribe_to_file("Files/videoplayback.mp4")      # → real_data/..._transcript.txt
+path = transcribe_to_file("Files/videoplayback.mp4")      # → data/real/..._transcript.txt
 ```
 
 Both integrate with the extraction snippet the README shows (`extract_structural`,
@@ -225,7 +225,7 @@ Quality notes, honestly stated:
 - **Different audio language** — pass `--model <any-HF-whisper-checkpoint>` and
   `--language <lang>`, or set `SINHALA_ASR_MODEL` in `.env`.
 - **`videoplayback_transcript.txt` ends with `[... IN PROGRESS ...]`** — the run is
-  still going (or was interrupted); re-run `python -m pipeline.ingest --force` to redo
+  still going (or was interrupted); re-run `python -m legacy.pipeline.ingest --force` to redo
   a partial file.
 
 ---
@@ -235,10 +235,10 @@ Quality notes, honestly stated:
 | Goal | Command |
 |---|---|
 | One-time setup (no root) | `./scripts/setup_ingestion.sh` |
-| Ingest everything new in `Files/` | `.venv/bin/python -m pipeline.ingest` |
-| Ingest a specific file/folder | `.venv/bin/python -m pipeline.ingest <path…>` |
-| Quick 2-min transcription test | `.venv/bin/python -m pipeline.ingest <video> --max-minutes 2` |
-| Re-ingest (overwrite) | `.venv/bin/python -m pipeline.ingest <path> --force` |
-| PDF only, to stdout | `.venv/bin/python -m pipeline.pdf_ingest <pdf>` |
-| Transcribe only, full control | `.venv/bin/python -m pipeline.transcribe <media> [--max-minutes N]` |
-| Extract graph from ingested docs | `.venv/bin/python build_real_graph.py --semantic` |
+| Ingest everything new in `Files/` | `.venv/bin/python -m legacy.pipeline.ingest` |
+| Ingest a specific file/folder | `.venv/bin/python -m legacy.pipeline.ingest <path…>` |
+| Quick 2-min transcription test | `.venv/bin/python -m legacy.pipeline.ingest <video> --max-minutes 2` |
+| Re-ingest (overwrite) | `.venv/bin/python -m legacy.pipeline.ingest <path> --force` |
+| PDF only, to stdout | `.venv/bin/python -m legacy.pipeline.pdf_ingest <pdf>` |
+| Transcribe only, full control | `.venv/bin/python -m legacy.pipeline.transcribe <media> [--max-minutes N]` |
+| Extract graph from ingested docs | `.venv/bin/python legacy/build_real_graph.py --semantic` |

@@ -5,12 +5,17 @@ after them; narrower dependencies are noted in the task text. Reference specs in
 parentheses. Numbering continues from Phase 4 (T53).
 
 > **Status: PRE-AUTHORED, NOT ACTIVE.** Phases 2–4 must close first (P3 supplies
-> the `event` interface mechanism, `geo` type slot, and SDK regen; P4 supplies
+> the `event` interface mechanism, `geo` type slot, and client regen; P4 supplies
 > the workspace the map and timeline live in). Authored 2026-07-17 ahead of
-> phase start; T54 re-validates this plan against the P3/P4-as-built system
-> before any other task starts. Charter:
-> `../phases/phase-05-events-geo-time.md` · specs: `../specs/10-events-geospatial.md`
-> (authored by T54), `../specs/02-data-model.md` (addendum).
+> phase start; **the charter was amended 2026-07-18 (ADR-033): claims-first
+> storage is binding (B-13 — no canonical geometry/precision columns; PostGIS
+> tables are projections), the precision model splits geometry type /
+> admin-level / uncertainty / derivation (H-21), and map privacy ships in this
+> phase (M-18)**. T54 re-validates this plan against the amended charter and
+> dispositions the findings tagged P5 (B-13, M-17…M-19, H-21) before any other
+> task starts. Charter: `../phases/phase-05-events-geo-time.md` · specs:
+> `../specs/10-events-geospatial.md` (authored by T54),
+> `../specs/02-data-model.md` (addendum).
 
 ## Milestone A — Ontology & storage
 
@@ -118,11 +123,12 @@ AC: the round-trip (record via action → object view → map + timeline + graph
 passes as a repeatable test; precision is visually distinct at every zoom in
 the captured evidence; the script joins the demo runbook.
 
-**T65. Phase exit review** — walk the charter's exit criteria; update speckit
-docs where reality diverged; append ADRs; write
+**T65. Phase exit review** — walk the charter's gate criteria (non-deferrable,
+ADR-025); update speckit docs where reality diverged; append ADRs; write
 `../reviews/phase-05-exit-review.md`; tag `phase-5-events-geo` per the git
 workflow.
-AC: all exit boxes checked or explicitly deferred with reason.
+AC: every gate criterion checked; non-blocking deliverables carried over with
+owner + target phase recorded.
 
 ## Explicit non-goals for Phase 5
 

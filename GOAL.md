@@ -842,8 +842,9 @@ explicit mapping and divergences).
 * **Functions** are declared, versioned derivations over the ontology: computed
   predicates (e.g. prison co-location from overlapping remand windows), derived
   display values, and rule-based inference. A function's output is attributed to
-  an algorithmic source and enters the store as a suggestion or a system claim —
-  never as anonymous fact (Rule 2, §7.6).
+  an algorithmic source and enters the store as a suggestion or as a rebuildable
+  derived record (a projection/finding, never a canonical claim) — never as
+  anonymous fact and never machine-written canon (Rule 2, §7.6, ADR-027).
 
 **Consumption layer — how it is used.**
 
@@ -905,7 +906,7 @@ violate them.
 | Link type / link | predicate / claim between two entities | Links are claims — provenance and time are mandatory, and symmetric links store one canonical row |
 | Interface, shared property type | `interfaces:` / `shared_properties:` (ontology v2) | Adopted as-is |
 | Action type (parameters, submission criteria, side effects) | `actions:` declarations enforced by the actions layer | Adopted; `audit: true` is mandatory, not optional (Article X) |
-| Function / function-backed action | `functions:` registry of versioned derivations | Function output is attributed to an algorithmic source and is suggest-only or an explicit system claim (§7.6) |
+| Function / function-backed action | `functions:` registry of versioned derivations | Function output is attributed to an algorithmic source and is suggest-only or a rebuildable derived record — never a machine-written canonical claim (§7.6, ADR-027) |
 | Datasource backing + writeback datasets | `source` / `source_record` + review queue | No silent writeback: machine output must pass human adjudication before it becomes a recorded claim |
 | Object Storage v2 (funnel, object databases, Object Set Service) | projection builders + object sets | Projections are disposable caches; losing every projection loses nothing |
 | Object Views / Object Explorer | entity-360 object views | Every displayed value links back to the claims and sources behind it |

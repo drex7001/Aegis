@@ -10,7 +10,7 @@ Outputs:
     output/real_ingest.cypher        literal Cypher, runs in Neo4j Browser as-is
 
 Data provenance & ethics: every node/edge comes from public reporting and carries a citation and an
-honest confidence tag (EXTRACTED / INFERRED / AMBIGUOUS). See pipeline/real_dataset.py for the full
+honest confidence tag (EXTRACTED / INFERRED / AMBIGUOUS). See legacy/pipeline/real_dataset.py for the full
 disclaimer. The three networks are kept separate because the public record does not link them.
 """
 
@@ -23,15 +23,15 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from pipeline.clustering import detect_cells
-from pipeline.models import ExtractionResult
-from pipeline.neo4j_export import generate_cypher, push_to_neo4j
-from pipeline.pdf_loader import split_paragraphs
-from pipeline.real_dataset import build_curated_network, sources_for_meta
-from pipeline.semantic_pass import extract_semantic, resolve_model_name
+from legacy.pipeline.clustering import detect_cells
+from legacy.pipeline.models import ExtractionResult
+from legacy.pipeline.neo4j_export import generate_cypher, push_to_neo4j
+from legacy.pipeline.pdf_loader import split_paragraphs
+from legacy.pipeline.real_dataset import build_curated_network, sources_for_meta
+from legacy.pipeline.semantic_pass import extract_semantic, resolve_model_name
 
-ROOT = Path(__file__).parent
-REAL = ROOT / "real_data"
+ROOT = Path(__file__).resolve().parents[1]
+REAL = ROOT / "data/real"
 OUTPUT = ROOT / "output"
 
 NARRATIVE_DOCS = [
@@ -79,7 +79,7 @@ def run_semantic_passes(base: ExtractionResult) -> ExtractionResult:
     for name in NARRATIVE_DOCS:
         path = REAL / name
         try:
-            result = extract_semantic_chunked(path.read_text(encoding="utf-8"), f"real_data/{name}")
+            result = extract_semantic_chunked(path.read_text(encoding="utf-8"), f"data/real/{name}")
             print(f"  [ok] {name}: +{len(result.nodes)} nodes, +{len(result.edges)} edges from the LLM")
             merged = merged.merge(result)
         except Exception as exc:  # noqa: BLE001 - report and continue with the curated graph

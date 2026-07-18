@@ -1,6 +1,10 @@
 # Spec 06 — API v1
 
-Status: draft for Phase 1 · Constitutional basis: Articles VI, X, XIII
+Status: implemented in Phase 1 (v1 reference) — **P2 T17d makes this file the
+authoritative route-by-route authorization matrix** (role, FGA relation,
+row/field filters, purpose, no-existence-leak behavior, limits — B-14) and P2
+adds field filters (T24a) + cursor pagination (T24c); stable operation IDs
+land in P3 (T36). · Constitutional basis: Articles VI, X, XIII
 
 FastAPI, `/v1/*`, OIDC bearer auth. Every route lists its authorization gate
 (**R** = role gate, **F** = FGA check, **H** = handling/row filters always applied,
@@ -56,12 +60,13 @@ FastAPI, `/v1/*`, OIDC bearer auth. Every route lists its authorization gate
 
 | Route | Auth | Notes |
 |---|---|---|
-| `GET /api/graph`, `/api/stats`, `/api/cells`, `/api/query/{name}` | H | **legacy-compatible** shapes — the existing UI keeps working (plan §4.4) |
+| ~~`GET /api/graph`, `/api/stats`, `/api/cells`, `/api/query/{name}`~~ | — | **retired at P2 T22** (ADR-026) — interim: loopback-bound + limits (T16a) |
 | `POST /v1/graph/expand` | H | seed ids, max hops, categories, time window, min confidence band, max results (GOAL.md §29 controls) |
 | `POST /v1/graph/paths` | H | bounded shortest/all paths |
+| `GET /v1/claims/{id}/provenance` | H | P2 (T17d): generic provenance for property-valued claims — every displayed value opens its provenance (B-14) |
 | `POST /v1/analytics/{algo}` | R:analyst · H | returns `AnalyticFinding` + caveat text (Article IX) |
 | `POST /v1/findings/{id}/promote` | R:analyst | finding → review queue as assessed-claim draft |
-| `POST /v1/projections/rebuild` | R:admin,analyst | Article XIII |
+| `POST /v1/projections/rebuild` | R:admin (controlled job) | Article XIII — restricted from general analyst use (DoS/staleness risk, B-14) |
 
 ## Identity (Phase 2)
 

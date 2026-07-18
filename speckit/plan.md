@@ -7,11 +7,11 @@ One modular Python application + off-the-shelf platform services, per GOAL.md §
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│  UI                                                             │
-│  Phase 1: existing Cytoscape explorer (unchanged, reads         │
-│           projection JSON)                                      │
-│  Phase 4+: React+TS workspace (ontology-driven screens,        │
-│           Sigma.js/Cytoscape graph, MapLibre map, timeline)     │
+│  UI (ADR-032: one durable app from Phase 2)                     │
+│  Phase 2+: React+TS workspace (auth shell, ingest/review/       │
+│           adjudication, Cytoscape graph + provenance panel)     │
+│  Phase 4+: same app grows object views, cases, hypotheses,      │
+│           timeline; P5 adds MapLibre map                        │
 └──────────────────────────────┬─────────────────────────────────┘
                                │ OIDC (Keycloak)
 ┌──────────────────────────────▼─────────────────────────────────┐
@@ -37,8 +37,8 @@ One modular Python application + off-the-shelf platform services, per GOAL.md §
         └──▶ search tsvector/pg_trgm indexes
 ```
 
-Extraction (`pipeline/`) becomes a set of **producers of suggested claims** feeding a
-review queue; the only path into canonical tables is a human-executed action.
+Extraction (`legacy/pipeline/`) becomes a set of **producers of suggested claims**
+feeding a review queue; the only path into canonical tables is a human-executed action.
 
 ## 2. Stack decisions (now vs GOAL.md end-state)
 
@@ -64,38 +64,57 @@ review queue; the only path into canonical tables is a human-executed action.
 
 Each row that diverges from GOAL.md has an ADR in `decisions.md`.
 
-## 3. Repository layout (target)
+## 3. Repository layout (ADR-024 — greenfield structure, scaffolded to the roadmap)
 
 ```
 Aegis/
-├── ontology/
-│   └── aegis.yaml              # THE domain artifact (Article XI)
-├── aegis/                      # new package (the platform core)
+├── ontology/                   # THE domain artifact (Article XI)
+│   ├── aegis.yaml
+│   ├── proposals/              # ontology change proposals (P3, spec 08 §7)
+│   └── history/                # prior versions kept on major bumps (P3)
+├── aegis/                      # platform core package (domain-neutral, Article XIV)
 │   ├── ontology/               # loader, validator, codegen (pydantic/FGA/UI meta)
 │   ├── domain/                 # pure domain logic; no infra imports
-│   ├── actions/                # record_claim, review_suggestion, adjudicate_identity,
-│   │                           # register_evidence, transfer_custody ... (write + audit)
+│   ├── actions/                # the only write path: record_claim, review_suggestion,
+│   │                           # adjudicate_identity, register_evidence ... (write + audit)
 │   ├── queries/                # authorized reads: expand, paths, as-of, why-connected
-│   ├── authz/                  # OpenFGA client, row-filter builders, purpose capture
+│   ├── authz/                  # OpenFGA client, row-filter builders, outbox (ADR-014)
 │   ├── audit/                  # hash-chained append-only writer + verifier
-│   ├── store/                  # SQLAlchemy models, Alembic migrations
+│   ├── store/                  # SQLAlchemy models
 │   ├── evidence/               # content-addressed vault (MinIO/S3 + local fallback)
-│   ├── projections/            # graph JSON, edge matview refresh, cypher, search
-│   ├── er/                     # splink jobs, cluster model, adjudication
+│   ├── ingestion/              # landing zone, idempotency, suggested-claim intake
+│   ├── er/                     # splink jobs, cluster model, adjudication (P2)
+│   ├── functions/              # declared derivations registry (P3, spec 08 §4)
+│   ├── projections/            # graph JSON, edge matview refresh, cypher, search vectors
+│   ├── search/                 # global search behind SearchPort (P6, ADR-012)
+│   ├── analytics/              # governed analytics → AnalyticFinding (P6, Article IX)
+│   ├── sharing/                # disclosure/export, compartments, break-glass (P7)
+│   ├── assist/                 # controlled AI producers — suggest-only (P8, Article VII)
 │   ├── migration/              # one-time legacy adapters (T8) — only place legacy vocab lives (ADR-016)
 │   └── api/                    # FastAPI routers (thin; call actions/queries)
-├── pipeline/                   # existing extraction — refactored to emit SuggestedClaims
-├── app/                        # existing UI, served by aegis.api during transition
+├── sdk/                        # generated typed clients — committed codegen
+│   ├── python/                 # aegis_sdk package (P8 — first consumer, ADR-033)
+│   └── ts/                     # OpenAPI-generated client (P3, spec 08 §8), consumed by ui/
+├── ui/                         # React+TS investigation workspace (P2, ADR-032, spec 07)
 ├── infra/
 │   ├── docker-compose.yml      # postgres+postgis, minio, keycloak, openfga
 │   └── fga/model.fga           # authorization model
 ├── migrations/                 # alembic
+├── data/
+│   ├── real/                   # OSINT corpus — public reporting only (untracked; README tracked)
+│   └── sample/                 # fictional test data
+├── docs/                       # runbooks
+├── scripts/                    # backup/restore, ingestion setup
 ├── speckit/                    # this kit
-└── tests/
+├── tests/
+└── legacy/                     # quarantined pre-Aegis prototype (ADR-023/ADR-024)
+    ├── pipeline/               # extraction passes — still feed the review queue
+    └── app/                    # explorer UI — deleted at P2 T22 (ADR-026/ADR-032)
 ```
 
-`pipeline/` keeps working throughout — Phase 1 changes its **sink** (Postgres suggested
-claims instead of JSON edges), not its extraction logic.
+`legacy/pipeline/` keeps working throughout — Phase 1 changed its **sink** (Postgres
+suggested claims instead of JSON edges), not its extraction logic; it is deleted
+piecewise as the platform replaces each piece (`legacy/README.md` tracks the schedule).
 
 ## 4. Key mechanisms
 
@@ -128,10 +147,12 @@ acceptance the human picks the correct assertion type.
 4. Decision (+purpose) written to audit either way.
 
 ### 4.4 Projection rebuild (Article XIII)
-`aegis projections rebuild` recomputes: `edge_projection` materialized view
-(recorded claims, grouped subject/predicate/object with corroboration counts and
-confidence bands), `output/real_graph.json` (exact legacy shape so the current UI is
-untouched), optional Cypher/Neo4j push, and search vectors.
+`aegis projections rebuild` recomputes: `edge_projection` (v2 semantics per
+ADR-029/030 — identity-revision resolution, time-segmented aggregation,
+support summary, revision/version stamps), the workspace graph JSON, optional
+Cypher/Neo4j push, and search vectors. The legacy-shaped
+`output/real_graph.json` emitter survives only until P2 T22 deletes the
+explorer it feeds.
 
 ### 4.5 Audit chain (Article X)
 `audit_log(entry_hash = sha256(prev_hash || canonical_json(event)))`; verification

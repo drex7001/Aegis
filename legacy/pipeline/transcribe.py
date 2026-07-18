@@ -1,4 +1,4 @@
-"""Sinhala speech-to-text: video/audio → timestamped transcript in real_data/.
+"""Sinhala speech-to-text: video/audio → timestamped transcript in data/real/.
 
 Model: Lingalingeswaran/whisper-small-sinhala (openai/whisper-small fine-tuned on
 Sinhala Common Voice, Apache-2.0). Downloaded from Hugging Face on first use
@@ -16,12 +16,12 @@ quick test slice first.
 
 Transcripts are MACHINE OUTPUT: names, figures, and dates may be misrecognised
 (the header embedded in every transcript says so). Verify against the audio
-before promoting any fact to the curated dataset (pipeline/real_dataset.py).
+before promoting any fact to the curated dataset (legacy/pipeline/real_dataset.py).
 
 Usage:
     python -m pipeline.transcribe Files/videoplayback.mp4                  # full file
     python -m pipeline.transcribe Files/videoplayback.mp4 --max-minutes 2  # quick test
-    python -m pipeline.transcribe interview.mp3 --out real_data/interview.txt
+    python -m pipeline.transcribe interview.mp3 --out data/real/interview.txt
 """
 
 from __future__ import annotations
@@ -35,8 +35,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-REAL_DATA = ROOT / "real_data"
+ROOT = Path(__file__).resolve().parents[2]
+REAL_DATA = ROOT / "data/real"
 
 DEFAULT_MODEL = os.getenv("SINHALA_ASR_MODEL", "Lingalingeswaran/whisper-small-sinhala")
 SAMPLE_RATE = 16_000
@@ -182,8 +182,8 @@ def transcribe_media(
 
 
 def default_output_path(media: Path, max_minutes: float | None = None) -> Path:
-    """real_data/<slug>_transcript.txt (test slices get a _firstNmin suffix)."""
-    from pipeline.models import slugify
+    """data/real/<slug>_transcript.txt (test slices get a _firstNmin suffix)."""
+    from legacy.pipeline.models import slugify
 
     suffix = f"_first{max_minutes:g}min" if max_minutes else ""
     return REAL_DATA / f"{slugify(media.stem)}_transcript{suffix}.txt"
@@ -246,7 +246,7 @@ def transcribe_to_file(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Sinhala speech-to-text (video/audio → .txt).")
     parser.add_argument("media", help="video or audio file")
-    parser.add_argument("--out", help="output .txt (default: real_data/<slug>_transcript.txt)")
+    parser.add_argument("--out", help="output .txt (default: data/real/<slug>_transcript.txt)")
     parser.add_argument("--max-minutes", type=float, help="transcribe only the first N minutes")
     parser.add_argument("--model", help=f"HF model id (default: {DEFAULT_MODEL})")
     parser.add_argument("--language", default="sinhala", help="whisper language (default: sinhala)")

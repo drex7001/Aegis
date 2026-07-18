@@ -77,3 +77,29 @@ model (schema from day one) but is unused in Phase 1.
 
 All four Phase 1 exit boxes are checked. Divergences are captured in ADR-017…019.
 Proceed to Phase 2 (identity resolution) per `roadmap.md`.
+
+## Verdict revision — 2026-07-18 (ADR-033)
+
+The 2026-07 external review (disposition:
+`2026-07-18-external-review-disposition.md`) found this review's original
+verdict overstated: the four functional boxes stand, but items deferred above
+were load-bearing and unowned, and the second box's "anonymous → 401" held
+only for `/v1/*` while ADR-019 exempted the legacy `/api/*` surface from
+Article VI entirely.
+
+**Revised verdict: complete with closure addendum.** ADR-019 is superseded by
+ADR-026 (no anonymous routes; retirement scheduled in P2 T22). The deferred
+items become owned tasks — Milestone F in `../tasks/phase-01.md`:
+
+| Deferred item (above) | Now |
+|---|---|
+| Anonymous `/api/*` exception (ADR-019) | T16a interim containment; retired at P2 T22 (ADR-026) |
+| FGA inline best-effort delete on revocation | T16b |
+| *(unlisted)* dependency lockfile | T16c |
+| *(unlisted)* runbook/status honesty | T16d |
+| Field-level sensitivity filters | Hard P2 gate criterion (not an addendum task) |
+| Cursor pagination + `/v1/search` | P2 tasks (T24c, T23c) |
+
+Milestone F blocks Phase 2's implementation milestones; Phase 2's design pack
+(T17a–T17d) may proceed in parallel. Under ADR-025 gate semantics, a deferral
+without an owner and target is no longer a valid exit outcome.

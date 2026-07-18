@@ -65,9 +65,10 @@ audited actions.
 ### structural_pass (deterministic)
 - Output rows: predicate `co_located_with`, computed remand-window overlap, excerpt =
   matched lines, `producer_meta = {rule: "remand-overlap", pattern_version}`.
-- Deterministic passes are *eligible for auto-accept by config* (`decided_by=
-  'rule:structural-autoaccept'`) since they only restate the source — default **off**;
-  even then the audit row is written.
+- Deterministic passes emit **suggestions like every other producer** — no
+  auto-accept mode exists (ADR-027; Article VII). Their determinism earns them
+  a *pre-verified* rank in the queue and batch-confirm ergonomics (§4 below),
+  never a machine write.
 
 ### semantic_pass (LLM — Article VII strictly)
 - `producer_meta = {model, model_version, prompt_sha256, chunk_index, raw_response_ref}`;

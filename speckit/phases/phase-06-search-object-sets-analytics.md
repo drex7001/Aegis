@@ -1,8 +1,10 @@
 # Phase 6 Charter — Search, object sets & governed analytics
 
-Status: charter · tasks pre-authored: `../tasks/phase-06.md` (T66–T77;
-re-validated by T66 at phase start) · Constitutional basis: Articles VI, IX,
-XIII · GOAL.md §12, §13, §32, §7.8 (object sets) · ADR-012
+Status: charter (amended 2026-07-18, ADR-033) · tasks pre-authored:
+`../tasks/phase-06.md` (T66–T77; re-validated by T66 at phase start, which
+also dispositions the 2026-07 review findings tagged P6: B-17, H-22, H-23,
+H-24, M-11, M-16) · Constitutional basis: Articles VI, IX, XIII ·
+GOAL.md §12, §13, §32, §7.8 (object sets) · ADR-012
 
 ## Objective
 
@@ -24,32 +26,48 @@ for analytics, watchlists, and bulk operations.
 ## Deliverables
 
 1. **Global search**: Postgres FTS + trigram + transliteration keys across
-   entities, claims, documents; grouped results; authorization re-check before
-   hydration; purpose capture on sensitive hits.
+   entities, claims, documents; grouped results; **authorization constraints
+   applied in candidate generation, not only before hydration** (B-17 —
+   post-filtering leaks through ranking/counts/pagination/timing); leak-free
+   count/pagination semantics; purpose capture on sensitive hits; one
+   versioned normalization pipeline applied identically at write and query
+   time (H-22 — no wholesale diacritic stripping without labeled evidence).
 2. **Golden multilingual test set**: Sinhala/Tamil/English name variants with
-   precision/recall targets gating search quality in CI; failure is the
-   documented OpenSearch trigger (ADR-012), not a silent regression.
-3. **Object sets**: filter-tree definitions over ontology types/interfaces
-   (type, predicate, property, time, case scope); saved and versioned; FGA
-   `object_set` type for view/edit sharing; composable (union/intersect/
-   difference); evaluated with the caller's row filters at read time — a
-   shared set never leaks what the viewer can't see (Article VI).
+   **numeric targets defined at phase start** (per script: precision@k,
+   recall, latency); gates search quality in CI; failure fires the OpenSearch
+   trigger **inside this phase, before its gate** (ADR-012, H-22).
+3. **Object sets**: filter-tree definitions stored as **validated ASTs**
+   (never raw SQL) over ontology types/interfaces; complexity limits (depth,
+   nodes, runtime, composition cycles); saved and **versioned, pinned to the
+   ontology version by default** with an explicit "track future interface
+   members" opt-in + change notification (B-17); FGA `object_set` type for
+   sharing; set definitions treated as protected data; composable
+   (union/intersect/difference) **evaluated under one snapshot + one
+   authorization context per request** (M-16); a shared set never leaks what
+   the viewer can't see (Article VI).
 4. **Analytics service**: k-hop neighborhoods, shortest/weighted paths, Leiden
-   communities (exists in projections), brokerage/betweenness, shared-identifier
-   detection — each run against a projection or object set, returning an
-   `AnalyticFinding` with method, parameters, inputs, and caveat text
-   (Article IX). Findings are a distinct table, never claims.
+   communities, brokerage/betweenness, shared-identifier detection — each run
+   records an **immutable run manifest** (input digest/snapshot, projection
+   version, identity revision, ontology version, code + settings versions,
+   parameters, seed, actor/purpose — H-23) and returns an `AnalyticFinding`
+   with method, inputs, and caveat text (Article IX). Findings are a distinct
+   table, never claims.
 5. **Finding promotion**: finding → review → assessed claim, human-actored and
-   audited; the finding stays linked as the claim's analytic basis.
-6. **Watchlists**: exact-identifier watchlists built on object sets; alert
-   triage statuses (new/reviewing/closed) — minimal per GOAL.md §32.
+   audited; the finding stays linked as the claim's analytic basis (never an
+   invented source record — H-23).
+6. **Watchlists**: exact-identifier watchlists built on object sets; a
+   detection is a **typed alert suggestion** (rule + version, inputs, dedupe
+   key, confidence/exactness) with triage lifecycle (new/reviewing/closed) —
+   Article VII applies to alerts too (H-24); evaluation ownership (on-write vs
+   scheduled) decided in-spec.
 
 ## Dependencies
 
-- P3: interfaces (filter grammar), SDK regen for set/finding types.
+- P3: interfaces (filter grammar), client regen for set/finding types.
 - P4: workspace UI (search bar, set builder, findings panel).
-- P5: events searchable and set-filterable (soft — sets ship typed against
-  whatever the ontology holds).
+- P5 gate closed (strict sequence, ADR-025). Search/set *design* work may
+  start after P5 T54 (ontology event shapes fixed); events must be searchable
+  and set-filterable at this phase's gate.
 
 ## Exit criteria
 

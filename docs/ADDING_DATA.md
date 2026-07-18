@@ -7,12 +7,12 @@
 > platform replaces it (ADR-023).
 
 Three ways to add data, matched to what you have. All three pass through the same
-validation contract (`pipeline/models.py`), so they combine automatically — the same
+validation contract (`legacy/pipeline/models.py`), so they combine automatically — the same
 person from different sources resolves to one node (see [Deduping](#deduping--merging)).
 
 > **Starting from a raw file instead of text?** A PDF report, a news video, an audio
-> recording — ingest it first: `python -m pipeline.ingest <file-or-Files/>` converts it
-> to an extraction-ready `real_data/*.txt` (opendataloader-pdf for PDFs,
+> recording — ingest it first: `python -m legacy.pipeline.ingest <file-or-Files/>` converts it
+> to an extraction-ready `data/real/*.txt` (opendataloader-pdf for PDFs,
 > whisper-small-sinhala for Sinhala speech). Full guide: [`INGESTION.md`](INGESTION.md).
 > Then continue below — ingested prose is path **C**, an ingested arrest annex is path **B**.
 
@@ -23,11 +23,11 @@ person from different sources resolves to one node (see [Deduping](#deduping--me
 | A narrative report (prose) | **C. Semantic** (LLM) | zero-code | LLM chooses per the honesty rules |
 | A raw PDF / video / audio file | **Ingest first** ([`INGESTION.md`](INGESTION.md)) | one command | n/a — produces text for B or C |
 
-> Concepts and the field-by-field contract: [`../ARCHITECTURE.md`](../ARCHITECTURE.md) §4.
+> Concepts and the field-by-field contract: [`../legacy/ARCHITECTURE.md`](../legacy/ARCHITECTURE.md) §4.
 
 ---
 
-## A. Curated fact — edit `pipeline/real_dataset.py`
+## A. Curated fact — edit `legacy/legacy/pipeline/real_dataset.py`
 
 Best for individual, verified, citable facts. This is the reliable backbone the UI uses.
 
@@ -84,8 +84,8 @@ Rules the helper enforces for you: `weight` is derived from the tag; an `end` be
 ### Step 4 — validate, then rebuild
 
 ```powershell
-.venv\Scripts\python -m pipeline.real_dataset      # prints counts + "dangling edges (should be 0)"
-.venv\Scripts\python build_real_graph.py           # regenerate output/real_graph.json
+.venv\Scripts\python -m legacy.pipeline.real_dataset      # prints counts + "dangling edges (should be 0)"
+.venv\Scripts\python legacy/build_real_graph.py           # regenerate output/real_graph.json
 ```
 
 Refresh the browser (the server re-reads the file). If validation prints a dangling edge,
@@ -106,13 +106,13 @@ Best when you have a numbered list like a PCoI annex. The pass parses each line 
 
 ### Step 1 — write the list in the exact format
 
-Each line must match `ARREST_LINE_RE` in `pipeline/structural_pass.py`:
+Each line must match `ARREST_LINE_RE` in `legacy/pipeline/structural_pass.py`:
 
 ```
 <n>. <NAME> [alias "<ALIAS>"] [(NIC <9digits+V | 12digits>)] — arrested <YYYY-MM-DD> — remanded, <FACILITY> (<YYYY-MM-DD> to <YYYY-MM-DD|ongoing>)
 ```
 
-Example file `real_data/remand_list.txt` (omit NIC for real people):
+Example file `data/real/remand_list.txt` (omit NIC for real people):
 
 ```
 1. Wele Suda alias "Samantha" — arrested 2015-02-14 — remanded, Boossa Prison (2015-03-01 to ongoing)
@@ -125,25 +125,25 @@ literal `ongoing`.
 ### Step 2 — run it (standalone)
 
 ```powershell
-.venv\Scripts\python -c "from pathlib import Path; from pipeline.structural_pass import extract_structural; r=extract_structural(Path('real_data/remand_list.txt').read_text(encoding='utf-8'),'real_data/remand_list.txt'); print(len(r.nodes),'nodes',len(r.edges),'edges'); [print(e.source,'<->',e.target,'@',e.location) for e in r.edges]"
+.venv\Scripts\python -c "from pathlib import Path; from legacy.pipeline.structural_pass import extract_structural; r=extract_structural(Path('data/real/remand_list.txt').read_text(encoding='utf-8'),'data/real/remand_list.txt'); print(len(r.nodes),'nodes',len(r.edges),'edges'); [print(e.source,'<->',e.target,'@',e.location) for e in r.edges]"
 ```
 
 ### Step 3 — (optional) merge it into the real build
 
-Add three lines to `build_real_graph.py` after the curated network is built:
+Add three lines to `legacy/build_real_graph.py` after the curated network is built:
 
 ```python
-from pipeline.structural_pass import extract_structural   # top of file
+from legacy.pipeline.structural_pass import extract_structural   # top of file
 
 # inside main(), after: graph_result = build_curated_network()
 remand = (REAL / "remand_list.txt")
 if remand.exists():
     graph_result = graph_result.merge(
-        extract_structural(remand.read_text(encoding="utf-8"), "real_data/remand_list.txt")
+        extract_structural(remand.read_text(encoding="utf-8"), "data/real/remand_list.txt")
     )
 ```
 
-Then `python build_real_graph.py`. Because IDs are slugged, "Wele Suda" here merges with the
+Then `python legacy/build_real_graph.py`. Because IDs are slugged, "Wele Suda" here merges with the
 "Wele Suda" already in the curated dataset — he gains the co-location edge without duplicating.
 
 ### Adapting the regex to a different annex format
@@ -161,12 +161,12 @@ the honesty rules.
 
 ### Step 1 — add the document
 
-Drop a `.txt` file in `real_data/`, e.g. `real_data/prison_gangs.txt`. Keep it factual and,
+Drop a `.txt` file in `data/real/`, e.g. `data/real/prison_gangs.txt`. Keep it factual and,
 ideally, note your sources at the top (they become part of the model's context).
 
 ### Step 2 — register it
 
-Add the filename to `NARRATIVE_DOCS` in `build_real_graph.py`:
+Add the filename to `NARRATIVE_DOCS` in `legacy/build_real_graph.py`:
 
 ```python
 NARRATIVE_DOCS = [
@@ -179,10 +179,10 @@ NARRATIVE_DOCS = [
 ### Step 3 — run the semantic build
 
 ```powershell
-.venv\Scripts\python build_real_graph.py --semantic
+.venv\Scripts\python legacy/build_real_graph.py --semantic
 ```
 
-The model (Gemini by default) follows `SYSTEM_PROMPT` in `pipeline/semantic_pass.py`:
+The model (Gemini by default) follows `SYSTEM_PROMPT` in `legacy/pipeline/semantic_pass.py`:
 never invent an edge; tag weak links `AMBIGUOUS`; quote the supporting sentence; use ISO
 dates (null end = ongoing); put place names in `location`, **not** as nodes. Its JSON is
 validated against the same schema, dangling edges are pruned, and the result is merged.
@@ -193,14 +193,14 @@ validated against the same schema, dangling edges are pruned, and the result is 
 
 ### Processing a PDF instead of a `.txt`
 
-Preferred: `python -m pipeline.ingest report.pdf` — structure-aware extraction with an
-audit copy, straight into `real_data/` (see [`INGESTION.md`](INGESTION.md)). Registered
-documents of any size are safe: `build_real_graph.py --semantic` chunks long texts
+Preferred: `python -m legacy.pipeline.ingest report.pdf` — structure-aware extraction with an
+audit copy, straight into `data/real/` (see [`INGESTION.md`](INGESTION.md)). Registered
+documents of any size are safe: `legacy/build_real_graph.py --semantic` chunks long texts
 (~12k chars per LLM call) and merges the results. The manual API:
 
 ```python
-from pipeline.pdf_ingest import convert_pdf
-from pipeline.semantic_pass import extract_semantic
+from legacy.pipeline.pdf_ingest import convert_pdf
+from legacy.pipeline.semantic_pass import extract_semantic
 
 text = convert_pdf("report.pdf")                       # markdown (pdfplumber fallback)
 result = extract_semantic(text, "report.pdf")          # or loop split_paragraphs(text) for long docs
@@ -225,8 +225,8 @@ result = extract_semantic(text, "report.pdf")          # or loop split_paragraph
 Before committing new data:
 
 ```powershell
-.venv\Scripts\python -m pipeline.real_dataset      # 1. dangling edges should be 0
-.venv\Scripts\python build_real_graph.py           # 2. builds without error; check the cell summary
+.venv\Scripts\python -m legacy.pipeline.real_dataset      # 1. dangling edges should be 0
+.venv\Scripts\python legacy/build_real_graph.py           # 2. builds without error; check the cell summary
 ```
 
 - [ ] Every new node has a `src` (citation) and a `note`/`excerpt`.

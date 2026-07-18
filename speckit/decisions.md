@@ -551,3 +551,408 @@ append-only history in the original framing.
 **Revisit when.** A second real domain module lands (validates Article XIV in
 practice), or a domain need arises that genuinely cannot be expressed as an ontology
 module plus migrations.
+
+---
+
+## ADR-024: Greenfield repository layout — legacy quarantined under `legacy/`, tree scaffolded to the roadmap
+
+**Context.** After ADR-023 the *stance* was platform-first, but the *tree* still
+presented the prototype as a peer of the platform: `pipeline/`, `app/`, `demo.py`,
+`build_real_graph.py`, `cypher/`, a screenshot, and the extraction `requirements.txt`
+sat at the root beside `aegis/` and `ontology/`, and the future homes the specs
+already name (`sdk/`, `ui/`, `ontology/history/`, `aegis/functions/`) did not exist.
+User direction (2026-07): design the layout greenfield from the roadmap and specs;
+do not let legacy shape the structure.
+
+**Decision.** The repository is reorganized around the platform, with every
+roadmap-named component given its scaffolded home (see plan.md §3 for the full
+tree). The prototype is quarantined under `legacy/` — one directory, one README
+with a piecewise deletion schedule — and the data corpora move under `data/`.
+Path translation (documents written before this ADR use the old paths):
+
+| Old path | New path |
+|---|---|
+| `pipeline/` | `legacy/pipeline/` (imports: `legacy.pipeline.*`) |
+| `app/` | `legacy/app/` (imports: `legacy.app.*`) |
+| `build_real_graph.py`, `demo.py`, `cypher/` | `legacy/…` |
+| `requirements.txt` (extraction extras) | `legacy/requirements.txt` |
+| `ARCHITECTURE.md` (prototype tour) | `legacy/ARCHITECTURE.md` |
+| `image.png` | `legacy/explorer-screenshot.png` |
+| `real_data/` | `data/real/` |
+| `sample_data/` | `data/sample/` |
+
+New scaffolding, each bound to the phase that fills it: `ontology/proposals/` +
+`ontology/history/` (P3 change management, spec 08 §7); `aegis/functions/` (P3),
+`aegis/search/` + `aegis/analytics/` (P6), `aegis/sharing/` (P7), `aegis/assist/`
+(P8) as docstring-placeholder packages; `sdk/python/` + `sdk/ts/` (P3, spec 08 §8);
+`ui/` (P4, spec 07). Platform paths (`aegis/`, `ontology/aegis.yaml`, `infra/`,
+`migrations/`, `tests/`) are unchanged, as are the speckit's prescribed file
+locations (`aegis/er/settings.py`, `sdk/python/aegis_sdk/`, …).
+
+**Consequences.** The root now reads as the architecture. Legacy keeps working
+(extraction still feeds the review queue; the explorer is still served) — only its
+import prefix changed. Runtime artifacts (`output/`, `backups/`, `Files/`) stay at
+the root, gitignored. `pyproject.toml` still packages only `aegis`; `legacy` is
+importable in dev/CI but never shipped. ADR-001…023 keep their original path
+references — this table is the translation (ADR-022 precedent).
+
+**Revisit when.** Phase 4 deletes `legacy/app/`; the last `legacy/pipeline/`
+consumer is replaced (extraction v2, P8) — then `legacy/` disappears entirely and
+this ADR's mapping becomes pure history. *(Amended by ADR-032: the explorer is
+deleted in Phase 2, when the workspace shell's graph view lands.)*
+
+---
+
+## ADR-025: Phase gates are hard — criteria cannot be deferred
+
+**Context.** The roadmap says phases are gated by exit criteria, yet every
+phase's exit task accepted "all exit boxes checked **or explicitly deferred
+with reason**", and several charters listed prior phases as "soft"
+dependencies. External review (2026-07, B-06) correctly observed that a
+criterion that may be deferred is not a gate: the MVP or a governance phase
+could close while its defining property is absent, and every downstream
+dependency claim becomes unreliable.
+
+**Decision.** Two distinct concepts, used consistently:
+
+- **Gate criterion** — the checkboxes in a phase charter's "Exit criteria".
+  Non-deferrable. If one cannot be met, the phase stays open, or a superseding
+  ADR amends the charter *before* the exit review — never in it.
+- **Non-blocking deliverable** — everything else in a charter. May carry over
+  with an owner, a target phase, and a note on dependency impact, recorded in
+  the exit review.
+
+The roadmap is strictly sequential. Where earlier-phase work may genuinely
+start before a gate closes, the charter says so explicitly ("may start after
+Px task Ty") — the word "soft" is retired.
+
+**Consequences.** Every exit task's AC is rewritten; phase-01's "complete"
+verdict is revised to "complete with closure addendum" (ADR-033) because two
+of its deferred items were in fact load-bearing (field filtering, revocation
+safety) and one criterion rested on an exception (ADR-019 public routes).
+
+**Revisit when.** Real parallel workstreams emerge (second contributor) — then
+introduce an explicit dependency DAG, not adjective-based softness.
+
+---
+
+## ADR-026: Anonymous projection routes are retired — every route is authorized (supersedes ADR-019)
+
+**Context.** ADR-019 marked the legacy explorer's unversioned `/api/*`
+projection routes `public_route`, serving an open-only projection with no
+authentication. External review (2026-07, B-01) held this against Article VI
+and Article X: "open" is a data classification, not an authorization decision;
+an anonymous route records no actor, purpose, or decision; and a bulk graph
+endpoint over a real-person corpus is a scraping/enumeration surface even when
+every row is nominally public. The exception also poisoned the deny-by-default
+lint with a permanent escape hatch. With ADR-032 (React shell in Phase 2) the
+only consumer of the anonymous surface is scheduled for deletion anyway.
+
+**Decision.** No production route is anonymous. Concretely:
+
+1. The `public_route` marker and its lint exemption are removed when the P2
+   workspace shell's graph view lands; `/api/*` and the legacy explorer are
+   deleted in the same change (T22).
+2. **Interim containment** (until that task): `aegis serve` binds to loopback
+   by default and the `/api/*` routes gain response-size and rate limits.
+   These are exposure controls, not authorization — the debt is visible, owned
+   by T22, and time-boxed to Phase 2.
+3. If a public demo is ever wanted, it is a **statically generated, fictional**
+   artifact produced outside the governed API — never a live route over real
+   data.
+
+**Consequences.** Article VI's test is again universally true once T22 lands;
+the deny-by-default lint loses its exception branch; agency deployments need
+no configuration to be safe by default.
+
+**Revisit when.** Never for the principle. A deliberate public-transparency
+product would be its own system with its own ADR.
+
+---
+
+## ADR-027: Nothing algorithmic writes canon — auto-accept, auto-merge, and `system_claim` are removed
+
+**Context.** Article VII says model output enters a review queue and nothing
+algorithmic writes canonical claims or identity clusters. Three specs quietly
+contradicted it: spec 04 §4 made deterministic structural passes "eligible for
+auto-accept by config"; spec 05 §2.1/T18 auto-decided exact-identifier identity
+merges; spec 08 §5 gave ontology functions a `system_claim` output mode
+writing recorded claims directly (echoed in GOAL.md §7.8/§7.10). External
+review (2026-07, B-02) called the contradiction correctly: an ADR cannot
+override a constitutional article, and audited automation is still not human
+adjudication. Identity is the worst case — one wrong deterministic merge
+contaminates all downstream analysis, and registry identifiers do contain
+errors, fraud, duplicates, and reuse (H-07).
+
+**Decision.** Article VII is kept strict; the three escape hatches are
+removed rather than constitutionalized:
+
+1. **Extraction:** deterministic passes emit suggestions like every other
+   producer. No auto-accept mode exists. (Spec 04 §4 amended.)
+2. **Identity:** deterministic rules produce **pre-verified candidates** —
+   top-of-queue, evidence attached, batch-confirmable in one human action —
+   never merges. `decided_by` is always a human actor; `rule:<name>` survives
+   only as the candidate's producer. (Spec 05 §2, T18 amended.)
+3. **Functions:** output modes are `suggestion` (review queue) or **derived
+   record** — rows in rebuildable projection/finding tables (Article XIII),
+   typed and displayed as derived, never rows in `claim`. The `system_claim`
+   mode is deleted. (Spec 08 §5, GOAL.md §7.8/§7.10 amended.)
+4. Reproducibility of derived records is defined as *canonical-digest equality
+   over inputs + config + output* — not byte-identical database rows (H-14).
+
+**Consequences.** The constitution, specs, and tasks say the same thing again.
+Deterministic derivations lose nothing: what is mathematically implied by
+accepted claims is exactly what projections are for. Human throughput for
+identifier matches is preserved via batch confirmation, and every merge has an
+accountable human in `decided_by`.
+
+**Revisit when.** A real, measured adjudication bottleneck on a specific
+derivation class — then amend Article VII *first*, defining admissible class,
+proof obligation, provenance, retraction, failure semantics, and approval
+authority. A lint marker or config flag is never the mechanism.
+
+---
+
+## ADR-028: Identity is a decision ledger — revisions, persisted candidates, negative constraints (extends ADR-005, supersedes the ADR-018 minimal schema)
+
+**Context.** Spec 02 modeled identity as `identity_membership` rows with
+`valid_from`/`valid_to`, and T20 promised that merge-then-split restores the
+exact prior state. External review (2026-07, B-03) showed timestamps alone
+cannot prove that: nothing forbids two active memberships for one mention,
+a split cannot know which rows formed the pre-merge state after intervening
+edits or concurrent adjudications, candidate pairs and rejections aren't
+persisted at all, and `merged_into`-as-a-claim invents a source record for
+what is administrative metadata.
+
+**Decision.** Phase 2 lands an **identity decision ledger** (design task T17a
+rewrites spec 05/spec 02 §2 before implementation):
+
+1. `identity_decision`: decision id, kind (confirm/reject/merge/split/
+   unresolved), actor, evidence note, input references (candidate pair,
+   mention set), **parent revision id**, resulting **revision id**, transaction
+   time. Every adjudication creates a revision; revisions form a chain.
+2. `identity_membership` rows are keyed to the revision that created/closed
+   them; a database invariant (partial unique index) guarantees **at most one
+   active membership per mention**.
+3. `er_candidate` persists every candidate pair with producer, model/settings
+   version, feature breakdown, and disposition; rejections create versioned
+   **negative constraints** consulted by candidate generation.
+4. Adjudication uses **optimistic concurrency** on the parent revision: a
+   decision made against a stale revision is rejected and re-presented.
+5. Merge lineage (`merged_into`) is **ledger metadata**, not a domain claim.
+   A rebuildable `entity_canonical_map` projection is derived from the ledger
+   for fast resolution (Article XIII), with defined cycle/tombstone behavior.
+6. Reversal tests cover multi-merge chains, partial splits, concurrent
+   decisions, and later mention additions — not only immediate merge→split.
+
+**Consequences.** "Exact reversal" becomes provable instead of promised.
+The Phase-1 tables stay as the migration substrate; migration `xxxx` in P2
+upgrades them. Splink settings/versioning (ADR-005) now records the graph
+snapshot used for contextual features so scores are reproducible.
+
+**Revisit when.** Never for reversibility (Article V). The ledger schema may
+evolve additively.
+
+---
+
+## ADR-029: Claim arguments carry mention evidence and resolve through identity revisions
+
+**Context.** Claims store raw `subject_id`/`object_id` entity references, and
+the edge projection groups those raw IDs. Identity decisions move *mentions*
+between entities. External review (2026-07, B-19 — the most important finding)
+showed the disconnect: after B merges into A, old claims still project edges
+for B unless projections resolve a canonical representative; and a canonical
+map alone cannot undo a mistaken merge, because when mentions are split out
+again nothing records which entity-valued claims arose from which mentions.
+Rewriting claims during adjudication would be race-prone and contradict
+immutable history.
+
+**Decision.** Adopt the hybrid claim-argument model (design task T17b rewrites
+spec 02 §3 before implementation):
+
+1. Entity-valued claim arguments gain **optional mention anchors**
+   (`subject_mention_id` / `object_mention_id`) preserved from extraction;
+   extracted/reported claims must carry them.
+2. Every claim stamps the **identity revision** current at `recorded_at`.
+3. Projections resolve entity arguments **through the active identity
+   revision** (via the `entity_canonical_map` of ADR-028); as-of queries may
+   pin an explicit revision — this is what makes the P4 as-of answer
+   defensible.
+4. Manual and assessment claims may be **unanchored** (no textual mention)
+   under an explicit rule: on a split affecting their entity, unanchored
+   claims route to **re-adjudication** rather than being silently reassigned.
+5. Blocking tests: a merge collapses nodes/edges; a split restores
+   mention-attributable edges without rewriting any claim row; ambiguous
+   unanchored claims appear in the review queue.
+
+Mention-only references (no entity IDs at all) were considered and rejected:
+analyst-authored and assessment claims legitimately have no textual mention.
+
+**Consequences.** Claims stay immutable through identity churn; the graph can
+never disagree with the active identity decision; splits are cheap and safe.
+Costs one join in projection rebuild — acceptable, projections are batch.
+
+**Revisit when.** Never for the principle; the argument table shape may be
+normalized (a `claim_argument` table) if >2-ary claims arrive with events (P5).
+
+---
+
+## ADR-030: Edge projections aggregate honestly — no fabricated time, no collapsed confidence
+
+**Context.** The illustrative `edge_projection` took `min(valid_from)`,
+`max(valid_to)` (open-ended if *any* claim is open), `max(credibility
+weight)`, and `count(DISTINCT record_id)` labelled "independent records".
+External review (2026-07, B-12): two disjoint intervals become one continuous
+relationship; one weak open-ended report makes the whole edge permanent;
+max() erases contradictions; distinct records are not independent sources.
+That is precisely the "authoritative rumor engine" GOAL.md forbids.
+
+**Decision.** Projection semantics (implemented with T21):
+
+1. **Time:** interval *sets* are preserved — an edge either carries its
+   interval list or is emitted as time-segmented rows; no min/max collapse.
+2. **Confidence:** no scalar aggregate is stored as authoritative. The edge
+   carries a **support summary**: per-claim grading references, contradiction
+   count, corroboration count, and the aggregation method + version. Any
+   display score is computed in the UI from the summary and is inspectable.
+3. **Counting:** `record_count` (distinct records), never "independent
+   sources"; source-derivation modeling is future work and until it exists no
+   independence claim is rendered.
+4. The projection build stamps identity revision + ontology version + builder
+   version (with ADR-029), so any rendered edge is fully attributable.
+
+**Consequences.** The graph may look *less* certain — that is the product
+working as designed (Article III/VIII). Legacy weight semantics survive only
+inside the legacy emitter until T22 deletes it.
+
+**Revisit when.** Never for honesty; the summary shape may grow (source
+lineage, grading dimensions) as P6 analytics need it.
+
+---
+
+## ADR-031: Suggestions are typed — one envelope, per-kind schemas, dispatch through declared actions
+
+**Context.** `review_queue` holds an opaque JSON `payload` and a single
+`result_claim` FK. Phase 2 puts claim suggestions *and* identity candidates
+through it; Phase 8 adds claim relations, hypothesis links, summaries, and
+contradiction candidates. External review (2026-07, B-05): these outcomes have
+different validation, authorization, edit, and result semantics — an untyped
+queue becomes a polymorphic state machine without referential integrity, and
+acceptance cannot prove it invoked the right action.
+
+**Decision.** A **typed suggestion envelope** (design task T17c rewrites
+spec 02's queue section):
+
+1. Envelope columns: `suggestion_kind` (closed, code-owned list),
+   `schema_version`, `payload` validated against the kind's schema (generated
+   from the target action's parameters), `target_action`, producer identity +
+   version, source/input references, idempotency key, supersession/expiry,
+   decision fields, and a **typed result reference** (claim id, decision id,
+   relation key — per kind).
+2. **Acceptance dispatches through the declared action** (`record_claim`,
+   `adjudicate_identity`, `link_claims`, …) with the reviewer as actor — the
+   queue never writes tables itself.
+3. High-volume machine candidates with their own lifecycle (ER candidates,
+   ADR-028's `er_candidate`) live in dedicated tables; the review **inbox** is
+   a UI composition over queue + candidate sources, not one mega-table.
+
+**Consequences.** Adding a suggestion kind = schema + action mapping, no queue
+migration; Article VII's test ("the only writer is the adjudication action")
+becomes mechanically checkable per kind.
+
+**Revisit when.** Kinds proliferate past what a closed list serves — then a
+registry pattern, still typed.
+
+---
+
+## ADR-032: One durable UI — React + TypeScript from Phase 2; no interim server-rendered stack (supersedes spec 07's staging; amends ADR-023 execution)
+
+**Context.** The plan had three UI generations: legacy Cytoscape explorer
+(P1), throwaway HTML/HTMX panels bolted onto it (P2), then a React + TS
+workspace (P4). External review (2026-07, H-10) flagged the deliberate waste;
+the MVP gate (B-04) independently requires a real authenticated UI loop
+(ingest → extract → review → adjudicate → explore) that "two panels" cannot
+carry; and the user directed a greenfield re-evaluation with React as the
+candidate. Considered honestly: Jinja2 + HTMX is a legitimate lightweight
+pattern for server-rendered CRUD, and React costs a build chain a solo
+developer must carry. But the destination is *already* React + TS (ADR-021's
+generated TS SDK, P4 ontology-driven screens), the workspace is an
+interaction-heavy product (graph canvas, adjudication flows, provenance
+drill-downs) where client state is the norm, and a second interim stack would
+be built solely to be deleted — exactly what ADR-023 forbids.
+
+**Decision.**
+
+1. `ui/` starts in **Phase 2** as the single durable workspace: React 18 +
+   TypeScript + Vite. It authenticates via Keycloak OIDC (PKCE) using a
+   maintained client (`oidc-client-ts` / `react-oidc-context` — Article XII);
+   tokens in memory, no localStorage; CSP and security headers served with it.
+2. Until the P3 ontology SDK exists, the API client is **generated from the
+   FastAPI OpenAPI document** (`openapi-typescript`-class generator — adopt
+   before build). The P3 SDK extends/replaces the generated client without UI
+   rewrite; stable operation IDs become an API convention now.
+3. P2 ships function-over-polish screens: source landing/extraction status,
+   review queue, identity adjudication, graph view (Cytoscape.js inside
+   React), provenance panel, entity search. P4 grows the same app (object
+   views, cases, hypotheses, timeline) — it no longer starts a UI.
+4. The legacy explorer and its `/api/*` surface are **deleted when the shell's
+   graph view lands** (T22, with ADR-026). No HTMX/Jinja investment happens.
+
+**Consequences.** P2's effort grows (honest — the MVP gate was always this
+big); total UI work across P2+P4 shrinks by one full throwaway generation.
+The repo gains a Node toolchain in CI (type-check + build + minimal e2e).
+Spec 07 is rewritten around one evolving app.
+
+**Revisit when.** The workspace's interaction model turns out to be
+form-dominated CRUD after all (then simplify inside React — not by adding a
+second stack).
+
+---
+
+## ADR-033: Roadmap v2.1 — Phase 1 closure addendum, P2 MVP recomposition, P3 narrowed to module composition, pilot security gate
+
+**Context.** The 2026-07 external review (disposition:
+`reviews/2026-07-18-external-review-disposition.md`) plus ADR-025…032 change
+what several phases must contain. Roadmap v2 (ADR-022) remains the structure;
+this ADR records the content corrections.
+
+**Decision.**
+
+1. **Phase 1 verdict revised** to *complete with closure addendum*: the four
+   functional exit boxes stand, but T16a–T16d (interim exposure containment,
+   revocation inline delete + lag bound, dependency lockfile, runbook/status
+   honesty) close the items the original review wrongly deferred without an
+   owner. The addendum blocks P2's implementation milestones (not its design
+   tasks).
+2. **Phase 2 recomposed** (charter + tasks rewritten): a blocking **design
+   pack** (T17a–T17d: identity ledger, claim arguments, typed envelope,
+   projection semantics — specs rewritten before code); identity core
+   implementation; the **durable React shell + full UI loop** (ADR-032)
+   including source landing/extraction UI (B-04); field-level sensitivity
+   filters and cursor pagination in-phase; a route-by-route authz matrix;
+   numeric ER thresholds; the blocking MVP demo on a **fictional deterministic
+   fixture** with the real-corpus walkthrough as a manual smoke test (H-09).
+   Effort: XL.
+3. **Phase 3 narrowed**: headline becomes **ontology module composition**
+   (platform module + domain modules, namespaces, imports, a tiny second
+   fictional domain proving zero core change — B-07) plus interfaces/shared
+   properties, change management, and the OpenAPI-generated TS client P4
+   needs. Functions execution machinery, side-effect outbox generalization,
+   and the Python SDK move out of P3 (each lands with its first consumer).
+4. **Pilot gate** added to the roadmap between phases and deployment reality:
+   before any non-localhost binding or second real user — TLS, secrets
+   hygiene, request/body limits + security headers, encrypted verified
+   backups covering all non-reconstructible state, MinIO Object Lock on
+   evidence buckets, signed audit-checkpoint export, dependency scanning.
+   This is a deployment gate, not a phase: it can be satisfied any time, and
+   P9 remains full production certification.
+5. **Traceability**: roadmap gains a GOAL→roadmap coverage appendix classifying
+   every major GOAL.md capability as scheduled / trigger-gated / out of scope,
+   so unowned promises are visible (H-35).
+
+**Consequences.** Pre-authored task files for P4–P9 stay valid as drafts;
+each phase's re-validation task (T41/T54/T66/T78/T90/T102) now explicitly
+dispositions the 2026-07 review findings tagged to its phase in the charters.
+
+**Revisit when.** Phase 2's exit review — measured against the recomposed
+charter, under ADR-025 gate semantics.

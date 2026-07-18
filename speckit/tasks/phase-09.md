@@ -4,13 +4,21 @@ Ordered; each task lists acceptance criteria (AC). Tasks marked ⛓ block everyt
 after them; narrower dependencies are noted in the task text. Reference specs in
 parentheses. Numbering continues from Phase 8 (T101).
 
-> **Status: PRE-AUTHORED, NOT ACTIVE.** The mandatory-baseline tasks may begin any
-> time after P4 — this charter gates the *exit*, not the start; observability and
-> DR automation are welcome early. The trigger-table review (T109) needs the full
-> surface for honest measurement. Authored 2026-07-18 ahead of phase start; T102
-> re-validates this plan against the as-built system before any other task starts.
-> Charter: `../phases/phase-09-production.md` · specs: `../specs/15-operations.md`
-> (authored by T102), `../plan.md` §5 (prod-profile addendum).
+> **Status: PRE-AUTHORED, NOT ACTIVE.** Certification tasks may begin any time
+> after P4 (explicit early-start allowance, ADR-025) — this charter gates the
+> *exit*, not the start; observability and DR automation are welcome early. The
+> trigger-table review (T109) needs the full surface for honest measurement.
+> **The charter was amended 2026-07-18 (ADR-033): the minimum operating
+> baseline moved to the roadmap's pilot gate (a deployment gate, not this
+> phase); this phase certifies the production tier — full recovery boundary
+> incl. Keycloak/FGA/vault-version state (B-16), workload-defined benchmarks
+> (M-23), audit-chain concurrency benchmark with SLO (H-37), deployment tiers
+> (H-32), evidence-typed trigger reviews where a fired trigger charters work
+> rather than implying delivery (H-31)**. T102 re-validates this plan against
+> the amended charter and dispositions the findings tagged P9 before any other
+> task starts. Charter: `../phases/phase-09-production.md` · specs:
+> `../specs/15-operations.md` (authored by T102), `../plan.md` §5 (prod-profile
+> addendum).
 
 ## Milestone A — Observability
 
@@ -119,8 +127,11 @@ mandatory baseline is complete and every trigger row is dispositioned; update
 speckit docs where reality diverged; append ADRs; write
 `../reviews/phase-09-exit-review.md`; tag `phase-9-production` per the git
 workflow.
-AC: all exit boxes checked or explicitly deferred with reason; the baseline is
-complete and each trigger row is fired-and-delivered or documented-unmet.
+AC: every gate criterion checked (non-deferrable, ADR-025); the certification
+baseline is complete; each trigger row is evaluated against measured evidence —
+fired triggers have a chartered work package, unfired ones a documented
+observation (H-31); non-blocking deliverables carried over with owner + target
+phase recorded.
 
 ## Explicit non-goals for Phase 9
 

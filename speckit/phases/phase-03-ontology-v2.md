@@ -1,115 +1,118 @@
-# Phase 3 Charter — Ontology v2: semantic & kinetic completion
+# Phase 3 Charter — Ontology modules & contracts
 
-Status: charter · tasks pre-authored: `../tasks/phase-03.md` (T29–T40; re-validated
-by T29 at phase start) · Constitutional basis: Articles VII, X, XI ·
-GOAL.md §7.8–7.10 · ADR-021 · Spec: `../specs/08-ontology-v2.md`
+Status: charter (narrowed 2026-07-18, ADR-033 — was "ontology v2: semantic &
+kinetic completion") · tasks: `../tasks/phase-03.md` (T29–T40; re-validated by
+T29 at phase start) · Constitutional basis: Articles XI, XIV ·
+GOAL.md §7.8–7.10 · ADR-021, ADR-033 · Spec: `../specs/08-ontology-v2.md`
 
 ## Objective
 
-`ontology/aegis.yaml` grows from a vocabulary file into a full ontology-platform
-artifact — the Foundry-class layer (GOAL.md §7.8) that P4's workspace, P6's
-object sets, and P8's AI grounding are built on. After this phase, the ontology
-declares not only *what exists* (object types, predicates) but *what shapes
-recur* (interfaces, shared properties), *what can happen* (actions with
-parameters, criteria, side effects), *what is derived* (functions), and *how the
-ontology itself changes* (proposals, versioning, migration).
+Make **"domains are ontology modules" true** (Article XIV has no mechanism
+behind it yet — B-07), and give the workspace a typed contract. After this
+phase, the ontology is a composition of a small platform module plus domain
+modules with namespaces, imports, and version constraints; a tiny second
+fictional domain proves the core needs zero code change; and the P2-born
+workspace consumes a generated TypeScript client from a stable OpenAPI
+contract.
+
+**Narrowing (ADR-033).** The v2 kinetic machinery moves out of this phase to
+land with its first consumer: functions execution harness + prison co-location
+derivation (first consumer: P5/P6 derived records), generalized side-effect
+outbox (first consumer: the action that needs one), Python SDK (first
+consumer: P8 producers). Actions v2 *schema* (parameters/criteria declared in
+the ontology) stays, because the generated client and P4 forms need parameter
+schemas; the side-effect execution engine does not.
 
 ## Architecture layers touched
 
-- **Semantic:** interfaces + shared property types in the DSL; loader,
-  validator, and registry extended.
-- **Kinetic:** functions registry (declared derivations); actions v2 schema
-  enforced by the actions layer.
-- **Consumption:** generated typed SDKs (Python + TypeScript) — the OSDK
-  analog; existing codegen targets (Pydantic, FGA stubs, UI meta) extended.
-- **Governance:** ontology change-management workflow; codegen-drift CI gate.
+- **Semantic:** interfaces + shared property types; module composition
+  (namespaces, imports, manifests).
+- **Kinetic (schema only):** actions v2 parameter/criteria declarations.
+- **Consumption:** stable OpenAPI operation IDs; generated TypeScript client
+  consumed by `ui/`.
+- **Governance:** ontology change management (proposals, history, CI gates);
+  codegen-drift gate; module-aware validation.
 
 ## Deliverables
 
-1. **DSL v2 — interfaces.** `interfaces:` section: named shapes (starter set:
-   `party` over person/organization; `identifiable` for anything with registry
-   identifiers; `locatable` reserved for P5). Predicates may target interfaces;
-   the validator expands them to member types. Composition over wide types
-   (GOAL.md §7.9).
-2. **DSL v2 — shared property types.** `shared_properties:` defined once
-   (e.g. `alias`, `registered_identifier`, `notes`) and referenced by object
-   types; single definition of type, sensitivity, and display.
-3. **Functions registry.** `functions:` section declaring versioned
-   derivations: name, inputs (claim patterns), derivation logic reference,
-   output predicate, output mode (`suggestion` | `system_claim`), trigger
-   (on-write | rebuild). First real implementation:
-   `co_located_in_prison_with` computed from remand-window overlap claims,
-   replacing the bare `computed: true` flag. Function outputs are attributed to
-   an `algorithmic` source with function name + version (Article VII: outputs
-   default to suggestions; `system_claim` mode is reserved for deterministic,
-   fully-derived facts and still records provenance).
-4. **Actions v2.** Action declarations gain `parameters` (typed, validated),
-   `submission_criteria` (declarative predicates over actor + target state:
-   role, case membership, record status), and `side_effects` (projection
-   refresh, notification hooks, webhook stubs). The actions layer enforces all
-   three; the validator rejects undeclared parameters.
-5. **Ontology change management.** Proposal workflow scaled to a single repo:
-   a change lands as `ontology/proposals/NNN-title.md` (motivation, diff,
-   competency questions it answers, migration plan) → review → semver bump +
-   migration script + previous version copied to `ontology/history/`. CI
-   enforces: version monotonicity, history copy on major bumps, proposal
-   reference in the commit.
-6. **Generated SDKs.** `aegis ontology generate` gains two targets: a typed
-   Python client (`aegis_sdk/`) and a TypeScript client package
-   (`sdk/ts/`), both generated from the ontology + API surface — object types,
-   interfaces, predicates, actions as typed calls. Tokens are scoped to app
-   grant ∩ user permission (GOAL.md §7.8). Generated files are committed; CI
-   fails on drift.
+1. **Module composition (headline — B-07).** The ontology becomes a
+   composition: a small **platform module** (governance vocabulary: handling
+   codes, grading, platform actions) plus **domain modules** (first:
+   `criminal-network`), each with a manifest (name, namespace, version,
+   imports/dependency constraints, type ownership). Loader resolves modules
+   into one registry; conflicts (name collisions, cross-module references
+   without import) are validation errors. Enable/disable semantics defined.
+2. **Second-domain proof.** A tiny fictional domain module (e.g. border-cargo:
+   2 object types, 3 predicates) lives in CI and loads against the same core
+   with **zero core-code change** — the Article XIV test becomes executable.
+3. **Interfaces + shared property types** (spec 08 §3–4): `party`,
+   `identifiable` starter set; predicates may target interfaces; validator
+   rules §9.
+4. **Actions v2 schema**: `parameters` (typed, closed list) and
+   `submission_criteria` declared and validated; enforcement of criteria in
+   the actions layer; **no side-effect engine** (declarations parse, execution
+   stays the existing hardcoded refresh paths until a consumer phase).
+5. **Ontology change management** (spec 08 §7): proposals, history on major
+   bumps, CI gates — release metadata carries proposal id + previous content
+   hash (not commit archaeology — H-16).
+6. **TypeScript client from OpenAPI**: stable operation IDs + error envelope
+   in specs/06; client generated from the FastAPI OpenAPI document
+   (adopt-before-build — H-11), typed with ontology-derived
+   constants/schemas; `ui/` migrates from its P2 generated client with no
+   screen rewrites; drift gate in CI.
 
 ## Dependencies
 
-- Phase 2 complete (MVP shipped; identity model stable so SDK entity APIs are
-  meaningful).
-- specs/08-ontology-v2.md (drafted with this roadmap) finalized at phase start.
+- Phase 2 complete (MVP shipped; identity model stable; workspace exists to
+  consume the client).
+- specs/08 finalized at phase start by T29 (narrowed scope).
 
 ## Exit criteria
 
-- [ ] A new predicate added to an interface flows to API validation, FGA stubs,
-      and both SDKs with **zero hand-written domain code**.
-- [ ] `co_located_in_prison_with` regenerates deterministically from remand
-      claims; deleting its outputs and re-running the function reproduces them
-      byte-for-byte; every output row carries function name + version.
+- [ ] A new predicate added to a **domain module** via the proposal workflow
+      flows to API validation and the TS client with zero hand-written domain
+      code.
+- [ ] The second-domain fixture module loads, validates, serves object/claim
+      routes, and appears in the client types — with zero core-code change
+      (Article XIV executable test).
+- [ ] A cross-module reference without a declared import fails validation with
+      a precise error.
 - [ ] An action with declared `submission_criteria` rejects a non-qualifying
       actor in a test, and the rejection is audited.
 - [ ] CI fails on codegen drift and on an ontology bump without proposal +
-      history entry.
-- [ ] Ontology bumped one minor version (interfaces + shared properties are
-      additive); all Phase 1–2 tests still green.
+      history entry; all Phase 1–2 tests green on the modular ontology.
 
 ## Risks
 
 | Risk | Mitigation |
 |---|---|
-| DSL over-engineering (features nothing consumes) | Only ship DSL features with a named consumer in P4–P6; everything else stays in spec 08 as future |
-| Codegen maintenance burden | Generators are template-driven and covered by golden-file tests; drift gate keeps them honest |
-| Breaking change sneaks in as "additive" | Validator diff check: minor bumps may not remove/rename; CI compares against previous committed version |
-| Functions blur Article VII | Output-mode default is `suggestion`; `system_claim` requires an ADR naming the derivation deterministic |
+| Module system over-engineering | Scope is manifests + namespaces + imports + validation — no dynamic loading, no marketplace; the second-domain fixture is the proof, not a product |
+| DSL features without consumers | ADR-033 narrowing; anything without a named consumer stays in spec 08 §10 (exclusions) |
+| Breaking change sneaks in as "additive" | Validator diff check against the previous release artifact (content hash), not git history |
+| Client generation churn breaks the UI | Stable operation IDs are a specs/06 convention from P2; client regeneration is a CI gate, and UI type-checks against it |
 
 ## Specs to author or update
 
-- `specs/08-ontology-v2.md` — finalize (exists as draft).
-- `specs/01-ontology.md` — keep as v1 reference; add pointer note to 08.
-- `specs/06-api.md` — SDK-facing conventions (stable operation IDs, error
-  envelopes).
+- `specs/08-ontology-v2.md` — finalize with the narrowed scope + module
+  manifest format (T29).
+- `specs/06-api.md` — stable operation IDs, error envelope, client-generation
+  conventions.
+- `specs/01-ontology.md` — v1 reference; add module-composition pointer.
 
 ## Explicit non-goals
 
-Object sets (P6), object views/React UI (P4), new domain predicates beyond the
-worked examples, ontology branching à la Foundry (single-repo proposals
-suffice), OPA policy-as-code.
+Functions execution machinery and derived-record runs (P5/P6 with ADR-027
+semantics), side-effect outbox engine (first consumer phase), Python SDK (P8),
+object sets (P6), object views (P4), new domain predicates beyond the worked
+examples, Foundry-style live branching, OPA policy-as-code.
 
-## Task sketch (expanded into `../tasks/phase-03.md`, T29–T40)
+## Task sketch (T-file re-validated at phase start)
 
-- **A — DSL v2 core:** interfaces + shared properties in loader/validator/
-  registry; ontology 0.4.0.
-- **B — Functions:** registry, execution harness, prison co-location
-  derivation, provenance stamping.
-- **C — Actions v2:** parameters/criteria/side-effects schema + enforcement in
-  `aegis/actions/service.py`.
-- **D — Change management:** proposals dir, CI gates, history discipline.
-- **E — SDKs:** Python + TypeScript codegen, drift gate, example scripts.
+- **A — Modules:** manifest format, loader composition, namespaces/imports,
+  conflict validation, platform/domain split of `aegis.yaml`, second-domain
+  CI fixture.
+- **B — Semantic v2:** interfaces + shared properties.
+- **C — Actions v2 schema:** parameters/criteria declarations + enforcement.
+- **D — Change management:** proposals, history, release metadata, CI gates.
+- **E — Contract & client:** operation IDs, error envelope, TS client
+  generation + UI migration + drift gate.

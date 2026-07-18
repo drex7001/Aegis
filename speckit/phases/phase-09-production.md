@@ -1,16 +1,27 @@
-# Phase 9 Charter — Production readiness & scale-out
+# Phase 9 Charter — Production certification & scale-out
 
-Status: charter · tasks pre-authored: `../tasks/phase-09.md` (T102–T113;
-re-validated by T102 at phase start) · Constitutional basis: Articles X, XII,
-XIII · GOAL.md §33–35, §39 · absorbs the v1 "P7 scale-out options" (ADR-022)
+Status: charter (amended 2026-07-18, ADR-033 — the minimum operating baseline
+moved to the roadmap's **pilot gate**; this phase certifies production) ·
+tasks pre-authored: `../tasks/phase-09.md` (T102–T113; re-validated by T102 at
+phase start, which also dispositions the 2026-07 review findings tagged P9:
+B-16 full scope, H-31, H-32, H-33 remainder, H-37, M-22, M-23) ·
+Constitutional basis: Articles X, XII, XIII · GOAL.md §33–35, §39 · absorbs
+the v1 "P7 scale-out options" (ADR-022)
 
 ## Objective
 
-Aegis runs as a hardened, observable, recoverable service — and grows only
-along measured pressure. This phase has two distinct halves: a **mandatory
-baseline** every production deployment needs regardless of scale, and the
-**trigger-gated upgrade table** where nothing ships until its documented
-trigger fires.
+Aegis runs as a certified, observable, recoverable service — and grows only
+along measured pressure. The **pilot gate** (roadmap §Pilot gate) is a
+prerequisite deployment gate satisfied whenever the first non-local/second-
+user deployment happens; this phase is **production certification**: SLOs,
+complete observability, automated DR over the full recovery boundary,
+performance baselines, pen-test, and the **trigger-gated upgrade table**
+where nothing ships until its documented trigger fires.
+
+**Deployment tiers (H-32, binding).** dev → pilot (hardened single host,
+pilot gate passed; availability limits documented) → production/agency (this
+phase's certification; GOAL.md's multi-AZ/HA targets apply only here —
+single-host compose is never called production).
 
 ## Architecture layers touched
 
@@ -33,14 +44,21 @@ trigger fires.
    into compose secrets (Vault stays trigger-gated); dependency and container
    scanning in CI; JWKS/token lifetime review; rate limiting on auth
    endpoints; CIS-style host checklist.
-4. **Backup/DR automation**: the T15 drill becomes scheduled and verified —
-   automated `pg_dump` + MinIO mirror, restore rehearsal on a cadence,
-   restore-verification test that runs the audit-chain verify and a projection
-   rebuild against the restored copy.
-5. **Performance baseline**: load benchmarks on a realistic corpus (graph
-   traversal p95, search latency, action throughput); the numbers that arm the
-   trigger table (e.g. ADR-002's CTE p95 > 2 s) get a measurement harness, not
-   anecdotes.
+4. **Backup/DR automation over the full recovery boundary (B-16)**: define
+   the boundary explicitly — Postgres, vault **object versions + locks/legal
+   holds**, Keycloak users/config (its database if local users are production
+   state), FGA store identity, encryption keys — then automate: encryption is
+   a property of the backup command (fail if it fails), manifest verification,
+   off-host copy, scheduled restore rehearsal running audit-chain verify +
+   FGA rebuild + projection rebuild against the restored copy; RPO/RTO,
+   backup sequence + audit head recorded per run.
+5. **Performance baseline**: load benchmarks on a defined workload manifest
+   (fictional corpus generator; degree distribution, authorization filters,
+   cache state, concurrency, query mix, hardware — M-23) reporting
+   p50/p95/p99 warm/cold; **audit-chain append throughput under concurrent
+   audited reads benchmarked with an SLO and overload policy** (H-37 — the
+   ADR-015 escape hatch fires on these numbers, not anecdotes); the numbers
+   that arm the trigger table get a measurement harness.
 6. **Pen-test checklist + exercise**: authz matrix fuzzing, IDOR sweep across
    `/v1/*`, audit-evasion attempts, export-path leak tests — findings triaged
    as blocking/deferred with ADRs.
@@ -79,10 +97,12 @@ is chartered then, as its own phase, against GOAL.md §27–28 and §33.
 - [ ] Scheduled restore rehearsal has run ≥ twice unattended: restore →
       `aegis audit verify` → projection rebuild → snapshot compare, all green.
 - [ ] Pen-test checklist executed; no unresolved blocking finding.
-- [ ] Performance baseline published; every trigger row evaluated against
-      measured numbers, each either fired-and-delivered or documented unmet.
+- [ ] Performance baseline published; every trigger row has an evidence type,
+      owner, and observation cadence, and is evaluated against measured
+      numbers — **a fired trigger yields a chartered work package; delivery
+      is chartered separately, never implied by this gate** (H-31).
 - [ ] A cold-start deploy from the runbook (fresh host → serving, restored
-      data) succeeds without tribal knowledge.
+      data incl. Keycloak/FGA state) succeeds following only the document.
 
 ## Risks
 

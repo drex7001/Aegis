@@ -4,41 +4,47 @@ Ordered; each task lists acceptance criteria (AC). Tasks marked ⛓ block everyt
 after them; narrower dependencies are noted in the task text. Reference specs in
 parentheses. Numbering continues from Phase 3 (T40).
 
-> **Status: PRE-AUTHORED, NOT ACTIVE.** Phases 2 (MVP gate) and 3 (ontology v2 —
-> the TypeScript SDK and UI descriptors this phase consumes) must close first.
-> Authored 2026-07-17 ahead of phase start; T41 re-validates this plan against
-> the P3-as-built SDK before any other task starts. Charter:
-> `../phases/phase-04-workspace-object-views.md` · specs: `../specs/07-ui.md`
-> (stage 3), `../specs/09-workspace-object-views.md` (authored by T41).
+> **Status: PRE-AUTHORED, NOT ACTIVE.** Phases 2 (MVP gate) and 3 (modules &
+> contracts — the TypeScript client and UI descriptors this phase consumes)
+> must close first. Authored 2026-07-17 ahead of phase start; **the charter was
+> amended 2026-07-18 (ADR-032/ADR-033: the workspace exists from P2 and grows
+> here; the legacy explorer is already gone; the investigation-domain model is
+> specced before its UI — H-17)**. T41 re-validates this plan against the
+> amended charter and the P3-as-built client, and dispositions the 2026-07
+> review findings tagged P4 (H-17, H-18, H-19 remainder, B-11), before any
+> other task starts. Charter: `../phases/phase-04-workspace-object-views.md` ·
+> specs: `../specs/07-ui.md`, `../specs/09-investigation-domain.md` (authored
+> by T41).
 
-## Milestone A — Foundation & shell
+## Milestone A — Foundation
 
-**T41. ⛓ Spec 09 + cutover scope** (charter §Specs; specs/07 stage 3) —
-re-validate this plan against the P3-as-built TS SDK and UI descriptors; author
-`specs/09-workspace-object-views.md` (the object-view descriptor contract:
-properties with grading/conflict metadata, link groups, timeline strip, source
-list, case list); and write the **analyst-needs cutover checklist** up front —
-the short list of what the workspace must do before the legacy explorer dies
-(graph, filters, detail panel — replacement scope, never legacy parity,
-ADR-023).
-AC: spec 09 exists and covers every surface the generic object view renders;
-the cutover checklist is agreed and frozen in the spec; divergences from this
-plan are ADR'd.
+**T41. ⛓ Specs 09 + re-validation** (charter §Specs) — re-validate this plan
+against the amended charter (ADR-032/ADR-033) and the P3-as-built TS client
+and UI descriptors; disposition the 2026-07 findings tagged P4 (H-17, H-18,
+H-19 remainder, B-11); author `specs/09-investigation-domain.md` **first**
+(cases/hypotheses/tasks/leads model, actions, authorization — model separate
+from UI, H-17), then the object-view descriptor contract (properties with
+grading/conflict metadata, link groups, timeline strip, source list,
+authorized case list).
+AC: spec 09 exists covering the investigation model and every surface the
+generic object view renders; divergences from this plan are ADR'd.
 
-**T42. ⛓ Workspace shell + auth** (specs/07 stage 3; needs T41) — React +
-TypeScript app; Keycloak OIDC (PKCE) login; **all** data access through the
-generated TS SDK (hand-written domain types are defects, Article XI);
-ontology-driven navigation built from UI descriptors; serving/deployment
-decision (mounted by aegis-api vs. separate dev server) recorded as an ADR.
-AC: login round-trips against the dev realm; nav lists object types and
-interfaces from descriptors alone; an unauthenticated visitor reaches nothing
-but the login screen; `grep` finds no hand-written domain model in the app.
+**T42. ⛓ Workspace v2 foundation** (specs/07 §3–4; needs T41) — the P2-born
+app (ADR-032 — the shell, auth, and serving decision already exist) gains the
+case-centric layout and **ontology-driven navigation from UI descriptors**;
+all data access migrates to the P3 generated client (hand-written domain
+types are defects, Article XI).
+AC: nav lists object types and interfaces from descriptors alone; `grep`
+finds no hand-written domain model in `ui/src`; existing P2 screens still
+pass their e2e smoke inside the new layout.
 
-**T43. Cursor pagination** (specs/06 — deferred from Phase 1; lands here at
-the latest) — stable-ordered cursor pagination on list endpoints the workspace
-consumes (entities, claims, review queue, search); SDKs regenerate.
-AC: a list larger than one page walks completely and without duplicates via
-cursors; both SDKs expose the pagination surface; API docs render it.
+**T43. Investigation-model implementation** (specs/09; needs T41) —
+storage/actions/routes for hypotheses (versions, evidence basis, missing-info
+note required) and tasks/leads (owner, status, dates) per spec 09; audited
+actions; authz matrix rows added.
+AC: hypothesis and task lifecycles round-trip through the API with audit;
+matrix tests cover their allow/deny cases; no UI yet (Milestone D renders
+them).
 
 ## Milestone B — Object views
 
@@ -46,10 +52,14 @@ cursors; both SDKs expose the pagination surface; API docs render it.
 generic, descriptor-driven component renders any object type: claim-derived
 properties with grading badges; conflicting values render **side by side**
 with relation badges — two DOBs are two DOBs (Article VIII); links grouped by
-predicate category; source list; cases the entity appears in.
+predicate category; source list; cases the entity appears in — **each case
+reference independently authorized: only visible cases listed, no hidden
+count, no existence leak (H-18)**.
 AC: person and organization render through the same component with zero
 type-specific React code; a seeded property conflict shows both values and
-their `contradicts` badge; every rendered value came through the SDK.
+their `contradicts` badge; a viewer authorized for the entity but not a
+restricted case sees no trace of that case; every rendered value came through
+the client.
 
 **T45. Provenance drill-down + timeline strip** (needs T44) — every displayed
 value and link opens its provenance (the P2 why-connected API, consumed
@@ -70,35 +80,40 @@ changes are audited actions; the case graph never renders out-of-case data.
 
 ## Milestone D — Hypotheses & tasks
 
-**T47. Hypotheses** (GOAL.md §18; needs T44, T46) — hypothesis records with
-supporting/contradicting claim links and a **required missing-information
-note**; create/update are audited actions; the hypothesis page always renders
+**T47. Hypotheses UI** (GOAL.md §18; needs T43, T44, T46) — screens over the
+T43 hypothesis actions: supporting/contradicting claim links and the
+**required missing-information note**; the hypothesis page always renders
 both sides (Article VIII) plus what's missing.
 AC: creation without a missing-info note is rejected by the action's
 submission criteria (P3 mechanism); a seeded hypothesis shows supporting and
 contradicting claims simultaneously (exit criterion); all changes in audit.
 
-**T48. Tasks / leads** (needs T46) — lightweight status columns on cases; no
-workflow engine (plan §2 trigger untouched).
+**T48. Tasks / leads UI** (needs T43, T46) — screens over the T43 task/lead
+actions: lightweight status columns on cases; no workflow engine (plan §2
+trigger untouched).
 AC: a lead moves through its statuses from the case screen; every transition
 is an audited action; no new infrastructure appears in the diff.
 
 ## Milestone E — Time
 
-**T49. Timeline + as-of mode** (specs/02 time model; needs T44) — claim/event
-times with uncertainty rendered honestly; `?asOf=` supported end-to-end in the
-UI ("what did we know on date X?").
+**T49. Timeline + as-of mode (narrowed — B-11)** (specs/02 time model; needs
+T44) — claim/event times with uncertainty rendered honestly; `?asOf=`
+end-to-end in the UI as the defined **claim-recording snapshot**: claims
+recorded and unretracted at the timestamp, resolved under a pinned identity
+revision (ADR-029), response stamped with snapshot + identity revision +
+ontology version; a persistent banner states exactly what the view holds
+constant.
 AC: an as-of query in the UI excludes a claim recorded after X in a seeded
-test and the answer is defensible from the response alone (exit criterion);
+test; the response carries its snapshot/revision stamps (exit criterion);
 uncertain dates render visually distinct from exact ones.
 
 ## Milestone F — Cutover & proof
 
-**T50. Panel migration** (needs T44–T46) — the P2 review-queue, search, and
-provenance surfaces re-rendered inside the workspace; their APIs unchanged.
-AC: the MVP demo runbook (`docs/MVP_DEMO.md`) re-runs start-to-finish entirely
-in the workspace; the diff touches no API code; the legacy panels are no
-longer reachable from the workspace.
+**T50. P2-screen reorganization** (needs T44–T46) — the P2 review-queue,
+search, adjudication, and provenance screens (same app — ADR-032) re-homed
+into the case-centric layout; their APIs unchanged.
+AC: the MVP demo runbook (`docs/MVP_DEMO.md`) re-runs start-to-finish in the
+reorganized layout; the diff touches no API code.
 
 **T51. Ontology-to-screen proof** (charter exit №4; needs T44) — add a test
 object type via the ontology alone (+ proposal + regen, P3 discipline): a
@@ -107,20 +122,20 @@ new React code**.
 AC: the change's diff is ontology + proposal + regenerated files only; a UI
 test loads the new type's object view and drills into provenance.
 
-**T52. Legacy explorer deletion + ADR-019 review** (charter exit №5; needs
-T50 and the T41 checklist) — verify the analyst-needs checklist in the
-workspace, then delete `app/static` and the deprecated `app/server.py`
-(replacement, not parity — ADR-023); review ADR-019's public open-only
-`/api/*` projection surface: keep or retire, recorded as an ADR either way.
-AC: no legacy explorer code remains in the repo; nothing serves
-unauthenticated graph data except an explicitly kept `public_route` (or none,
-per the new ADR); the checklist sign-off is in the exit review.
+**T52. No-unauthenticated-surface re-verification** (charter exit №5; needs
+T50 and the T41 checklist) — the legacy explorer and `/api/*` were deleted in
+P2 (T22, ADR-026); this task re-verifies through the grown P4 surface: repo
+grep for any `public_route`-style exemption, authz-matrix run across all P4
+routes/screens, and the analyst-needs checklist sign-off.
+AC: no unauthenticated read surface exists anywhere in the repo; the
+checklist sign-off is in the exit review.
 
-**T53. Phase exit review** — walk the charter's exit criteria; update speckit
-docs where reality diverged; append ADRs; write
+**T53. Phase exit review** — walk the charter's gate criteria (non-deferrable,
+ADR-025); update speckit docs where reality diverged; append ADRs; write
 `../reviews/phase-04-exit-review.md`; tag `phase-4-workspace` per the git
 workflow.
-AC: all exit boxes checked or explicitly deferred with reason.
+AC: every gate criterion checked; non-blocking deliverables carried over with
+owner + target phase recorded.
 
 ## Explicit non-goals for Phase 4
 

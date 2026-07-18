@@ -1,6 +1,11 @@
 # Spec 02 — Data Model (Claim Store)
 
-Status: draft for Phase 1 · Constitutional basis: Articles I, III, IV, V, VIII, X, XIII
+Status: implemented in Phase 1 (v1 reference) — **§2 (identity), §3 (claim
+arguments + review queue), and §7 (edge projection) are being rewritten by P2
+tasks T17a–T17c under ADR-028 (identity decision ledger), ADR-029 (mention
+anchors + identity-revision resolution), ADR-030 (honest aggregation), and
+ADR-031 (typed suggestion envelope). Where this text conflicts with those
+ADRs, the ADRs win.** · Constitutional basis: Articles I, III, IV, V, VIII, X, XIII
 
 DDL below is illustrative Postgres 16; Alembic migrations are authoritative. IDs are
 ULIDs with type prefixes (`ent_`, `clm_`, `src_`, `rec_`, `evd_`, `cas_`) — sortable,
@@ -76,8 +81,13 @@ CREATE TABLE identity_membership (
 );
 ```
 
-Merge = close memberships pointing at entity B, open new ones at entity A (B is kept,
-flagged `merged_into` via a claim). Split = the inverse. Both are adjudication actions.
+> **Superseded by ADR-028 (P2 T17a rewrites this section).** The Phase-1 shape
+> above is the migration substrate only. The P2 model adds `identity_decision`
+> (revision chain, actor, evidence, optimistic concurrency), revision-keyed
+> memberships with a one-active-membership-per-mention DB invariant,
+> `er_candidate` + versioned negative constraints, and merge lineage as ledger
+> metadata (**not** a `merged_into` claim). Timestamps alone cannot prove
+> exact merge reversal — the ledger can.
 
 ## 3. Claims
 
@@ -131,6 +141,13 @@ CREATE TABLE claim_relation (
 );
 ```
 
+> **Amended by ADR-029 (P2 T17b rewrites this section).** Entity-valued
+> arguments gain optional `subject_mention_id` / `object_mention_id` anchors
+> (required for extracted/reported claims) plus an identity-revision stamp at
+> `recorded_at`; projections resolve arguments through the active identity
+> revision. Unanchored (manual/assessment) claims route to re-adjudication on
+> a split affecting their entity.
+
 **Vocabulary enforcement (ADR-013).** Ontology-owned vocabularies — `predicate`,
 `entity_type`, `source_type`, grading values, `handling_code` — are plain TEXT.
 The actions layer validates them at write time against the ontology version in force
@@ -139,6 +156,15 @@ constraints above exist only for code-owned invariants (object XOR, no self-clai
 time sanity, fixed relation/status values), which don't change when the ontology does.
 
 ### Review queue (Article VII)
+
+> **Superseded by ADR-031 (P2 T17c rewrites this section).** The opaque
+> `payload` + single `result_claim` FK cannot represent identity decisions,
+> claim relations, or later P8 outputs. The typed envelope adds
+> `suggestion_kind`, `schema_version`, per-kind payload schemas generated from
+> target-action parameters, producer identity/version, idempotency key,
+> supersession/expiry, and a typed result reference; acceptance dispatches
+> through the declared action. High-volume ER candidates live in
+> `er_candidate` (ADR-028); the review inbox is a UI composition.
 
 ```sql
 CREATE TABLE review_queue (
@@ -296,6 +322,15 @@ Projection weight function (keeps UI/clustering behavior):
 cannot_judge→0.4`. Committed as code with tests; tune only with an ADR.
 
 ## 7. Traversal projection (ADR-002)
+
+> **Superseded by ADR-029/ADR-030 (P2 T21 reimplements this view).** The
+> illustrated aggregation fabricates time (min/max collapse of disjoint
+> intervals), collapses confidence (`max(weight)` erases contradictions), and
+> mislabels distinct records as independent. The v2 projection resolves
+> subject/object through the active identity revision, emits interval
+> sets/time segments, carries a support summary (grading refs, contradiction +
+> corroboration counts, method + version), and stamps identity revision +
+> ontology version + builder version.
 
 ```sql
 CREATE MATERIALIZED VIEW edge_projection AS
