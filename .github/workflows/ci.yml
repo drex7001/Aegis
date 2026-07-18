@@ -97,3 +97,20 @@ jobs:
         run: uv run aegis ontology validate
       - if: always()
         run: make down
+
+  test:
+    name: test
+    if: always()
+    needs:
+      - fast-tests
+      - integration-tests
+      - system-tests
+      - coverage-and-governance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce all blocking test stages
+        run: |
+          test "${{ needs.fast-tests.result }}" = "success"
+          test "${{ needs.integration-tests.result }}" = "success"
+          test "${{ needs.system-tests.result }}" = "success"
+          test "${{ needs.coverage-and-governance.result }}" = "success"

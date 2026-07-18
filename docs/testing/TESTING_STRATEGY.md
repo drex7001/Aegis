@@ -59,6 +59,9 @@ OpenFGA system tests, and combined coverage/governance gates. The coverage job
 uses the compose stack and runs every automated blocking layer. Browser E2E is
 added when the Phase 2 UI exists.
 
+The final `test` status is a branch-protection compatibility gate. It depends
+on all four jobs and passes only when every blocking stage succeeds.
+
 Local fast tests require no service. Integration tests require
 `AEGIS_TEST_DATABASE_URL`. System tests require `make up && make bootstrap`.
 Credentials and `.runtime.env` are never committed.
