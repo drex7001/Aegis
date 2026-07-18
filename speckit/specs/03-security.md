@@ -1,11 +1,11 @@
 # Spec 03 — Security: Identity, RBAC + ReBAC, Audit
 
-Status: implemented in Phase 1 (v1 reference) — amendments in force: **no
-anonymous routes** (ADR-026 supersedes the ADR-019 `public_route` exemption;
-legacy `/api/*` retired at P2 T22); **field-level sensitivity filtering** (§4
-step 5) is a hard P2 gate criterion (T24a), not deferred; **revocation
-staleness bound** documented by T16b. · Constitutional basis: Articles VI, X ·
-GOAL.md §23
+Status: implemented in Phase 1 (v1 reference) — amendments in force: governed
+`/v1/*` routes have no anonymous exemption, while the legacy read-only
+`/api/*` surface remains a contained **temporary exception** until P2 T22
+(ADR-026); **field-level sensitivity filtering** (§4 step 5) is a hard P2 gate
+criterion (T24a), not deferred; **revocation staleness bound** documented by
+T16b. · Constitutional basis: Articles VI, X · GOAL.md §23
 
 RBAC is a **hard product requirement from Phase 1** — enforced even while one person
 holds every role.

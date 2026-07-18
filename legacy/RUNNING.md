@@ -1,9 +1,10 @@
 # Running the legacy pipeline — exact steps
 
-> **⚠️ Legacy runbook.** These are the commands for the **pre-Aegis prototype**
-> (replace, never extend — ADR-023). The platform's own commands (compose
-> stack, migrations, `aegis serve`, tests) are in the root
-> [`README.md`](../README.md) and [`AGENTS.md`](../AGENTS.md).
+> **⚠️ UNSAFE FOR GOVERNED DATA — legacy prototype only.** These commands run
+> the pre-Aegis graph and LLM merge pipeline, which writes mutable projections
+> rather than governed source records and review-queue suggestions. Do not use
+> them for new data. The platform workflow is in
+> [`docs/INGESTION.md`](../docs/INGESTION.md).
 
 Every command you need, in order, with what to expect. Commands are PowerShell (Windows);
 on macOS/Linux replace `.venv\Scripts\` with `.venv/bin/`.

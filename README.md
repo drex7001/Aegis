@@ -36,10 +36,10 @@ ADR-033). The governed foundation:
 - **Evidence vault** (MinIO): content-addressed originals, hash ledger,
   derivative tracking (Article IV).
 - **AuthN/AuthZ**: Keycloak OIDC + OpenFGA ReBAC + handling-code row filters;
-  every `/v1/*` route carries an authorization dependency (Article VI). One
-  known exception remains: the legacy explorer's read-only `/api/*` projection
-  surface, contained by T16a and **deleted at Phase 2 T22** (ADR-026 — no
-  anonymous routes).
+  every `/v1/*` route carries an authorization dependency (Article VI). This
+  does **not** yet cover every HTTP route: the legacy explorer's read-only
+  `/api/*` projection surface remains anonymous, contained by T16a and
+  **deleted at Phase 2 T22** (ADR-026).
 - **Audit**: append-only, hash-chained event log with chain verification
   (Article X).
 - **Governed extraction**: the LLM/structural extraction passes emit *suggested
@@ -59,12 +59,12 @@ disposition is
 
 ## Quickstart
 
-Prerequisites: Docker + Compose v2, Python 3.12, [`uv`](https://docs.astral.sh/uv/)
-(optional — plain `pip` works).
+Prerequisites: Docker + Compose v2, Python 3.12, and
+[`uv`](https://docs.astral.sh/uv/).
 
 ```bash
 make up && make bootstrap        # compose stack: postgres+postgis, minio, keycloak, openfga
-python3.12 -m venv .venv && make install   # aegis package + dev deps (uv; or .venv/bin/pip install -e ".[dev]")
+make install                     # locked aegis package + dev environment
 .venv/bin/aegis db upgrade       # alembic migrations
 .venv/bin/aegis migrate-legacy   # one-time: import the curated OSINT corpus as claims
 .venv/bin/aegis projections rebuild
@@ -89,11 +89,11 @@ make lint-ontology     # aegis ontology validate — the Article XI gate
 | `migrations/` | Alembic schema migrations |
 | `infra/` | Compose stack + bootstrap (PostgreSQL/PostGIS, MinIO, Keycloak, OpenFGA) |
 | `tests/` | Unit + integration suites (CI runs both) |
-| `docs/` | Runbooks: git workflow, backup/restore, ingestion toolchain |
+| `docs/` | Active runbooks: git workflow, backup/restore, governed ingestion |
 | `data/` | Corpora: `data/real/` (public-reporting OSINT — **read [`data/real/README.md`](data/real/README.md) first**) and `data/sample/` (fictional) |
 | `speckit/` | Constitution, spec, plan, decisions (ADRs), roadmap, phase charters, detailed specs |
 | `scripts/` | Operational helpers (backup/restore, ingestion setup) |
-| `Files/` | Raw drop zone for ingestion (PDF / video / audio / text; gitignored) |
+| `Files/` | Legacy prototype raw drop zone (gitignored; unsafe for governed data) |
 | `legacy/` | **Quarantined pre-Aegis prototype** (ADR-023) — see below |
 
 ## Data & ethics
@@ -116,9 +116,9 @@ rebuildable projection, loopback-bound per T16a) until the Phase 2 workspace
 deletes it at T22 (ADR-026/ADR-032). Its
 documentation is kept for reference:
 [`legacy/ARCHITECTURE.md`](legacy/ARCHITECTURE.md) (component tour) ·
-[`docs/RUNNING.md`](docs/RUNNING.md) (commands) ·
-[`docs/ADDING_DATA.md`](docs/ADDING_DATA.md) (data recipes) ·
-[`docs/INGESTION.md`](docs/INGESTION.md) (raw-file ingestion — this toolchain
-remains the front end of the governed landing zone).
+[`legacy/RUNNING.md`](legacy/RUNNING.md) (commands) ·
+[`legacy/ADDING_DATA.md`](legacy/ADDING_DATA.md) (data recipes) ·
+[`legacy/INGESTION.md`](legacy/INGESTION.md) (historical raw-file ingestion).
+For new governed sources, use [`docs/INGESTION.md`](docs/INGESTION.md).
 
 ![Legacy explorer screenshot](legacy/explorer-screenshot.png)

@@ -11,5 +11,6 @@ Rules (AGENTS.md, GOAL.md §24):
 - Never present association as guilt (Article IX).
 - Everything in `real/` must be citable to public reporting; the corpus files
   themselves stay untracked (only `real/README.md` is committed).
-- Raw source material (PDFs, video, audio) lands in the gitignored `Files/`
-  drop zone and is ingested via the toolchain in `docs/INGESTION.md`.
+- New source material is kept outside the repository and landed through
+  `aegis ingest land`; see `docs/INGESTION.md`. Do not add or transform source
+  files directly under `data/real/`.

@@ -12,8 +12,8 @@ A guided tour of the prototype: what it is, how the pieces fit, how data flows t
 it, how to run it, how to add data, and the exact steps used to build it. Written to be
 readable by a non-specialist first, with the technical detail underneath.
 
-> Companion how-tos: [`docs/RUNNING.md`](../docs/RUNNING.md) (exact commands) ·
-> [`docs/ADDING_DATA.md`](../docs/ADDING_DATA.md) (add your own data) ·
+> Companion how-tos: [`RUNNING.md`](RUNNING.md) (exact commands) ·
+> [`ADDING_DATA.md`](ADDING_DATA.md) (add your own data) ·
 > [`data/real/README.md`](../data/real/README.md) (sources & ethics).
 
 ---
@@ -272,7 +272,7 @@ python -m venv .venv
 .venv\Scripts\python demo.py --mock
 ```
 
-See [`docs/RUNNING.md`](../docs/RUNNING.md) for every command, flag, and expected output.
+See [`RUNNING.md`](RUNNING.md) for every command, flag, and expected output.
 
 ---
 
@@ -280,7 +280,7 @@ See [`docs/RUNNING.md`](../docs/RUNNING.md) for every command, flag, and expecte
 
 You choose the pass that matches what you have. All three go through the same contract, so
 they combine cleanly (same person → same `node_id` → merged). Full copy-paste recipes are
-in [`docs/ADDING_DATA.md`](../docs/ADDING_DATA.md); the summary:
+in [`ADDING_DATA.md`](ADDING_DATA.md); the summary:
 
 **A. Curated fact (best for verified, cited facts) — edit `pipeline/real_dataset.py`.**
 Add a source to `SOURCES`, a node with `_n(...)`, and edges with `_e(...)` (choosing layer,

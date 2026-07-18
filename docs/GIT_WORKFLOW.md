@@ -75,11 +75,10 @@ humans decide*).
 **Provenance.**
 
 - Every AI-assisted commit carries the agent trailer, e.g.
-  `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`. The human operator
-  is the author; the trailer makes AI involvement queryable
-  (`git log --grep="Co-Authored-By: Claude"`).
-- Agent-drafted PR bodies say so, and end with the standard
-  `🤖 Generated with Claude Code` line.
+  `Co-Authored-By: <agent name> <agent-no-reply@example.invalid>`. The human
+  operator is the author; the trailer makes AI involvement queryable.
+- Agent-drafted PR bodies say so, and end with
+  `🤖 Generated with <agent/tool name>`.
 
 **Human review is the merge gate.**
 
@@ -95,8 +94,8 @@ humans decide*).
   integration"`, `aegis ontology validate`, manual checks) and what was not.
   An agent never claims green it didn't see; failing output is reported
   verbatim, not summarized away.
-- Agents never use `--no-verify`, `[skip ci]`, or disable hooks/signing. If a
-  hook or check fails, fix the cause — don't route around it.
+- Agents never disable hooks, signing, or CI. If a hook or check fails, fix the
+  cause — don't route around it.
 
 **Scope discipline.**
 
@@ -152,8 +151,6 @@ git switch master && git pull
 - Let it run, even for docs-only changes: a green check on every master commit
   is what makes "master is always green" trustworthy, and this CI costs
   minutes.
-- `[skip ci]` in a commit message is allowed only for trivial typo-level doc
-  fixes, and should stay rare.
 - A red master is the top priority: fix forward or `git revert` the squash
   commit immediately.
 

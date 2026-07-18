@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time setup for the data-ingestion stack (docs/INGESTION.md). Idempotent, no root:
+# Legacy prototype ingestion setup (legacy/INGESTION.md). Unsafe for governed data.
 #   1. .venv            Python 3.12 virtualenv (uses `uv` if present, else python3 -m venv)
 #   2. packages         CPU torch first (small wheels), then legacy/requirements.txt
 #   3. .tools/jre       project-local Temurin JRE 21 for opendataloader-pdf
@@ -7,6 +7,8 @@
 #   4. --with-model     optionally pre-download the Sinhala Whisper model (~1 GB)
 set -euo pipefail
 cd "$(dirname "$0")/.."
+
+echo "WARNING: legacy prototype ingestion setup — unsafe for governed data."
 
 # --- 1. virtualenv ---------------------------------------------------------
 if [ ! -x .venv/bin/python ]; then
@@ -64,4 +66,4 @@ print("torch       :", torch.__version__)
 print("transformers:", transformers.__version__)
 EOF
 echo
-echo "Setup complete. Ingest data with:  .venv/bin/python -m legacy.pipeline.ingest --help"
+echo "Setup complete. Historical instructions: legacy/INGESTION.md"

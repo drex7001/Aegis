@@ -1,10 +1,10 @@
 # Adding data — exact steps (legacy prototype track)
 
-> **⚠️ Legacy recipes.** These paths feed the **pre-Aegis prototype** (curated
-> code, regex pass, LLM pass → static graph JSON). In Aegis the same material
-> enters through the governed landing zone as *sources → suggested claims →
-> review queue* (speckit specs/04); the prototype track is kept only until the
-> platform replaces it (ADR-023).
+> **⚠️ UNSAFE FOR GOVERNED DATA — legacy prototype only.** These paths feed the
+> pre-Aegis prototype (curated code, regex pass, LLM pass → static graph JSON)
+> and may write directly under `data/real/`. Do not use them for new governed
+> material. Use [`docs/INGESTION.md`](../docs/INGESTION.md): sources land in the
+> vault and extraction emits review-queue suggestions, never canonical claims.
 
 Three ways to add data, matched to what you have. All three pass through the same
 validation contract (`legacy/pipeline/models.py`), so they combine automatically — the same

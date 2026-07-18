@@ -14,8 +14,9 @@ compiled from **public reporting** about documented cases.
 
 The authoritative, fully-cited node/edge set lives in code at
 [`legacy/pipeline/real_dataset.py`](../../legacy/pipeline/real_dataset.py) (the deterministic **curated OSINT layer**).
-Running `python legacy/build_real_graph.py` assembles it into `output/real_graph.json`
-(superseded by `aegis migrate-legacy` + `aegis projections rebuild` on the platform path).
+The legacy graph builder is reference-only; the platform path imports this
+curated corpus with `aegis migrate-legacy` and rebuilds views with
+`aegis projections rebuild`.
 
 ## Sources
 

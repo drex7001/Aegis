@@ -370,7 +370,7 @@ Items may be completed any time; none may be waived.
 | Speckit rots as code diverges | Exit-criteria checklists reviewed at each phase close; ADR append-only discipline; statuses corrected at every review (M-01) |
 | MVP scope creep | Anything not needed for the P2 demo loop moves to P3+; the charter's non-goals list is enforced in review |
 | Gate erosion ("just this once") | ADR-025: gate criteria cannot be deferred; charter amendments require a superseding ADR before the exit review |
-| RBAC friction tempts bypass ("it's just me") | Article VI test: authz dependency required on every route — no exemption marker exists (ADR-026) |
+| RBAC friction tempts bypass ("it's just me") | Article VI gate on every governed `/v1/*` route; the legacy `/api/*` exception is loopback-contained and deleted at P2 T22 (ADR-026) |
 | Wrong merge contaminates analysis | Article V reversibility + ADR-028 ledger + P2 history tests incl. concurrency |
 | Machine output creeps into canon | Article VII + ADR-027: no auto-accept/auto-merge/machine-claim path exists; P8 runtime-permission test |
 | Scope creep toward GOAL.md's full stack | Every infra addition needs an ADR trigger already met |
