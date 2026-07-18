@@ -73,15 +73,29 @@ resulting revision, and transaction time.
 
 ### 3.1 Deterministic rules — pre-verified **candidates**, never auto-decide (ADR-027)
 
-- NIC exact match (when lawfully present — the real corpus omits NICs for real
-  people, so this mostly serves fictional and future authorized data).
-- Exact registry identifiers: vehicle registration + jurisdiction, passport +
-  country — each with issuer and validity conflict checks, because identifiers
-  contain errors, fraud, duplicates and reuse (H-07). A conflicting issuer or
-  an out-of-validity-window match **suppresses** the candidate rather than
-  raising it.
+**Implemented** in `aegis/er/rules.py` (T18); settings versioned in
+`aegis/er/settings.py`.
+
+- **Exact registry identifiers.** The engine names no identifier: it iterates
+  the predicates the ontology declares `identifier: true`, so a new domain adds
+  identifiers by declaring them rather than by editing the rule engine
+  (Article XIV). The claim's `jurisdiction` carries the issuer and
+  `valid_from`/`valid_to` the validity window. A conflicting issuer or a
+  disjoint validity window **suppresses** the candidate rather than raising it,
+  because identifiers contain errors, fraud, duplicates and reuse (H-07) — and
+  a pre-verified band that admits reissued identifiers launders wrong merges
+  through a batch-confirm button.
+- Ontology v1.1.0 declares `has_nic` (person), `registered_as` (vehicle) and
+  `reachable_on` (phone number). **Passport is not declared**: the ontology has
+  no passport property, and inventing domain vocabulary without a competency
+  question belongs in the P3 proposal process (specs/08 §7), not in a rule
+  engine. Passport matching arrives when the property does.
 - Same `norm_key` **within one document** — a candidate, ranked below
-  identifier matches and never in the pre-verified band.
+  identifier matches and never in the pre-verified band: one document can name
+  two different people who share a common name.
+- **Cross-document name similarity is deliberately absent here.** It is Splink's
+  job (§3.2), where it arrives with a score and a per-feature waterfall instead
+  of a bare assertion that two slugs matched.
 
 Rule output is a **pre-verified candidate**: ranked top-of-queue, evidence
 attached, batch-confirmable in one human action. `producer` on the candidate is

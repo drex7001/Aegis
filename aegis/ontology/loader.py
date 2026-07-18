@@ -75,6 +75,12 @@ class PredicateSpec(BaseModel):
     symmetric: bool = False
     computed: bool = False
     system: bool = False
+    #: The object value is a registry identifier, so two subjects carrying the
+    #: same value are a reason to *propose* they are the same (spec 05 §3.1).
+    #: Declared here rather than hardcoded in the ER rules, so the core stays
+    #: domain-neutral (Article XIV) — a new domain adds identifiers by
+    #: declaring them, not by editing the rule engine.
+    identifier: bool = False
 
     @property
     def is_literal(self) -> bool:
@@ -172,6 +178,17 @@ class Ontology(BaseModel):
             raise OntologyError(
                 f"unknown predicate {name!r} (declared: {sorted(self.predicates)})"
             ) from None
+
+    def identifier_predicates(self) -> dict[str, PredicateSpec]:
+        """Predicates whose object value is a registry identifier (spec 05 §3.1).
+
+        The deterministic ER rules iterate this instead of naming NIC or
+        vehicle registrations, so the rule engine carries no domain vocabulary
+        (Article XIV).
+        """
+        return {
+            name: spec for name, spec in self.predicates.items() if spec.identifier
+        }
 
     def action(self, name: str) -> ActionSpec:
         try:

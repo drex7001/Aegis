@@ -10,7 +10,10 @@
 #   · no credibility words like "suspected_" (grading carries the doubt)
 # Dataset-specific verb mappings live in the migration adapter, not here.
 
-version: 1.0.0   # major: `merged_into` removed (T17, ADR-028 §5) — merge lineage
+version: 1.1.0   # minor: additive identifier predicates + the `identifier` flag
+                 # the deterministic ER rules key off (T18, spec 05 §3.1).
+                 #
+                 # 1.0.0 was major: `merged_into` removed (T17, ADR-028 §5) — merge lineage
                  # is ledger metadata, not a claim, because a claim requires a
                  # source record (Article I) and administrative metadata has
                  # none.  Migration 0007 ships with the removal and the prior
@@ -98,6 +101,18 @@ object_types:
 predicates:
   # ── generic / structural ──────────────────────────────────────────────
   known_as:            {subject: [person, organization], object: literal}
+
+  # Registry identifiers.  `identifier: true` is what the deterministic ER
+  # rules key off (spec 05 §3.1) — they never name a specific identifier, so a
+  # new domain declares its own here rather than editing the engine.  The
+  # claim's `jurisdiction` carries the issuer and `valid_from`/`valid_to` the
+  # validity window; a conflict in either suppresses the candidate (H-07),
+  # because identifiers contain errors, fraud, duplicates and reuse.
+  # `person.nic` is omitted for real people by the ethics rubric — this mostly
+  # serves fictional and future authorized data (data/real/README.md).
+  has_nic:             {subject: [person], object: literal, identifier: true}
+  registered_as:       {subject: [vehicle], object: literal, identifier: true}
+  reachable_on:        {subject: [phone_number], object: literal, identifier: true}
   # object list may include 'literal': affiliation resolves to an organization
   # entity when one exists, else the affiliation text is kept as a literal
   # (spec 02 §6 — migration + extraction both need the fallback).

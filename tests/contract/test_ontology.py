@@ -43,7 +43,7 @@ def errors_of(data: dict) -> list[str]:
 def test_committed_ontology_loads() -> None:
     ont = load(ONTOLOGY_PATH)
     assert isinstance(ont, Ontology)
-    assert ont.version == "1.0.0"
+    assert ont.version == "1.1.0"
     assert "person" in ont.object_types
     assert "member_of" in ont.predicates
     assert "record_claim" in ont.actions
@@ -241,3 +241,23 @@ def test_all_errors_collected_in_one_pass(data: dict) -> None:
 def test_missing_file_raises_ontology_error(tmp_path: Path) -> None:
     with pytest.raises(OntologyError, match="not found"):
         load(tmp_path / "nope.yaml")
+
+
+@pytest.mark.requirement("Article-XIV", "ADR-027", "T18")
+def test_identifier_predicates_are_declared_not_hardcoded() -> None:
+    """The ER rules key off this flag rather than naming NIC or registrations.
+
+    A domain-neutral core (Article XIV) means a new domain adds an identifier
+    by declaring one here — never by editing `aegis/er/rules.py`.
+    """
+    ont = load(ONTOLOGY_PATH)
+    identifiers = ont.identifier_predicates()
+    assert set(identifiers) == {"has_nic", "registered_as", "reachable_on"}
+    for name, spec in identifiers.items():
+        # An identifier is a value the source states, not a link between two
+        # entities: a shared *entity* object would already be the same node.
+        assert spec.is_literal, f"{name} must take a literal object"
+    # every other predicate must opt out, so the flag stays meaningful
+    assert not any(
+        spec.identifier for name, spec in ont.predicates.items() if name not in identifiers
+    )

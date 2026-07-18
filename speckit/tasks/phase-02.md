@@ -125,6 +125,25 @@ change; confirming it in one human action creates a ledger decision with the
 human as `decided_by`; cross-document same-slug never lands above the
 pre-verified band.
 
+*Candidate-generation side landed* (`aegis/er/rules.py`, `aegis/er/settings.py`,
+`aegis identity run-rules`). Decisions: the engine names no identifier — it
+iterates predicates the ontology declares `identifier: true`, so the core stays
+domain-neutral (Article XIV) and the ontology gains that flag plus `has_nic`,
+`registered_as`, `reachable_on` as an additive **1.1.0** bump. **Passport rules
+are not implemented**: the ontology declares no passport property, and adding
+domain vocabulary without a competency question belongs in the P3 proposal
+process, not in a rule engine. Issuer and validity conflict checks (H-07) read
+the claim's existing `jurisdiction` and `valid_from`/`valid_to` rather than new
+columns. Rule candidates carry `score = NULL` — a fabricated 1.0 would be
+indistinguishable from a model that was certain.
+
+**The second AC clause — "confirming it in one human action creates a ledger
+decision" — is T20's**, since `adjudicate_identity` lands there. T19's AC ("a
+rejected pair is never re-emitted") depends on T20's negative constraints the
+same way, so **T20 is implemented before T19**; the rule engine's suppression
+path is already proven against a hand-written constraint. No chartered
+deliverable changes, so no new ADR — only the order within Milestone B.
+
 **T19. Splink pipeline** (specs/05 §2.2) — DuckDB backend; transliteration-aware
 features (ICU Latin key + raw-script key, Jaro-Winkler + token-set, alias
 cross-match, affiliation overlap, DOB conflict as negative evidence);
