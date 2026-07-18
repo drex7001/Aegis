@@ -1,12 +1,12 @@
 # Spec 02 — Data Model (Claim Store)
 
 Status: implemented in Phase 1 (v1 reference) — **§2 (identity) rewritten
-2026-07-18 by T17a under ADR-028 (identity decision ledger). §3 (claim
-arguments) and §7 (edge projection) are still being rewritten by T17b under
+2026-07-18 by T17a under ADR-028 (identity decision ledger); §3 (claim
+arguments) and §7 (traversal projection) rewritten 2026-07-18 by T17b under
 ADR-029 (mention anchors + identity-revision resolution) and ADR-030 (honest
-aggregation); the review-queue section by T17c under ADR-031 (typed suggestion
-envelope). Where this text conflicts with those ADRs, the ADRs
-win.** · Constitutional basis: Articles I, III, IV, V, VIII, X, XIII
+aggregation). The review-queue section is still being rewritten by T17c under
+ADR-031 (typed suggestion envelope). Where this text conflicts with those ADRs,
+the ADRs win.** · Constitutional basis: Articles I, III, IV, V, VIII, X, XIII
 
 DDL below is illustrative Postgres 16; Alembic migrations are authoritative. IDs are
 ULIDs with type prefixes (`ent_`, `clm_`, `src_`, `rec_`, `evd_`, `cas_`) — sortable,
@@ -178,6 +178,19 @@ CREATE TABLE claim (
   object_value JSONB,
   CHECK ((object_id IS NULL) <> (object_value IS NULL)),
 
+  -- mention anchors (ADR-029): the textual evidence each entity argument came from.
+  -- Nullable in the schema because analyst and assessment claims legitimately have
+  -- no mention; REQUIRED for extracted/reported claims by the rule below — an
+  -- application invariant, not a CHECK, because it depends on assertion_type
+  -- semantics the DB does not own.
+  subject_mention_id TEXT REFERENCES mention,
+  object_mention_id  TEXT REFERENCES mention,
+  CHECK (object_mention_id IS NULL OR object_id IS NOT NULL),  -- no anchor without an entity arg
+
+  -- the identity revision current at recorded_at (ADR-029 §2). Projections resolve
+  -- arguments through the ACTIVE revision; as-of queries may pin this one instead.
+  identity_revision_id BIGINT NOT NULL REFERENCES identity_revision,
+
   assertion_type TEXT NOT NULL,         -- observed | reported | inferred | assessed  (GOAL.md Rule 3)
   record_id      TEXT NOT NULL REFERENCES source_record,   -- Article I: no orphan claims
   excerpt        TEXT,                  -- verbatim supporting text
@@ -219,12 +232,44 @@ CREATE TABLE claim_relation (
 );
 ```
 
-> **Amended by ADR-029 (P2 T17b rewrites this section).** Entity-valued
-> arguments gain optional `subject_mention_id` / `object_mention_id` anchors
-> (required for extracted/reported claims) plus an identity-revision stamp at
-> `recorded_at`; projections resolve arguments through the active identity
-> revision. Unanchored (manual/assessment) claims route to re-adjudication on
-> a split affecting their entity.
+### 3.1 Argument attribution rules (ADR-029)
+
+The hybrid argument model: a claim keeps its **entity** arguments *and* carries
+the **mention** evidence behind them. Mention-only references were rejected —
+analyst-authored and assessment claims legitimately have no textual mention.
+
+1. **Anchors required by assertion type.** `assertion_type IN ('observed',
+   'reported')` — and every claim produced by an extraction producer — must
+   carry an anchor for each entity-valued argument. `inferred` and `assessed`
+   claims may be unanchored. Enforced in the actions layer at write time, where
+   `assertion_type` is already validated (ADR-013), not by a CHECK.
+2. **Revision stamp.** Every claim stamps `identity_revision_id` = the active
+   revision at `recorded_at`. This records *what identity meant when the claim
+   was made*; it is not a resolution instruction.
+3. **Resolution.** Projections and queries resolve `subject_id`/`object_id`
+   through the **active** revision via `entity_canonical_map` (specs/05 §5).
+   An as-of query may pin an explicit revision instead — that pinning is what
+   makes the P4 as-of answer defensible (B-11).
+4. **Split behavior.** When a split affects a claim's entity:
+   - **Anchored** claims follow their mention. The mention moved to a specific
+     entity, so the claim's attribution is decided — no human is asked, and no
+     claim row is rewritten.
+   - **Unanchored** claims route to **re-adjudication**: a
+     `claim_relation`-kind entry in the review inbox naming both candidate
+     entities. They are never silently reassigned to either side, and never
+     dropped (Article VIII).
+5. **No claim row is ever rewritten by an identity decision.** Merges and
+   splits change memberships and the canonical map; `claim.subject_id` and
+   `claim.object_id` are immutable after write. This is the property the
+   reversal tests assert (specs/05 §8).
+
+The backfill for Phase-1 claims is **heuristic and lossy**: existing rows record
+only `record_id`, never the mention that produced them, so T17 matches
+`mention.norm_key` within the claim's own record. Where the heuristic is
+ambiguous — several mentions of the same `norm_key` in one record, or none —
+the claim is left **unanchored** rather than guessed, and is therefore governed
+by rule 4's re-adjudication path. The migration reports the counts it anchored,
+left unanchored, and found ambiguous.
 
 **Vocabulary enforcement (ADR-013).** Ontology-owned vocabularies — `predicate`,
 `entity_type`, `source_type`, grading values, `handling_code` — are plain TEXT.
@@ -398,42 +443,97 @@ vocabulary; specifics move onto the claim):
 Projection weight function (keeps UI/clustering behavior):
 `confirmed→1.0, probably_true→0.7, possibly_true→0.55, doubtful→0.4, improbable→0.2,
 cannot_judge→0.4`. Committed as code with tests; tune only with an ADR.
+**Legacy-only from P2 (ADR-030):** the v2 projection stores no aggregate weight,
+so this function survives solely inside the legacy graph emitter until T22
+deletes it. It is a migration-compatibility artifact, not a claim about
+confidence.
 
-## 7. Traversal projection (ADR-002)
+## 7. Traversal projection v2 (ADR-002, ADR-029, ADR-030)
 
-> **Superseded by ADR-029/ADR-030 (P2 T21 reimplements this view).** The
-> illustrated aggregation fabricates time (min/max collapse of disjoint
-> intervals), collapses confidence (`max(weight)` erases contradictions), and
-> mislabels distinct records as independent. The v2 projection resolves
-> subject/object through the active identity revision, emits interval
-> sets/time segments, carries a support summary (grading refs, contradiction +
-> corroboration counts, method + version), and stamps identity revision +
-> ontology version + builder version.
+Rewritten by P2 T17b; implemented by T21. The Phase-1 view (migration `0006`,
+still live until T21) fabricates time by collapsing disjoint intervals with
+`min`/`max`, erases contradictions with `max(projection_weight(...))`, and
+labels distinct records `independent_records`. Together those three produce
+precisely the "authoritative rumor engine" GOAL.md forbids. The v2 semantics:
+
+**Identity resolution.** Subject and object resolve through the **active**
+identity revision via `entity_canonical_map` before grouping, so a merge
+collapses two nodes into one and a split restores them — with zero claim-row
+rewrites (ADR-029 §3, specs/05 §5).
+
+**Time — interval sets, never collapsed.** An edge is emitted as
+**time-segmented rows**: one row per maximal interval over which the same
+supporting claim set holds. Two claims covering 2019 and 2023 produce two
+segments, not one 2019–2023 edge. An open interval (`valid_to IS NULL`) stays
+open in its own segment.
+
+**Confidence — no authoritative scalar.** No aggregate weight column exists.
+The edge carries a **support summary**: the grading references of every
+supporting claim (reliability, credibility, verification kept separate —
+Article III), a contradiction count and a corroboration count from
+`claim_relation`, and the aggregation method + version that produced it. Any
+display score is computed in the UI from the summary and is inspectable
+(Article III's "display scores are *derived*"). The Phase-1
+`projection_weight()` function survives only inside the legacy emitter until
+T22 deletes it.
+
+**Counting — `record_count`, never "independent".** Distinct supporting records
+are counted and named `record_count`. Independence is a claim about source
+derivation that Aegis cannot yet substantiate; until a source-derivation model
+exists, **no independence is rendered anywhere** (ADR-030 §3).
+
+**Stamps.** Every build records the identity revision, ontology version, and
+builder version it ran at, so any rendered edge is fully attributable and a
+stale projection is detectable rather than silently wrong.
 
 ```sql
-CREATE MATERIALIZED VIEW edge_projection AS
-SELECT subject_id, object_id, predicate,
-       min(valid_from)                          AS valid_from,
-       CASE WHEN bool_or(valid_to IS NULL) THEN NULL ELSE max(valid_to) END AS valid_to,
-       count(*)                                 AS claim_count,
-       count(DISTINCT record_id)                AS independent_records,
-       max(projection_weight(credibility_normalized)) AS weight,
-       array_agg(claim_id)                      AS claim_ids,
-       max(handling_code_rank(handling_code))   AS handling_rank
-FROM claim
-WHERE object_id IS NOT NULL
-  AND retracted_at IS NULL
-GROUP BY subject_id, object_id, predicate;
+-- illustrative shape; T21 owns the implementation. A TABLE, not a matview:
+-- segmentation is not expressible as a single GROUP BY.
+CREATE TABLE edge_projection (
+  edge_id        TEXT PRIMARY KEY,
+  subject_id     TEXT NOT NULL REFERENCES entity,   -- canonical at build revision
+  object_id      TEXT NOT NULL REFERENCES entity,
+  predicate      TEXT NOT NULL,
+  segment_from   DATE,                              -- one row per maximal interval
+  segment_to     DATE,                              -- NULL = open
+  claim_ids      TEXT[] NOT NULL,                   -- the claims holding over this segment
+  record_count   INTEGER NOT NULL,                  -- DISTINCT records — never "independent"
+  support        JSONB NOT NULL,                    -- per-claim grading refs, contradiction +
+                                                    -- corroboration counts, method + version
+  handling_rank  INTEGER NOT NULL,                  -- max over supporting claims (row filter)
+  built_at_revision_id BIGINT NOT NULL REFERENCES identity_revision,
+  ontology_version TEXT NOT NULL,
+  builder_version  TEXT NOT NULL
+);
 ```
 
-k-hop expansion = recursive CTE over this view with hop limit, handling-rank filter,
-and time predicates pushed in. The graph-JSON emitter and Cypher export read this view.
+k-hop expansion = recursive CTE over this table with hop limit, handling-rank filter,
+and time predicates pushed into the segment bounds. The graph-JSON emitter and Cypher
+export read it. Losing the whole table loses nothing (Article XIII).
+
+### 7.1 Blocking tests (ADR-029 §5, ADR-030)
+
+| Case | Assertion |
+|---|---|
+| Merge collapse | Merging B into A collapses their nodes and edges; **no claim row is modified** |
+| Split restore | Splitting B back out restores the pre-merge edge set exactly, again with zero claim rewrites |
+| Disjoint intervals | Claims covering 2019 and 2023 yield **two segments**, not one continuous edge |
+| Contradiction survives | An edge supported by contradicting claims exposes both in its support summary; no aggregate hides either |
+| Attribution | Every rendered edge resolves to ≥ 1 source record (Article I) |
+| Stamp freshness | An edge built at an older revision is detectable as stale via `built_at_revision_id` |
+| Unanchored on split | An ambiguous unanchored claim appears in the review inbox rather than being reassigned (§3.1 rule 4) |
 
 ## 8. Indexing (Phase 1 minimum)
 
 - `claim(subject_id)`, `claim(object_id)`, `claim(predicate)`, `claim(record_id)`,
   partial index `WHERE retracted_at IS NULL`.
 - `mention(norm_key)`, `entity(label gin_trgm_ops)` for lookup.
+- P2 additions: `claim(subject_mention_id)`, `claim(object_mention_id)` (split
+  re-adjudication looks claims up by mention); `identity_membership(entity_id)
+  WHERE closed_revision_id IS NULL` (canonical-map rebuild and scoped
+  concurrency checks); `er_candidate(disposition) WHERE disposition = 'open'`
+  (inbox scan); `edge_projection(subject_id, predicate)` and
+  `(object_id, predicate)` for k-hop expansion.
 - `source_record(ingest_key)` unique (exists), `(content_hash)`.
 - `audit_log(at)`, `audit_log(actor, at)`.
 - `authz_outbox(processed_at) WHERE processed_at IS NULL` (dispatcher scan, ADR-014).
