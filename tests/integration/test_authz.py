@@ -1,3 +1,4 @@
+
 """AuthZ tests (speckit T12): row-filter matrix, outbox dual-write drill, rebuild.
 
 The dual-write drill is the ADR-014 acceptance criterion, run against the live
@@ -20,11 +21,13 @@ from sqlalchemy.orm import Session
 
 from aegis.actions import ActionContext, ActionService, new_id
 from aegis.api.auth import UserContext
-from aegis.authz import FGAClient, FGAError, claim_filters, desired_tuples, rebuild, sync
+from aegis.authz import claim_filters
 from aegis.ontology import load
 from aegis.store import AuthzOutbox, Claim, Entity, Source, SourceRecord
+from tests.support.database import migrated_test_engine
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
+pytestmark = pytest.mark.requirement("Article-VI", "T12", "T24b")
 
 
 def _user(sub: str, *roles: str, clearance: int = 0) -> UserContext:
@@ -43,40 +46,9 @@ def ontology():
 
 
 @pytest.fixture(scope="module")
-def authz_engine() -> sa.Engine:
-    database_url = os.getenv("AEGIS_TEST_DATABASE_URL")
-    if not database_url:
-        pytest.skip("set AEGIS_TEST_DATABASE_URL to run PostgreSQL authz tests")
-    config = Config(str(REPO_ROOT / "alembic.ini"))
-    config.set_main_option("script_location", str(REPO_ROOT / "migrations"))
-    previous = os.environ.get("AEGIS_DATABASE_URL")
-    os.environ["AEGIS_DATABASE_URL"] = database_url
-    from aegis.config import get_settings
-
-    get_settings.cache_clear()
-    command.upgrade(config, "head")
-    engine = sa.create_engine(database_url)
-    yield engine
-    engine.dispose()
-    if previous is None:
-        os.environ.pop("AEGIS_DATABASE_URL", None)
-    else:
-        os.environ["AEGIS_DATABASE_URL"] = previous
-    get_settings.cache_clear()
-
-
-@pytest.fixture(scope="module")
-def live_fga(authz_engine) -> FGAClient:
-    from aegis.config import get_settings
-
-    if not get_settings().fga_store_id:
-        pytest.skip("FGA_STORE_ID not configured — run `make bootstrap`")
-    fga = FGAClient()
-    try:
-        fga.check("user:probe", "can_view", "case:probe")
-    except FGAError:
-        pytest.skip("OpenFGA is not reachable — start the compose stack")
-    return fga
+def authz_engine(test_database_url: str, alembic_config: Config) -> sa.Engine:
+    with migrated_test_engine(test_database_url, alembic_config) as engine:
+        yield engine
 
 
 # ── the role × handling × membership matrix (spec 03 §4) ────────────────────
@@ -187,61 +159,3 @@ def test_matrix_retraction_visible_only_to_auditor(matrix, ontology) -> None:
     assert matrix["retracted_claim"] not in analyst
     auditor = _visible(session, _user(matrix["member"], "auditor", clearance=2), ontology, matrix)
     assert matrix["retracted_claim"] in auditor
-
-
-# ── dual-write drill (ADR-014 AC) ────────────────────────────────────────────
-
-
-@pytest.mark.integration
-def test_dual_write_drill_and_rebuild(authz_engine, ontology, live_fga) -> None:
-    user_id = f"drill-{new_id('u')}"
-    context = ActionContext(actor="test:drill", purpose="T12 drill")
-
-    # 1. FGA is "down" — the membership write must still commit.
-    with Session(authz_engine) as session:
-        service = ActionService(session, ontology)
-        with session.begin():
-            case = service.open_case(context, title="Drill case", purpose="drill")
-            case_id = case.case_id
-            service.assign_case_member(
-                context, case_id=case_id, user_id=user_id, role="analyst"
-            )
-        pending = session.scalars(
-            select(AuthzOutbox).where(AuthzOutbox.processed_at.is_(None))
-        ).all()
-        assert any(
-            row.fga_tuple == {"user": f"user:{user_id}", "relation": "analyst", "object": f"case:{case_id}"}
-            for row in pending
-        )
-
-    dead_fga = FGAClient(
-        api_url="http://127.0.0.1:59999", store_id="dead-store", model_id="dead-model"
-    )
-    with Session(authz_engine) as session:
-        report = sync(session, dead_fga)
-        assert not report.ok
-        assert report.processed == 0  # grants fail closed while the outbox drains
-
-    # 2. FGA is back — sync drains, the check now allows.
-    with Session(authz_engine) as session:
-        report = sync(session, live_fga)
-        assert report.ok, report.error
-        assert report.processed >= 1
-    assert live_fga.check(f"user:{user_id}", "can_view", f"case:{case_id}")
-    assert live_fga.check(f"user:{user_id}", "can_edit", f"case:{case_id}")
-    assert not live_fga.check(f"user:{user_id}", "can_approve", f"case:{case_id}")
-
-    # 3. Idempotent retry: re-writing the same tuple converges silently.
-    live_fga.write(
-        {"user": f"user:{user_id}", "relation": "analyst", "object": f"case:{case_id}"}
-    )
-
-    # 4. Rebuild from Postgres alone reproduces the tuple set.
-    with Session(authz_engine) as session:
-        desired = desired_tuples(session)
-        rebuild_report = rebuild(session, live_fga)
-    assert rebuild_report.desired == len(desired)
-    assert (f"user:{user_id}", "analyst", f"case:{case_id}") in desired
-    in_store = {(t["user"], t["relation"], t["object"]) for t in live_fga.read_all()}
-    assert in_store == desired
-    assert live_fga.check(f"user:{user_id}", "can_view", f"case:{case_id}")

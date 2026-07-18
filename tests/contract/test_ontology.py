@@ -15,7 +15,8 @@ import yaml
 
 from aegis.ontology import Ontology, OntologyError, OntologyValidationError, load, load_dict
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
+pytestmark = pytest.mark.requirement("Article-XI", "T3")
 ONTOLOGY_PATH = REPO_ROOT / "ontology" / "aegis.yaml"
 
 

@@ -74,9 +74,42 @@ make install                     # locked aegis package + dev environment
 Verify the build the way CI does:
 
 ```bash
-make test              # pytest (integration tests need the compose test DB)
-make lint-ontology     # aegis ontology validate — the Article XI gate
+make test-fast          # unit + component + contract; no services required
+make test-integration   # requires AEGIS_TEST_DATABASE_URL (disposable PostgreSQL)
+make up && make bootstrap
+make test-system        # real PostgreSQL + OpenFGA governance checks
+make test-coverage      # all blocking layers, line + branch coverage
+make lint-ontology      # Article XI gate
 ```
+
+## Testing
+
+Tests are organized by the boundary they exercise, then by subject:
+
+```text
+tests/
+├── unit/          # pure rules and validation
+├── component/     # in-process API/CLI with replaced external boundaries
+├── contract/      # ontology, schema, OpenAPI, and governance invariants
+├── integration/   # PostgreSQL-backed behavior
+├── system/        # real multi-service behavior such as OpenFGA convergence
+├── e2e/           # reserved for Phase 2 browser journeys
+├── fixtures/      # deterministic fictional inputs
+├── snapshots/     # reviewed expected outputs
+└── support/       # test-only factories, constants, and paths
+```
+
+The complete process is in [`docs/testing/`](docs/testing/README.md):
+[strategy](docs/testing/TESTING_STRATEGY.md),
+[quality criteria and traceability](docs/testing/TESTING_CRITERIA.md), and
+[best practices](docs/testing/BEST_PRACTICES.md).
+
+Every feature or fix must include tests at the lowest useful layer. Cover the
+success and failure paths plus authorization, audit, provenance, rollback, and
+idempotency where they apply. Governance and phase-gate tests carry a
+`requirement` marker. New test data must be fictional and deterministic; do not
+let a blocking suite silently skip missing infrastructure. Include the exact
+commands and results in the pull request.
 
 ## Repository map
 
@@ -88,8 +121,8 @@ make lint-ontology     # aegis ontology validate — the Article XI gate
 | `ui/` | React + TypeScript investigation workspace (Phase 2, ADR-032) — the single durable UI; replaces the legacy explorer at T22 |
 | `migrations/` | Alembic schema migrations |
 | `infra/` | Compose stack + bootstrap (PostgreSQL/PostGIS, MinIO, Keycloak, OpenFGA) |
-| `tests/` | Unit + integration suites (CI runs both) |
-| `docs/` | Active runbooks: git workflow, backup/restore, governed ingestion |
+| `tests/` | Layered unit, component, contract, integration, system, and future E2E suites; see [`docs/testing/`](docs/testing/README.md) |
+| `docs/` | Active runbooks: git workflow, backup/restore, governed ingestion, and testing |
 | `data/` | Corpora: `data/real/` (public-reporting OSINT — **read [`data/real/README.md`](data/real/README.md) first**) and `data/sample/` (fictional) |
 | `speckit/` | Constitution, spec, plan, decisions (ADRs), roadmap, phase charters, detailed specs |
 | `scripts/` | Operational helpers (backup/restore, ingestion setup) |

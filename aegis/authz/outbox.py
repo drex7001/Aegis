@@ -11,7 +11,7 @@ against the store, which both repairs drift and proves the projection property
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import time
@@ -142,14 +142,16 @@ async def dispatch_forever(
     interval_seconds: float = 5.0,
     batch_size: int = 100,
     _sync_fn: Callable[..., SyncReport] = sync,
+    _clock_fn: Callable[[], float] = time.monotonic,
+    _sleep_fn: Callable[[float], Awaitable[None]] = asyncio.sleep,
 ) -> None:
     """Drain the authorization outbox on a fixed start-to-start cadence.
 
-    ``_sync_fn`` is an internal test seam used to measure the retry cadence
-    without a database or OpenFGA process.  Production callers use ``sync``.
+    The underscored callables are internal test seams used to verify retry
+    cadence without a database, OpenFGA process, or wall-clock timing.
     """
     while True:
-        started = time.monotonic()
+        started = _clock_fn()
         try:
             report = await asyncio.to_thread(
                 _dispatch_once, session_factory, fga, batch_size, _sync_fn
@@ -173,8 +175,8 @@ async def dispatch_forever(
                     pending=report.pending,
                     max_delete_staleness_seconds=report.max_delete_staleness_seconds,
                 )
-        elapsed = time.monotonic() - started
-        await asyncio.sleep(max(0.0, interval_seconds - elapsed))
+        elapsed = _clock_fn() - started
+        await _sleep_fn(max(0.0, interval_seconds - elapsed))
 
 
 def desired_tuples(session: Session) -> set[tuple[str, str, str]]:

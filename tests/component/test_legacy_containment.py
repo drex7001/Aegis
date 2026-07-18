@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 from typer.testing import CliRunner
 
@@ -9,6 +10,9 @@ from aegis.api import create_app
 from aegis.api.routes import graph
 from aegis.cli import app as cli_app
 from aegis.config import get_settings
+
+
+pytestmark = pytest.mark.requirement("Article-VI", "ADR-026", "T16a")
 
 
 def test_serve_refuses_non_loopback_without_explicit_override() -> None:

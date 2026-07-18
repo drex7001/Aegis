@@ -32,7 +32,13 @@ dependencies = [
 # python-igraph + leidenalg give true multiplex Leiden (legacy.pipeline.clustering
 # prefers them, falls back to networkx Louvain when absent). In dev/CI so the
 # projection tests exercise the leiden path.
-dev = ["pytest>=8", "python-igraph>=0.11", "leidenalg>=0.10"]
+dev = [
+    "pytest>=8",
+    "pytest-cov>=6",
+    "httpx2>=2.0",
+    "python-igraph>=0.11",
+    "leidenalg>=0.10",
+]
 
 [project.urls]
 Repository = "https://github.com/drex7001/Aegis"
@@ -47,4 +53,29 @@ packages = ["aegis"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = ["integration: requires the dedicated PostgreSQL test database"]
+addopts = "--strict-config --strict-markers --import-mode=importlib"
+xfail_strict = true
+markers = [
+    "unit: isolated test with no process or service boundary",
+    "component: in-process API or CLI test with replaced external boundaries",
+    "contract: schema, ontology, API, or governance invariant",
+    "integration: requires the dedicated PostgreSQL test database",
+    "system: requires the real compose service stack",
+    "e2e: browser-driven end-to-end workflow",
+    "requirement(*ids): maps a test to constitution, spec, ADR, or task identifiers",
+    "slow: intentionally long-running test",
+    "manual: operator-run non-blocking test",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["aegis"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+precision = 1
+fail_under = 80
+
+[tool.coverage.xml]
+output = "coverage.xml"

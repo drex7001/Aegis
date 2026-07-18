@@ -17,8 +17,9 @@ scaffolding: **replace, never extend** (ADR-023, ADR-024).
 - Conventional commit messages; PR titles in the same format (they become the
   squash-commit subject). Keep the `Co-Authored-By:` trailer on AI-assisted
   commits.
-- Before pushing: `pytest -q -m "not integration"` and, if the ontology
-  changed, `aegis ontology validate` + a semver bump (spec 01 §4).
+- Before pushing: `make test-fast` plus every affected integration/system
+  suite and, if the ontology changed, `aegis ontology validate` + a semver
+  bump (spec 01 §4).
 - Never rewrite pushed history; undo on master is `git revert`.
 - Never commit secrets (`.env` stays untracked) or large binaries.
 - **AI-agent rules** (GIT_WORKFLOW.md §AI-assisted development): when the user
@@ -47,7 +48,10 @@ scaffolding: **replace, never extend** (ADR-023, ADR-024).
 ```bash
 make up && make bootstrap        # compose stack: postgres+postgis, minio, keycloak, openfga
 aegis db upgrade                 # alembic migrations
-pytest -q -m "not integration"   # fast suite (integration needs the test DB)
+make test-fast                   # unit + component + contract
+make test-integration            # dedicated PostgreSQL test database
+make test-system                 # real compose/OpenFGA behavior
+make test-coverage               # full line + branch coverage gate
 aegis ontology validate          # Article XI gate (also in CI)
 aegis projections rebuild        # regenerate all projections (Article XIII)
 aegis serve                      # FastAPI dev server
@@ -55,6 +59,20 @@ aegis serve                      # FastAPI dev server
 
 CI (`.github/workflows/ci.yml`) runs pytest + ontology validation
 automatically on every push/PR — do not merge on red.
+
+## Testing rules
+
+- Read `docs/testing/README.md` before adding or moving tests. Place each test
+  in the lowest layer that proves the behavior; directory placement applies
+  its pytest layer marker automatically.
+- Every feature/fix includes success, failure, and regression coverage plus
+  authorization, audit, provenance, rollback, and idempotency checks when
+  applicable. Tag governance and phase-gate cases with
+  `@pytest.mark.requirement(...)` and update the traceability matrix.
+- Blocking integration/system tests fail when infrastructure is missing; do
+  not replace failures with skips. Use only fictional deterministic fixtures.
+- PR bodies list exact test commands and results. Never weaken assertions,
+  hide warnings, blindly update snapshots, or add retries merely to get green.
 
 ## Data ethics
 

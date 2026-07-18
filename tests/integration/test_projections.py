@@ -1,19 +1,10 @@
-"""Projection builder tests (speckit T10).
-
-The acceptance criterion: migrated data → rebuild → semantically equal to the
-committed baseline JSON (same nodes/edges/weights/dates).  "Semantically"
-means modulo the *declared* legacy transformations, so the baseline edges are
-pushed through the same remap table the migration used
-(:func:`aegis.migration.remap_edge`) before comparison — splits, credibility
-caps and category corrections are part of the contract, not drift.
-"""
+"""Projection rebuild acceptance tests (speckit T10)."""
 
 from __future__ import annotations
 
 from collections import Counter
 import json
 import os
-from pathlib import Path
 
 import pytest
 import sqlalchemy as sa
@@ -30,14 +21,16 @@ from aegis.projections import (
     build_full_graph,
     refresh_edge_projection,
 )
+from tests.support.paths import ONTOLOGY_PATH, REPO_ROOT, SNAPSHOT_ROOT
+from tests.support.database import migrated_test_engine
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-BASELINE = REPO_ROOT / "tests" / "snapshots" / "real_graph.baseline.json"
+BASELINE = SNAPSHOT_ROOT / "real_graph.baseline.json"
+pytestmark = pytest.mark.requirement("Article-XIII", "T10")
 
 
 @pytest.fixture(scope="module")
 def ontology():
-    return load(REPO_ROOT / "ontology" / "aegis.yaml")
+    return load(ONTOLOGY_PATH)
 
 
 @pytest.fixture(scope="module")
@@ -45,58 +38,18 @@ def baseline() -> dict:
     return json.loads(BASELINE.read_text(encoding="utf-8"))
 
 
-# ── unit: the weight function is committed code with tests (spec 02 §6) ─────
-
-
-def test_projection_weights_match_spec() -> None:
-    assert WEIGHTS == {
-        "confirmed": 1.0,
-        "probably_true": 0.7,
-        "possibly_true": 0.55,
-        "doubtful": 0.4,
-        "improbable": 0.2,
-        "cannot_judge": 0.4,
-    }
-
-
-def test_reverse_maps_cover_every_credibility_value(ontology) -> None:
-    for value in ontology.grading.values_for("credibility"):
-        assert value in WEIGHTS
-        assert CONFIDENCE_TAGS[value] in {"EXTRACTED", "INFERRED", "AMBIGUOUS"}
-
-
-# ── integration: migrate → rebuild → compare against the baseline ───────────
-
-
 @pytest.fixture(scope="module")
-def projection_engine() -> sa.Engine:
-    database_url = os.getenv("AEGIS_TEST_DATABASE_URL")
-    if not database_url:
-        pytest.skip("set AEGIS_TEST_DATABASE_URL to run PostgreSQL projection tests")
-    config = Config(str(REPO_ROOT / "alembic.ini"))
-    config.set_main_option("script_location", str(REPO_ROOT / "migrations"))
-    previous = os.environ.get("AEGIS_DATABASE_URL")
-    os.environ["AEGIS_DATABASE_URL"] = database_url
-    from aegis.config import get_settings
-
-    get_settings.cache_clear()
-    command.upgrade(config, "head")
-    engine = sa.create_engine(database_url)
-    with engine.begin() as connection:
-        connection.execute(
-            sa.text(
-                "TRUNCATE claim_relation, review_queue, claim, identity_membership, "
-                "mention, evidence_item, custody_event, derivative, source_record, "
-                "source, case_member, case_file, entity, authz_outbox CASCADE"
+def projection_engine(test_database_url: str, alembic_config: Config) -> sa.Engine:
+    with migrated_test_engine(test_database_url, alembic_config) as engine:
+        with engine.begin() as connection:
+            connection.execute(
+                sa.text(
+                    "TRUNCATE claim_relation, review_queue, claim, identity_membership, "
+                    "mention, evidence_item, custody_event, derivative, source_record, "
+                    "source, case_member, case_file, entity, authz_outbox CASCADE"
+                )
             )
-        )
-    yield engine
-    engine.dispose()
-    if previous is None:
-        os.environ.pop("AEGIS_DATABASE_URL", None)
-    else:
-        os.environ["AEGIS_DATABASE_URL"] = previous
-    get_settings.cache_clear()
+        yield engine
 
 
 @pytest.fixture(scope="module")

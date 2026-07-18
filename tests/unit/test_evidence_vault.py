@@ -3,14 +3,10 @@
 from __future__ import annotations
 
 from io import BytesIO
-import os
 from pathlib import Path
 
-from alembic import command
-from alembic.config import Config
 from pydantic import ValidationError
 import pytest
-import sqlalchemy as sa
 
 from aegis.evidence import (
     IntegrityError,
@@ -20,21 +16,8 @@ from aegis.evidence import (
     get_vault,
     object_key,
 )
-from aegis.store import Base
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-EVIDENCE_TABLES = {"evidence_item", "derivative", "custody_event"}
-T4_TABLES = {
-    "source",
-    "source_record",
-    "entity",
-    "claim",
-    "claim_relation",
-    "review_queue",
-    "case_file",
-    "case_member",
-    "authz_outbox",
-}
+pytestmark = pytest.mark.requirement("Article-IV", "T5")
 
 
 @pytest.fixture
@@ -173,55 +156,3 @@ def test_minio_vault_uses_same_keys_and_deduplicates(provenance: ProvenanceEnvel
     assert client.put_calls == 2  # one content object + one immutable JSON sidecar
     assert vault.get(first.content_hash) == payload
     assert vault.get_provenance(first.content_hash).envelope == provenance
-
-
-def test_evidence_metadata_matches_spec() -> None:
-    assert T4_TABLES | EVIDENCE_TABLES <= set(Base.metadata.tables)
-    derivative_checks = {
-        constraint.name: str(constraint.sqltext)
-        for constraint in Base.metadata.tables["derivative"].constraints
-        if isinstance(constraint, sa.CheckConstraint)
-    }
-    assert derivative_checks == {
-        "ck_derivative_has_parent": "parent_evidence IS NOT NULL OR parent_record IS NOT NULL"
-    }
-    assert type(Base.metadata.tables["evidence_item"].c.handling_code.type) is sa.Text
-
-
-@pytest.mark.integration
-def test_evidence_migration_up_inspect_down_clean(monkeypatch: pytest.MonkeyPatch) -> None:
-    database_url = os.getenv("AEGIS_TEST_DATABASE_URL")
-    if not database_url:
-        pytest.skip("set AEGIS_TEST_DATABASE_URL to run PostgreSQL migration test")
-
-    monkeypatch.setenv("AEGIS_DATABASE_URL", database_url)
-    from aegis.config import get_settings
-
-    get_settings.cache_clear()
-    config = Config(str(REPO_ROOT / "alembic.ini"))
-    config.set_main_option("script_location", str(REPO_ROOT / "migrations"))
-    engine = sa.create_engine(database_url)
-
-    command.upgrade(config, "head")
-    try:
-        inspector = sa.inspect(engine)
-        table_names = set(inspector.get_table_names())
-        assert EVIDENCE_TABLES <= table_names
-        assert T4_TABLES <= table_names
-        assert {check["name"] for check in inspector.get_check_constraints("derivative")} == {
-            "ck_derivative_has_parent"
-        }
-
-        for table_name in EVIDENCE_TABLES:
-            actual = {column["name"] for column in inspector.get_columns(table_name)}
-            mapped = set(Base.metadata.tables[table_name].c.keys())
-            assert actual == mapped
-
-        command.downgrade(config, "0002")
-        downgraded_tables = set(sa.inspect(engine).get_table_names())
-        assert EVIDENCE_TABLES.isdisjoint(downgraded_tables)
-        assert T4_TABLES <= downgraded_tables
-    finally:
-        command.upgrade(config, "head")
-        engine.dispose()
-        get_settings.cache_clear()

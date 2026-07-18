@@ -28,6 +28,8 @@ from aegis.config import Settings
 ISSUER = "http://localhost:8180/realms/aegis"
 AUDIENCE = "aegis-api"
 
+pytestmark = pytest.mark.requirement("Article-VI", "T11")
+
 _PRIVATE_KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 _PUBLIC_KEY = _PRIVATE_KEY.public_key()
 

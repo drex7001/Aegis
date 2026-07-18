@@ -27,29 +27,16 @@ from aegis.store import (
     Source,
     SourceRecord,
 )
+from tests.support.database import migrated_test_engine
+
+
+pytestmark = pytest.mark.requirement("Article-VII", "Article-X", "T7")
 
 
 @pytest.fixture(scope="module")
-def action_engine() -> sa.Engine:
-    database_url = os.getenv("AEGIS_TEST_DATABASE_URL")
-    if not database_url:
-        pytest.skip("set AEGIS_TEST_DATABASE_URL to run PostgreSQL action tests")
-    config = Config("alembic.ini")
-    config.set_main_option("script_location", "migrations")
-    previous = os.environ.get("AEGIS_DATABASE_URL")
-    os.environ["AEGIS_DATABASE_URL"] = database_url
-    from aegis.config import get_settings
-
-    get_settings.cache_clear()
-    command.upgrade(config, "head")
-    engine = sa.create_engine(database_url)
-    yield engine
-    engine.dispose()
-    if previous is None:
-        os.environ.pop("AEGIS_DATABASE_URL", None)
-    else:
-        os.environ["AEGIS_DATABASE_URL"] = previous
-    get_settings.cache_clear()
+def action_engine(test_database_url: str, alembic_config: Config) -> sa.Engine:
+    with migrated_test_engine(test_database_url, alembic_config) as engine:
+        yield engine
 
 
 @pytest.fixture()

@@ -26,33 +26,19 @@ from aegis.ingestion import (
     run_structural_pass,
 )
 from aegis.store import Claim, Entity, IdentityMembership, Mention, ReviewQueue, SourceRecord
+from tests.support.database import migrated_test_engine
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 ARREST_LIST = REPO_ROOT / "data/sample" / "pcoi_arrest_list.txt"
 B_REPORT = REPO_ROOT / "data/sample" / "b_report_excerpt.txt"
 
+pytestmark = pytest.mark.requirement("Article-VII", "T9")
+
 
 @pytest.fixture(scope="module")
-def ingest_engine() -> sa.Engine:
-    database_url = os.getenv("AEGIS_TEST_DATABASE_URL")
-    if not database_url:
-        pytest.skip("set AEGIS_TEST_DATABASE_URL to run PostgreSQL ingestion tests")
-    config = Config(str(REPO_ROOT / "alembic.ini"))
-    config.set_main_option("script_location", str(REPO_ROOT / "migrations"))
-    previous = os.environ.get("AEGIS_DATABASE_URL")
-    os.environ["AEGIS_DATABASE_URL"] = database_url
-    from aegis.config import get_settings
-
-    get_settings.cache_clear()
-    command.upgrade(config, "head")
-    engine = sa.create_engine(database_url)
-    yield engine
-    engine.dispose()
-    if previous is None:
-        os.environ.pop("AEGIS_DATABASE_URL", None)
-    else:
-        os.environ["AEGIS_DATABASE_URL"] = previous
-    get_settings.cache_clear()
+def ingest_engine(test_database_url: str, alembic_config: Config) -> sa.Engine:
+    with migrated_test_engine(test_database_url, alembic_config) as engine:
+        yield engine
 
 
 @pytest.fixture()

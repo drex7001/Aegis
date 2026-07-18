@@ -2,11 +2,32 @@ name: ci
 
 on:
   push:
-    branches: [master]
   pull_request:
 
+permissions:
+  contents: read
+
+env:
+  UV_VERSION: "0.11.19"
+
 jobs:
-  test:
+  fast-tests:
+    name: Fast tests and contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+      - run: uv lock --check
+      - run: uv sync --locked --extra dev
+      - run: make test-fast
+
+  integration-tests:
+    name: PostgreSQL integration tests
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -22,6 +43,8 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
+    env:
+      AEGIS_TEST_DATABASE_URL: postgresql+psycopg://aegis:aegis-test@localhost:5432/aegis_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -29,14 +52,65 @@ jobs:
           python-version: "3.12"
       - uses: astral-sh/setup-uv@v6
         with:
-          version: "0.11.19"
-      - name: Verify dependency lockfile
-        run: uv lock --check
-      - name: Install locked aegis environment
-        run: uv sync --locked --extra dev
-      - name: Unit tests
-        env:
-          AEGIS_TEST_DATABASE_URL: postgresql+psycopg://aegis:aegis-test@localhost:5432/aegis_test
-        run: uv run pytest -q
-      - name: Validate ontology artifact (Article XI gate)
+          version: ${{ env.UV_VERSION }}
+      - run: uv sync --locked --extra dev
+      - run: make test-integration
+
+  system-tests:
+    name: OpenFGA system tests
+    runs-on: ubuntu-latest
+    env:
+      AEGIS_TEST_DATABASE_URL: postgresql+psycopg://aegis:aegis-dev@localhost:5433/aegis
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+      - run: uv sync --locked --extra dev
+      - run: make up
+      - run: make bootstrap
+      - run: make test-system
+      - if: always()
+        run: make down
+
+  coverage-and-governance:
+    name: Coverage and governance gates
+    runs-on: ubuntu-latest
+    env:
+      AEGIS_TEST_DATABASE_URL: postgresql+psycopg://aegis:aegis-dev@localhost:5433/aegis
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+      - run: uv sync --locked --extra dev
+      - run: make up
+      - run: make bootstrap
+      - run: make test-coverage
+      - name: Validate ontology artifact (Article XI)
         run: uv run aegis ontology validate
+      - if: always()
+        run: make down
+
+  test:
+    name: test
+    if: always()
+    needs:
+      - fast-tests
+      - integration-tests
+      - system-tests
+      - coverage-and-governance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce all blocking test stages
+        run: |
+          test "${{ needs.fast-tests.result }}" = "success"
+          test "${{ needs.integration-tests.result }}" = "success"
+          test "${{ needs.system-tests.result }}" = "success"
+          test "${{ needs.coverage-and-governance.result }}" = "success"

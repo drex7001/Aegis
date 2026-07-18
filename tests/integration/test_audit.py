@@ -12,52 +12,17 @@ from alembic.config import Config
 from sqlalchemy.orm import Session
 
 from aegis.audit import append, verify
-from aegis.store import AuditLog, Base
+from aegis.store import AuditLog
+from tests.support.database import migrated_test_engine
 
 
-def test_audit_mapping_and_code_owned_constraint() -> None:
-    table = Base.metadata.tables["audit_log"]
-    assert {
-        "id",
-        "at",
-        "actor",
-        "session_id",
-        "purpose",
-        "case_id",
-        "action",
-        "resource_type",
-        "resource_id",
-        "decision",
-        "detail",
-        "prev_hash",
-        "entry_hash",
-    } == set(table.c.keys())
-    assert {constraint.name for constraint in table.constraints} >= {
-        "ck_audit_log_decision"
-    }
+pytestmark = pytest.mark.requirement("Article-X", "T6")
 
 
 @pytest.fixture(scope="module")
-def audit_engine() -> sa.Engine:
-    database_url = os.getenv("AEGIS_TEST_DATABASE_URL")
-    if not database_url:
-        pytest.skip("set AEGIS_TEST_DATABASE_URL to run PostgreSQL audit tests")
-    config = Config("alembic.ini")
-    config.set_main_option("script_location", "migrations")
-    previous = os.environ.get("AEGIS_DATABASE_URL")
-    os.environ["AEGIS_DATABASE_URL"] = database_url
-    from aegis.config import get_settings
-
-    get_settings.cache_clear()
-    command.upgrade(config, "head")
-    engine = sa.create_engine(database_url)
-    yield engine
-    engine.dispose()
-    if previous is None:
-        os.environ.pop("AEGIS_DATABASE_URL", None)
-    else:
-        os.environ["AEGIS_DATABASE_URL"] = previous
-    get_settings.cache_clear()
+def audit_engine(test_database_url: str, alembic_config: Config) -> sa.Engine:
+    with migrated_test_engine(test_database_url, alembic_config) as engine:
+        yield engine
 
 
 @pytest.mark.integration

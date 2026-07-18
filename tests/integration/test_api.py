@@ -26,11 +26,15 @@ from aegis.actions import new_id
 from aegis.api import create_app
 from aegis.api.auth import OIDCAuthenticator
 from aegis.api.deps import find_ungated_routes
+from aegis.api.routes import graph
 from aegis.store import AuthzOutbox, Entity, Source, SourceRecord
+from tests.support.database import configured_test_database, truncate_domain_data
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 ISSUER = "http://localhost:8180/realms/aegis"
 AUDIENCE = "aegis-api"
+
+pytestmark = pytest.mark.requirement("Article-VI", "T13", "T14")
 
 _KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
@@ -111,25 +115,20 @@ def auth(sub: str, *roles: str, clearance: int = 2) -> dict:
 
 
 @pytest.fixture(scope="module")
-def api_db() -> str:
-    database_url = os.getenv("AEGIS_TEST_DATABASE_URL")
-    if not database_url:
-        pytest.skip("set AEGIS_TEST_DATABASE_URL to run API tests")
-    config = Config(str(REPO_ROOT / "alembic.ini"))
-    config.set_main_option("script_location", str(REPO_ROOT / "migrations"))
-    previous = os.environ.get("AEGIS_DATABASE_URL")
-    os.environ["AEGIS_DATABASE_URL"] = database_url
+def api_db(test_database_url: str, alembic_config: Config) -> str:
+    database_url = test_database_url
     os.environ.setdefault("AEGIS_API_AUDIENCE", AUDIENCE)
-    from aegis.config import get_settings
+    with configured_test_database(database_url, alembic_config):
+        yield database_url
 
-    get_settings.cache_clear()
-    command.upgrade(config, "head")
-    yield database_url
-    if previous is None:
-        os.environ.pop("AEGIS_DATABASE_URL", None)
-    else:
-        os.environ["AEGIS_DATABASE_URL"] = previous
-    get_settings.cache_clear()
+
+@pytest.fixture(autouse=True)
+def clean_api_database(api_db: str):
+    engine = sa.create_engine(api_db)
+    truncate_domain_data(engine)
+    yield
+    truncate_domain_data(engine)
+    engine.dispose()
 
 
 @pytest.fixture(scope="module")
@@ -149,7 +148,7 @@ def fake_fga(client: TestClient):
     client.app.state.fga = previous
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture()
 def seeded(api_db: str) -> dict:
     engine = sa.create_engine(api_db)
     ids = {"source": new_id("src"), "record": new_id("rec"), "p": new_id("ent"), "o": new_id("ent")}
@@ -447,11 +446,19 @@ def test_role_and_custody_changes_delete_old_grants_inline(
 # ── legacy projection surface: public, unchanged shape (T13/T14) ────────────
 
 
-def test_legacy_graph_is_public_and_shaped(client: TestClient) -> None:
-    # ensure the projection file exists (committed baseline is fine for shape)
-    graph_path = REPO_ROOT / "output" / "real_graph.json"
-    if not graph_path.exists():
-        pytest.skip("output/real_graph.json missing — run `aegis projections rebuild`")
+def test_legacy_graph_is_public_and_shaped(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        graph,
+        "_load_graph",
+        lambda: {
+            "nodes": [{"node_id": "fictional-person", "name": "Fictional Person"}],
+            "edges": [],
+            "cells": [],
+            "meta": {"fixture": True},
+        },
+    )
     resp = client.get("/api/graph")  # no Authorization header
     assert resp.status_code == 200
     body = resp.json()
