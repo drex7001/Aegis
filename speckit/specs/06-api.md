@@ -58,9 +58,9 @@ required · **cursor** paginated per §4.
 | `POST /v1/claims/{id}/retract` | analyst, supervisor | case `can_edit` | reason required; soft (Article VIII) | — | `test_actions.py` |
 | `POST /v1/claims/{id}/relations` | analyst | case `can_edit` | corroborates/contradicts | — | `test_actions.py` |
 | `GET /v1/claims/{id}` | — | case `can_view` | grading components separate (Article III), source ref, relations | — | matrix suite |
-| `GET /v1/claims/{id}/provenance` | — | case `can_view` | **generic** provenance for any claim-derived value: source records, all three grading dimensions, relations, identity-decision line (B-14) | — | `test_provenance` |
+| `GET /v1/claims/{id}/provenance` | — | case `can_view` | **generic** provenance for any claim-derived value: source records, all three grading dimensions, relations, identity-decision line (B-14) | — | `test_why_connected.py` (T21) |
 | `GET /v1/entities/{id}` | — | — | claims grouped by predicate; `?asOf=`, `?asOfRevision=` (§3) | — | matrix suite |
-| `GET /v1/entities/{id}/why-connected/{other}` | — | — | claims, gradings, sources, relations, and the identity decisions behind the edge (GOAL.md §18) | max 200 claims | `test_why_connected` |
+| `GET /v1/entities/{id}/why-connected/{other}` | — | — | claims, gradings, sources, relations, and the identity decisions behind the edge (GOAL.md §18); **undirected**, and resolves through the canonical map so claims written against an absorbed id still answer | max 200 claims, `truncated` disclosed | `test_why_connected.py` (T21) |
 | `GET /v1/search/entities?q=` | — | — | `pg_trgm` over names/aliases/mention norm_keys; **authorization applied in candidate generation, not only hydration** (ADR-012, B-17); cursor | q ≤ 200 chars | `test_search`, matrix suite |
 
 ### 2.2 Review queue & identity (Articles VII, V)
@@ -73,7 +73,7 @@ required · **cursor** paginated per §4.
 | `GET /v1/identity/candidates?disposition=&producer=` | analyst | — | `er_candidate` rows with full per-feature waterfall; pre-verified band first; cursor | — | `test_identity_candidates` |
 | `POST /v1/identity/candidates/batch-confirm` | analyst | — | pre-verified band only; **one human action, one ledger decision per pair** (ADR-027); note required | ≤ 100 pairs | `test_batch_confirm` |
 | `POST /v1/identity/decisions` | analyst | — | confirm/reject/split/unresolved; `parent_revision_id` required; **409 on stale scope** with intervening decisions in the body (specs/05 §2) | — | `test_concurrency` |
-| `GET /v1/entities/{id}/identity-history` | — | — | the decision line: who, when, why, which revision | — | `test_identity_history` |
+| `GET /v1/entities/{id}/identity-history` | — | — | the decision line: who, when, why, which revision | — | `test_why_connected.py` (T21) |
 
 `POST /v1/entities/{id}/split` from the Phase-1 draft is **folded into**
 `POST /v1/identity/decisions` (kind `split`) — one route, one concurrency rule,
