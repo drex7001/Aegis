@@ -4,8 +4,8 @@ Status: implemented in Phase 1 (v1 reference) — **§2 (identity) rewritten
 2026-07-18 by T17a under ADR-028 (identity decision ledger); §3 (claim
 arguments) and §7 (traversal projection) rewritten 2026-07-18 by T17b under
 ADR-029 (mention anchors + identity-revision resolution) and ADR-030 (honest
-aggregation). The review-queue section is still being rewritten by T17c under
-ADR-031 (typed suggestion envelope). Where this text conflicts with those ADRs,
+aggregation); §3.2 (review queue) rewritten 2026-07-18 by T17c under ADR-031
+(typed suggestion envelope). Where this text conflicts with those ADRs,
 the ADRs win.** · Constitutional basis: Articles I, III, IV, V, VIII, X, XIII
 
 DDL below is illustrative Postgres 16; Alembic migrations are authoritative. IDs are
@@ -278,31 +278,94 @@ and stamps that version into `ontology_version`; the DB never encodes them. CHEC
 constraints above exist only for code-owned invariants (object XOR, no self-claims,
 time sanity, fixed relation/status values), which don't change when the ontology does.
 
-### Review queue (Article VII)
+### 3.2 Review queue — the typed suggestion envelope (Article VII, ADR-031)
 
-> **Superseded by ADR-031 (P2 T17c rewrites this section).** The opaque
-> `payload` + single `result_claim` FK cannot represent identity decisions,
-> claim relations, or later P8 outputs. The typed envelope adds
-> `suggestion_kind`, `schema_version`, per-kind payload schemas generated from
-> target-action parameters, producer identity/version, idempotency key,
-> supersession/expiry, and a typed result reference; acceptance dispatches
-> through the declared action. High-volume ER candidates live in
-> `er_candidate` (ADR-028); the review inbox is a UI composition.
+Rewritten by P2 T17c. The Phase-1 queue carried an opaque `payload` plus a
+single `result_claim` FK, and acceptance was hardwired to create a claim — so a
+draft that was not a claim could be *written* but never *accepted*. The envelope
+below makes the kind explicit and makes acceptance dispatch through the action
+the kind declares.
 
 ```sql
 CREATE TABLE review_queue (
-  suggestion_id  TEXT PRIMARY KEY,
-  payload        JSONB NOT NULL,        -- claim draft (validated against ontology on accept)
-  producer       TEXT NOT NULL,         -- 'semantic_pass', 'splink', 'structural_pass', ...
-  producer_meta  JSONB NOT NULL,        -- model id/version, prompt hash, score breakdown
-  status         TEXT NOT NULL DEFAULT 'suggested',  -- suggested | accepted | rejected
-  decided_by     TEXT,
-  decided_at     TIMESTAMPTZ,
-  decision_note  TEXT,
-  result_claim   TEXT REFERENCES claim, -- set on acceptance
-  created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+  suggestion_id   TEXT PRIMARY KEY,
+  suggestion_kind TEXT NOT NULL          -- closed, code-owned list (ADR-031 §1); NOT ontology
+                  CHECK (suggestion_kind IN ('claim_draft','identity_candidate','claim_relation')),
+  schema_version  INTEGER NOT NULL,      -- payload schema version for this kind
+  payload         JSONB NOT NULL,        -- validated against the kind's schema, which is
+                                         -- GENERATED from target_action's parameters
+  target_action   TEXT NOT NULL,         -- ontology action acceptance dispatches through
+  producer        TEXT NOT NULL,         -- 'structural_pass' | 'semantic_pass' | 'rule:<name>' | ...
+  producer_version TEXT NOT NULL,        -- model+prompt hash, rule/pattern version, settings version
+  producer_meta   JSONB NOT NULL,        -- explanation: score waterfall, raw_response_ref, chunk
+  record_id       TEXT REFERENCES source_record,  -- the input this was derived from (Article I)
+  case_id         TEXT REFERENCES case_file,      -- inherits case scoping for row filters
+  idempotency_key TEXT NOT NULL UNIQUE,  -- sha256(derivative hash|producer|producer_version|payload
+                                         -- digest) — a replay updates nothing already decided
+  supersedes      TEXT REFERENCES review_queue,   -- re-extraction supersedes, never duplicates
+  expires_at      TIMESTAMPTZ,           -- stale machine output ages out of the inbox
+  status          TEXT NOT NULL DEFAULT 'suggested'
+                  CHECK (status IN ('suggested','accepted','rejected','superseded','expired')),
+  decided_by      TEXT,                  -- human actor (Article VII)
+  decided_at      TIMESTAMPTZ,
+  decision_note   TEXT,
+  -- typed result reference: exactly one is set on acceptance, per kind
+  result_claim_id    TEXT REFERENCES claim,
+  result_decision_id TEXT REFERENCES identity_decision,
+  result_relation    JSONB,              -- (from_claim, to_claim, relation) for claim_relation
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (status <> 'accepted' OR num_nonnulls(result_claim_id, result_decision_id,
+                                              result_relation) = 1)
 );
 ```
+
+**Kind → action → result.** The list is closed and owned by code, not the
+ontology — adding a kind is a schema + mapping change, never a queue migration.
+
+| `suggestion_kind` | `target_action` | Result reference | Producers in P2 |
+|---|---|---|---|
+| `claim_draft` | `record_claim` | `result_claim_id` | `structural_pass`, `semantic_pass` |
+| `identity_candidate` | `adjudicate_identity` | `result_decision_id` | promoted from `er_candidate` |
+| `claim_relation` | `link_claims` | `result_relation` | split re-adjudication (§3.1 rule 4), analyst |
+
+**Entity creation folds into `claim_draft`** — there is no `entity_draft` kind.
+A draft's `subject_ref`/`object_ref` may name an unresolved mention instead of
+an `entity_id`; on acceptance `record_claim` creates the mention and entity and
+then the claim, in one transaction. This replaces the Phase-1
+`producer_meta.draft_kind = "entity"` rows, which no code path could accept
+(they raise on the claim-creation path today). It also keeps the ledger honest:
+a newly created entity is a single-mention entity at the current revision, not
+an adjudicated merge.
+
+**Acceptance never writes tables itself (ADR-031 §2).** The reviewer's decision
+calls `target_action` with the reviewer as actor; the action validates against
+the ontology, writes, and audits in its own transaction. This is what makes
+Article VII's test — "the only writer to canonical tables is a human-executed
+action" — mechanically checkable per kind rather than by inspection. Edits made
+during review are applied to the payload *before* dispatch, and the edited
+payload is stored, so the accepted content is exactly what was reviewed.
+
+**ER candidates are not queue rows.** `er_candidate` (§2) keeps its own table:
+high volume, its own lifecycle, its own disposition vocabulary. An
+`identity_candidate` queue row is created only when a candidate is promoted for
+adjudication. The review **inbox** is a UI composition over `review_queue` and
+`er_candidate` (ADR-031 §3) — not one mega-table, and not a view that would
+force the two lifecycles to agree.
+
+**Migration of live Phase-1 rows.** Existing rows carry
+`producer_meta.draft_kind` ∈ {`claim`, `entity`}:
+
+- `draft_kind='claim'` → `suggestion_kind='claim_draft'`,
+  `target_action='record_claim'`, `schema_version=1`; `result_claim` copies to
+  `result_claim_id`.
+- `draft_kind='entity'` → also `claim_draft`, with the entity draft rewritten
+  into the `subject_ref` of the claim it was extracted for. Where no such claim
+  exists in the same record, the row is set `status='expired'` with a decision
+  note naming this migration — these rows were never acceptable, and silently
+  deleting them would violate Article VIII.
+- `producer_version` backfills from `producer_meta` where present, else the
+  literal `'phase1-unversioned'`; `idempotency_key` backfills from the row's own
+  digest. Already-decided rows keep their status, actor, and note untouched.
 
 ## 4. Cases, evidence, custody
 

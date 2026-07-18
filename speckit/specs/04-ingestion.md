@@ -1,6 +1,10 @@
 # Spec 04 — Ingestion
 
-Status: draft for Phase 1 · Constitutional basis: Articles I, IV, VII · GOAL.md §9
+Status: implemented in Phase 1 — **§4 updated 2026-07-18 by P2 T17c for ADR-031
+(typed suggestion envelope): producers emit typed kinds, acceptance dispatches
+through the declared action, and the review inbox is a UI composition over
+`review_queue` + `er_candidate`. Where this text conflicts with ADR-031, the ADR
+wins.** · Constitutional basis: Articles I, IV, VII · GOAL.md §9 · ADR-027, ADR-031
 
 The existing ingestion stack (`pipeline/ingest.py`, `pdf_ingest.py`, `transcribe.py`,
 structural/semantic passes) is kept — this spec changes **where its outputs land and
@@ -74,19 +78,27 @@ audited actions.
 - `producer_meta = {model, model_version, prompt_sha256, chunk_index, raw_response_ref}`;
   the raw LLM response is itself stored in the vault (debuggability + GOAL.md §38
   model governance later).
-- The pass proposes: new entities (as mention + entity-draft), claims with predicate,
-  grading *suggestion* (mapped from the legacy tag rubric), time window, excerpt.
-- The reviewer can edit any field before accepting; acceptance validates against the
-  ontology and writes via `record_claim` internals.
+- The pass proposes claims with predicate, grading *suggestion* (mapped from the
+  legacy tag rubric), time window, and excerpt. A previously unseen name is **not**
+  a separate entity draft: it rides in the claim's `subject_ref`/`object_ref` as an
+  unresolved mention, and `record_claim` creates the mention and entity on
+  acceptance (specs/02 §3.2 — there is no `entity_draft` kind).
+- The reviewer can edit any field before accepting; the edited payload is stored and
+  acceptance dispatches through the declared `target_action`, which validates against
+  the ontology, writes, and audits (ADR-031 §2). The queue never writes tables itself.
 - Acceptance-rate metrics per (model, prompt hash) are computable from `review_queue`
   — this becomes the extraction-quality dashboard.
 
 ### Batch review ergonomics (learned from current `--semantic` noise)
-- Queue UI groups by document and by predicate; bulk-reject for hallucinated
+- The review **inbox** is a UI composition over `review_queue` and `er_candidate`
+  (ADR-031 §3), grouped by document and by predicate; bulk-reject for hallucinated
   place-name entities; "accept all from this document with edits" flow.
-- Dangling-edge pruning (current behavior) becomes: suggestions referencing unmatched
-  entities are flagged `needs-entity` rather than silently dropped (Article VIII —
-  nothing silently disappears).
+- Dangling-edge pruning (current behavior) becomes: a suggestion whose argument has
+  no resolved entity carries its unresolved mention ref and is surfaced as such,
+  rather than silently dropped (Article VIII — nothing silently disappears).
+- Re-extraction **supersedes** rather than duplicates: a replay writes a new row
+  linked by `supersedes`, and the idempotency key stops a re-run from re-suggesting
+  anything already decided (specs/02 §3.2).
 
 ## 5. Idempotency & replay
 

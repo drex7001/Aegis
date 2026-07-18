@@ -54,7 +54,7 @@ a duplicated catalog of individual test steps.
 |---|---|---|
 | Article IV — immutable evidence/provenance | `tests/unit/test_evidence_vault.py`, `tests/contract/test_evidence_schema.py`, `tests/integration/test_evidence_migration.py` | Implemented |
 | Article VI — authorization at query time | `tests/component/test_auth.py`, `tests/integration/test_api.py`, `tests/integration/test_authz.py`, `tests/system/test_authz_openfga.py` | Implemented for Phase 1 routes; Phase 2 field matrix planned in T24a/T24b |
-| Article VII — machines suggest, humans decide | `tests/integration/test_ingestion.py`, `tests/integration/test_actions.py` | Implemented for Phase 1 extraction; typed Phase 2 envelope planned in T17c |
+| Article VII — machines suggest, humans decide | `tests/integration/test_ingestion.py`, `tests/integration/test_actions.py` | Implemented for Phase 1 extraction; typed envelope designed in T17c (`speckit/specs/02-data-model.md` §3.2) so the "only a human-executed action writes canon" check becomes per-kind mechanical — implementation planned T17c/T23b |
 | Article VIII — disagreement/retraction preserved | `tests/integration/test_actions.py`, `tests/integration/test_api.py` | Implemented for claim retraction; contradiction UI planned in T23 |
 | Article X — append-only audit | `tests/contract/test_audit_schema.py`, `tests/integration/test_audit.py`, `tests/integration/test_actions.py` | Implemented |
 | Article XI — ontology is domain truth | `tests/contract/test_ontology.py`, `tests/contract/test_schema.py`, ontology CI gate | Implemented for ontology v1; module/codegen drift planned in Phase 3 |
