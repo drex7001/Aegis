@@ -10,7 +10,25 @@ lettered subtasks keep the global T-numbering stable for pre-authored P3+ files.
 > non-deferrable (ADR-025). Phase 1 closure addendum (T16a–T16d) blocks
 > Milestones B–D; Milestone A may run in parallel with it.
 
-## Milestone A — Design pack (⛓ blocks B–D; specs rewritten before code)
+## Milestone A — Design pack (⛓ blocks B–D; specs rewritten before code) — **COMPLETE 2026-07-18**
+
+Delivered T17a–T17d as four PRs. Specs rewritten: `../specs/05-entity-resolution.md`
+(full), `../specs/02-data-model.md` §1 seams / §2 ledger / §3 + §3.1 claim
+arguments / §3.2 typed envelope / §7 + §7.1 projection v2 / §8 indexes,
+`../specs/04-ingestion.md` §4, `../specs/06-api.md` (full — the authoritative
+authorization matrix). Design decisions taken during the pack, recorded in the
+PR bodies rather than as new ADRs because none changed a chartered deliverable:
+scoped (not global) optimistic concurrency on the parent revision; the anchor
+requirement as an actions-layer invariant rather than a CHECK; `edge_projection`
+as a table rather than a matview, since time segmentation is not a `GROUP BY`;
+no `entity_draft` kind — entity creation folds into `claim_draft` acceptance;
+`POST /v1/entities/{id}/split` folded into `POST /v1/identity/decisions`.
+
+Milestone B may now start. Note that ADR-033 §2's prose enumerates the pack as
+"identity ledger, claim arguments, typed envelope, projection semantics", which
+reads as if T17d were projection semantics; the charter and this file agree that
+projection semantics belong to T17b and T17d is the authorization matrix. The
+four deliverables are unchanged — only ADR-033's wording is loose.
 
 **T17a. ⛓ Identity decision ledger design** (ADR-028; rewrites specs/05 + specs/02 §2)
 — schema for `identity_decision` (kind, actor, evidence note, inputs, parent

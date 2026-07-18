@@ -62,7 +62,7 @@ a duplicated catalog of individual test steps.
 | Phase 2 reversible identity/stale revision | Future identity ledger suites: `tests/integration/` (ledger behavior, one-active-membership index, scoped concurrency) + `tests/unit/` (revision arithmetic, canonical-map cycle detection); the seven cases are enumerated in `speckit/specs/05-entity-resolution.md` §8 | Design recorded in T17a; implementation planned T17/T20–T21 |
 | Phase 2 provenance panel/contradictions | Future component + browser E2E suites | Planned: T23 |
 | Phase 2 transliteration quality thresholds | Future ER evaluation contract/system suite; numeric floors recorded in `speckit/specs/05-entity-resolution.md` §6 | Thresholds recorded in T17a; harness planned T26 |
-| Phase 2 field sensitivity and route matrix | Future contract + integration matrix suite | Planned: T24a/T24b |
+| Phase 2 field sensitivity and route matrix | Future contract + integration matrix suite; every route's gate, filters, purpose, limits and owning test are enumerated in `speckit/specs/06-api.md` §2 | Matrix authored in T17d; executable suite planned T24a/T24b |
 | Phase 2 fictional ingest-to-projection UI loop | Future `tests/e2e/` MVP journey using `data/sample/mvp/` | Planned: T25/T27 |
 
 ## Manual test case format

@@ -42,12 +42,29 @@ CREATE TABLE source_record (
   handling_code  TEXT NOT NULL DEFAULT 'open',
   status         TEXT NOT NULL DEFAULT 'landed',  -- landed | quarantined | processed
   quarantine_reason TEXT,
-  provenance     JSONB NOT NULL DEFAULT '{}'      -- connector, versions, operator, envelope
+  provenance     JSONB NOT NULL DEFAULT '{}',     -- connector, versions, operator, envelope
+
+  -- governance seams (B-08). Nullable in P2, stored and displayed but NOT enforced;
+  -- P7 enforces them. They land now so P7 needs no reclassification migration.
+  collection_policy_ref TEXT,          -- the policy this was collected under
+  retention_class       TEXT,          -- disposition schedule; governed deletion is P7
+  authority_ref         TEXT,          -- legal authority object (P7 makes it a real FK)
+  authority_valid_from  TIMESTAMPTZ,
+  authority_valid_to    TIMESTAMPTZ,
+  CHECK (authority_valid_to IS NULL OR authority_valid_from IS NULL
+         OR authority_valid_to >= authority_valid_from)
 );
 ```
 
-The current provenance headers written by `pipeline/ingest.py` move into `provenance`;
-raw bytes move into the vault.
+The current provenance headers written by `legacy/pipeline/ingest.py` move into
+`provenance`; raw bytes move into the vault.
+
+**On the seams (B-08).** These five columns are deliberately inert in P2. No
+route filters on them, no read path consults them, and nothing may claim they
+provide retention or legal-authority governance — that enforcement is P7 work
+(specs/03 §6, roadmap P7). They exist now only because retrofitting a
+classification column onto a populated evidence corpus is far more expensive
+than carrying nullable columns from the start.
 
 ## 2. Entities and identity — the decision ledger (ADR-028)
 
