@@ -68,9 +68,8 @@ titles in the same conventional format.
 ## AI-assisted development
 
 AI agents (Claude Code and similar) do real work in this repository. The six
-rules above bind them unchanged; the rules below make agent work auditable and
-reviewable — the code-side analogue of constitution Article VII (*AI suggests,
-humans decide*).
+rules above bind them unchanged; the rules below keep agent work auditable,
+reviewable, and protected by the same CI gates as human-authored work.
 
 **Provenance.**
 
@@ -80,13 +79,16 @@ humans decide*).
 - Agent-drafted PR bodies say so, and end with
   `🤖 Generated with <agent/tool name>`.
 
-**Human review is the merge gate.**
+**Green CI and authorization are the merge gate.**
 
-- An agent never approves or merges its own PR and never bypasses branch
-  protection. The human who merges owns what lands; the PR checklist below is
-  the *human's* self-review, not the agent's.
-- Agents do not run `gh pr merge`. A human merges after reading the full diff
-  and seeing CI green.
+- When the user has authorized publishing or merging the change, an agent may
+  merge its own PR with `gh pr merge --squash --delete-branch` after every
+  required check is green. AI-authored work does not require a separate human
+  approval by default.
+- A requested review, unresolved change request, merge conflict, or branch
+  protection requirement must be satisfied before merging. Agents never
+  approve their own PR, bypass protection, push directly to `master`, use an
+  admin bypass, force-push, or select a merge method other than squash.
 
 **Honest verification.**
 
@@ -137,7 +139,8 @@ git switch master && git pull
       if the change touches the store/authz.
 - [ ] `aegis ontology validate` if `ontology/aegis.yaml` changed (+ version
       bump per spec 01 §4 / spec 08 §7).
-- [ ] Read the full diff on the PR page — you are the reviewer.
+- [ ] Read the full diff on the PR page — this self-review is required whether
+      the author is a human or an AI agent.
 - [ ] Constitution check: which Article governs this change? (speckit
       `constitution.md`)
 - [ ] Speckit updated if reality diverged (new ADR, charter/task status).
