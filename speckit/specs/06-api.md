@@ -53,7 +53,8 @@ FastAPI, `/v1/*`, OIDC bearer auth. Every route lists its authorization gate
 | Route | Auth |
 |---|---|
 | `POST /v1/cases` | R:analyst,investigator — purpose required |
-| `POST /v1/cases/{id}/members` | F:can_approve — mirrors FGA tuple |
+| `POST /v1/cases/{id}/members` | R:supervisor · F:can_approve — creates or replaces membership; replacement queues and inline-deletes the old FGA tuple after commit |
+| `DELETE /v1/cases/{id}/members/{user_id}` | R:supervisor · F:can_approve — audited canonical removal + outbox delete; inline best-effort FGA delete after commit |
 | `GET /v1/cases/{id}` | F:can_view |
 
 ## Projections & analytics

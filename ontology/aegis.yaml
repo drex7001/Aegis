@@ -10,7 +10,7 @@
 #   · no credibility words like "suspected_" (grading carries the doubt)
 # Dataset-specific verb mappings live in the migration adapter, not here.
 
-version: 0.3.1   # patch: comment/docs only — phase refs updated to roadmap v2 (ADR-022)
+version: 0.4.0   # minor: additive remove_case_member action (T16b, ADR-014)
 namespace: aegis.lk
 
 # Ordered low → high; index = clearance level required (spec 03).
@@ -154,5 +154,6 @@ actions:
   transfer_custody:    {roles: [evidence_officer, investigator],          audit: true}
   open_case:           {roles: [analyst, investigator], audit: true}
   assign_case_member:  {roles: [supervisor],            audit: true}
+  remove_case_member:  {roles: [supervisor],            audit: true}
   release_quarantine:  {roles: [supervisor],            audit: true}
   seal_record:         {roles: [supervisor],            audit: true}   # Phase 7

@@ -26,6 +26,16 @@ class Settings(BaseSettings):
     fga_api_url: str = Field(default="http://localhost:8082", validation_alias="FGA_API_URL")
     fga_store_id: str | None = Field(default=None, validation_alias="FGA_STORE_ID")
     fga_model_id: str | None = Field(default=None, validation_alias="FGA_MODEL_ID")
+    authz_outbox_interval_seconds: float = Field(
+        default=5.0,
+        gt=0,
+        validation_alias="AEGIS_AUTHZ_OUTBOX_INTERVAL_SECONDS",
+    )
+    authz_outbox_batch_size: int = Field(
+        default=100,
+        ge=1,
+        validation_alias="AEGIS_AUTHZ_OUTBOX_BATCH_SIZE",
+    )
 
     keycloak_url: str = Field(default="http://localhost:8180", validation_alias="KEYCLOAK_URL")
     keycloak_realm: str = Field(default="aegis", validation_alias="KEYCLOAK_REALM")

@@ -5,7 +5,9 @@ from aegis.authz.filters import allowed_handling_codes, claim_filters, member_ca
 from aegis.authz.outbox import (
     RebuildReport,
     SyncReport,
+    delete_inline_best_effort,
     desired_tuples,
+    dispatch_forever,
     rebuild,
     sync,
 )
@@ -18,7 +20,9 @@ __all__ = [
     "Tuple3",
     "allowed_handling_codes",
     "claim_filters",
+    "delete_inline_best_effort",
     "desired_tuples",
+    "dispatch_forever",
     "member_case_ids",
     "rebuild",
     "sync",

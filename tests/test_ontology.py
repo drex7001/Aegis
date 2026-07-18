@@ -42,10 +42,11 @@ def errors_of(data: dict) -> list[str]:
 def test_committed_ontology_loads() -> None:
     ont = load(ONTOLOGY_PATH)
     assert isinstance(ont, Ontology)
-    assert ont.version == "0.3.1"
+    assert ont.version == "0.4.0"
     assert "person" in ont.object_types
     assert "member_of" in ont.predicates
     assert "record_claim" in ont.actions
+    assert "remove_case_member" in ont.actions
 
 
 def test_registry_accessors(data: dict) -> None:

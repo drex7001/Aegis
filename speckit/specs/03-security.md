@@ -69,9 +69,22 @@ type evidence_item
   `authz_outbox` entry (specs/02 §4) in one Postgres transaction; a dispatcher drains
   the outbox into idempotent FGA writes/deletes, and `aegis authz rebuild` re-derives
   the full tuple set from Postgres. Grants fail closed while the outbox drains;
-  revocations additionally attempt an inline best-effort FGA delete.
+  revocations additionally attempt an inline best-effort FGA delete **after** the
+  Postgres transaction commits. An inline FGA failure does not undo or misreport the
+  canonical revocation; its queued delete remains the convergence guarantee.
+- The API's in-process dispatcher starts a batch immediately at startup and then on a
+  fixed start-to-start interval. The default
+  `AEGIS_AUTHZ_OUTBOX_INTERVAL_SECONDS=5` (batch size 100) gives a maximum **polling**
+  staleness of 5 seconds when FGA is healthy and no earlier row blocks the ordered
+  drain; the delete request's processing time is additional. T16b's deterministic
+  cadence probe scales the interval to 50 ms and requires the next attempt within
+  200 ms; it passed on 2026-07-18. Every successful batch logs
+  `max_delete_staleness_seconds`, measured from outbox insertion to FGA convergence.
+  There is deliberately no false finite end-to-end bound while FGA is unavailable or
+  an older outbox row is blocked: recovery begins on the first healthy ordered drain,
+  and operators use that logged maximum to detect a breached revocation window.
 - Claims/evidence inherit case scoping; **case-less claims** (general OSINT pool) are
-  governed by role + handling code only — an explicit, documented choice for the
+governed by role + handling code only — an explicit, documented choice for the
   OSINT deployment; agency deployments can require `case_id NOT NULL` by config.
 
 ## 4. Enforcement pipeline (every request)

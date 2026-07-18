@@ -310,6 +310,26 @@ def test_open_case_and_assign_member_outbox(seeded: dict[str, object]) -> None:
         "object": f"case:{case.case_id}",
     }
 
+    removed = service.remove_case_member(
+        context, case_id=case.case_id, user_id="user-7"
+    )
+    service.session.commit()
+    assert removed.role == "analyst"
+    assert service.session.get(CaseMember, (case.case_id, "user-7")) is None
+    delete_tuple = service.session.scalar(
+        sa.select(AuthzOutbox.fga_tuple)
+        .where(
+            AuthzOutbox.op == "delete",
+            AuthzOutbox.fga_tuple["object"].astext == f"case:{case.case_id}",
+        )
+        .order_by(AuthzOutbox.outbox_id.desc())
+    )
+    assert delete_tuple == {
+        "user": "user:user-7",
+        "relation": "analyst",
+        "object": f"case:{case.case_id}",
+    }
+
 
 @pytest.mark.integration
 def test_action_write_rolls_back_when_audit_append_fails(
