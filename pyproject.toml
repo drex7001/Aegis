@@ -26,6 +26,14 @@ dependencies = [
     # pure-python fallback that guarantees `aegis projections rebuild` works
     # without the optional C-extension leiden backend below.
     "networkx>=3",
+    # Probabilistic entity resolution (spec 05 §3.2, T19). DuckDB is Splink's
+    # local backend; unidecode + jellyfish give the transliteration and
+    # phonetic keys that make cross-script names comparable without PyICU,
+    # whose wheels are unreliable on the platforms this runs on.
+    "splink>=4.0",
+    "duckdb>=1.0",
+    "unidecode>=1.3",
+    "jellyfish>=1.0",
 ]
 
 [project.optional-dependencies]

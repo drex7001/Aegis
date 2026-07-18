@@ -318,6 +318,42 @@ def identity_run_rules(
     )
 
 
+@identity_app.command("run-splink")
+def identity_run_splink(
+    threshold: float = typer.Option(
+        None, "--threshold", help="Override the emission threshold (spec 05 §6)."
+    ),
+) -> None:
+    """Score mention pairs with Splink, emitting candidates above threshold.
+
+    Emits candidates only — nothing here merges anything (ADR-027).  Each
+    candidate records the settings version and the graph snapshot its context
+    features were computed against, so the score is reproducible (H-07).
+    """
+    from aegis.er.settings import SPLINK_MATCH_THRESHOLD
+    from aegis.er.splink_job import run_splink
+    from aegis.store import get_sessionmaker
+
+    with get_sessionmaker()() as session:
+        report = run_splink(
+            session,
+            threshold=threshold if threshold is not None else SPLINK_MATCH_THRESHOLD,
+        )
+        session.commit()
+    typer.secho(
+        f"emitted {report.emitted} candidates from {report.compared} scored pairs",
+        fg=typer.colors.GREEN,
+    )
+    typer.echo(
+        f"  skipped: {report.below_threshold} below threshold, "
+        f"{report.same_entity} already one entity, {report.already_open} already open"
+    )
+    typer.echo(f"  suppressed: {report.suppressed_constraint} previously rejected pairs")
+    typer.echo(
+        f"  settings: {report.settings_version}  snapshot: {report.graph_snapshot_id}"
+    )
+
+
 @identity_app.command("backfill-anchors")
 def identity_backfill_anchors(
     dry_run: bool = typer.Option(

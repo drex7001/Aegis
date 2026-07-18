@@ -53,6 +53,8 @@ make test-integration            # dedicated PostgreSQL test database
 make test-system                 # real compose/OpenFGA behavior
 make test-coverage               # full line + branch coverage gate
 aegis ontology validate          # Article XI gate (also in CI)
+aegis identity run-rules         # deterministic ER → candidates (never merges)
+aegis identity run-splink        # probabilistic ER → candidates (never merges)
 aegis identity backfill-anchors  # heuristic mention anchors for pre-T17 claims
 aegis projections rebuild        # regenerate all projections (Article XIII)
 aegis serve                      # FastAPI dev server

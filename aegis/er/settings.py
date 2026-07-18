@@ -25,9 +25,25 @@ SAME_KEY_IN_DOCUMENT_RULE = "rule:same-norm-key-in-doc"
 #: identifier itself (Article XIV).
 IDENTIFIER_RULE_PREFIX = "rule:"
 
+#: Splink model (:mod:`aegis.er.splink_job`).  Covers the comparison levels,
+#: their declared m/u probabilities, and the blocking rules — anything that
+#: changes which pairs are scored or how.
+SPLINK_VERSION = "splink-v1"
+SPLINK_PRODUCER = "splink"
+
+#: Emission threshold, spec 05 §6.  A pair below this is not surfaced at all:
+#: review capacity is the scarcest resource in the system, and a queue nobody
+#: can finish is a queue nobody reads carefully.  Ratified against the T26
+#: golden set at its first passing run; change it only with an eval diff in the
+#: same PR.
+SPLINK_MATCH_THRESHOLD = 0.80
+
 
 __all__ = [
     "IDENTIFIER_RULE_PREFIX",
     "RULES_VERSION",
     "SAME_KEY_IN_DOCUMENT_RULE",
+    "SPLINK_MATCH_THRESHOLD",
+    "SPLINK_PRODUCER",
+    "SPLINK_VERSION",
 ]

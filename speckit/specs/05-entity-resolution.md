@@ -104,11 +104,28 @@ confirmed it. Cross-document same-`norm_key` never enters the pre-verified band.
 
 ### 3.2 Probabilistic (Splink, DuckDB backend)
 
+**Implemented** in `aegis/er/splink_job.py` with the feature frame in
+`aegis/er/features.py` and the keys in `aegis/er/translit.py` (T19).
+
+**Weights are declared, not trained.** Splink can estimate m and u from the
+data, but EM on a corpus this size converges to whatever the corpus happens to
+contain, and the result would be neither reproducible across runs nor
+explainable to a reviewer. Every level therefore carries an explicit starting
+probability versioned in `aegis/er/settings.py`; the T26 harness moves them,
+with the eval diff in the same PR (§6).
+
 Features (comparison levels):
 
-- Name/alias similarity on **transliteration keys**: ICU-normalized Latin key +
-  raw-script key (Sinhala/Tamil preserved — GOAL.md §10.3); Jaro-Winkler and
-  token-set levels.
+- Name/alias similarity on **transliteration keys**: a romanized Latin key +
+  a raw-script key (Sinhala/Tamil preserved — GOAL.md §10.3); Jaro-Winkler
+  levels at 0.92 and 0.85, with raw-script exact match ranked above Latin
+  exact match because it never passed through a romanizer.
+  **PyICU is not a dependency**: it would give a better romanizer, but it is a
+  heavyweight C binding whose wheels are unreliable on the platforms this runs
+  on. `unidecode` + `jellyfish` metaphone are used instead, and §6's harness —
+  not the name of the library — is what decides whether the romanizer is good
+  enough. Keeping the raw-script key alongside the Latin one is what stops a
+  lossy romanization from manufacturing agreement invisibly.
 - Alias cross-match (any alias of A against any name or alias of B).
 - Affiliation overlap (shared organizations).
 - Graph context: shared associates, computed from a **versioned projection
@@ -117,8 +134,16 @@ Features (comparison levels):
 - Date-of-birth agreement or conflict when present; conflict is strong negative
   evidence.
 
-Blocking rules: same `norm_key` prefix, same metaphone-on-Latin-key, shared
-affiliation.
+Blocking rules: same metaphone-on-Latin-key, same 4-character Latin-key prefix,
+shared affiliation. The phonetic block is what makes the seeded transliteration
+pair comparable *at all* — `Nimal Perera` and the romanized `නිමල් පෙරේරා`
+differ too much for a prefix block to catch, but both reduce to `NML PRR`.
+
+Date of birth is compared but is **not** an identifier rule: agreement is weak
+evidence (many people share a birthday) while a conflict between two stated
+dates is strong negative evidence, so it earns its own comparison level rather
+than a deterministic rule. Ontology v1.2.0 adds `born_on` to carry it; the
+declared `person.date_of_birth` property had no predicate that could.
 
 Every candidate above threshold is **persisted** to `er_candidate` with its
 producer, settings version, graph-snapshot id, and the full per-feature
@@ -195,7 +220,7 @@ scaled).
 |---|---|---|
 | Pairwise precision, pre-verified rule band | ≥ 0.95 | golden set, rules only |
 | Pairwise recall, seeded transliteration set | ≥ 0.70 | seeded Sinhala/English variant pairs |
-| Splink candidate emission threshold | match probability ≥ 0.80 | per pair, above blocking |
+| Splink candidate emission threshold | match probability ≥ 0.80 | per pair, above blocking — **live** in `aegis/er/settings.py` since T19 |
 | Review load | ≤ 50 candidates per 1,000 mentions | full pipeline run |
 
 Golden set composition: known transliteration pairs (e.g.

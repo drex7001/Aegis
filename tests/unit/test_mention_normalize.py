@@ -50,13 +50,18 @@ def test_distinct_sinhala_names_get_distinct_keys() -> None:
     assert norm_key("නිමල් පෙරේරා") != norm_key("සමන් කුමාර")
 
 
-def test_sinhala_vowel_signs_are_not_stripped() -> None:
-    """They are combining marks that carry meaning, unlike a Latin accent.
+def test_sinhala_vowel_signs_are_preserved_not_merely_distinct() -> None:
+    r"""They are combining marks that carry meaning, unlike a Latin accent.
 
-    Folding them away, as an ASCII-style fold would, merges names that are not
-    the same name.
+    Asserting only that the two keys *differ* is not enough: an earlier version
+    replaced every vowel sign with ``_`` (Python's ``\w`` excludes Unicode
+    marks), which kept them distinct while mangling the script the key exists
+    to preserve.  So the mark itself must survive.
     """
-    assert norm_key("පෙරේරා") != norm_key("පරර")
+    key = norm_key("පෙරේරා")
+    assert key != norm_key("පරර")
+    assert "ෙ" in key or "ේ" in key, f"vowel signs were dropped: {key!r}"
+    assert "_" not in key, f"marks became separators: {key!r}"
 
 
 def test_text_with_no_alphanumerics_gets_a_distinct_deterministic_key() -> None:

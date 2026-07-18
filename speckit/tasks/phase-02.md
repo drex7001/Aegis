@@ -8,8 +8,9 @@ lettered subtasks keep the global T-numbering stable for pre-authored P3+ files.
 > disposition (`../reviews/2026-07-18-external-review-disposition.md`). Phase 2
 > closes with the **★ MVP gate** — see the charter. Gate criteria are
 > non-deferrable (ADR-025). The Phase 1 closure addendum (T16a–T16d), which
-> gated Milestones B–D, closed 2026-07-18 (PRs #11–#14). **Milestone A is
-> complete** (T17a–T17d, PRs #17–#20); Milestone B is the active work.
+> gated Milestones B–D, closed 2026-07-18 (PRs #11–#14). **Milestones A and
+> B are complete** (T17a–T17d, PRs #17–#20; T17–T20, PRs #22–#26);
+> Milestone C is the active work.
 
 ## Milestone A — Design pack (⛓ blocks B–D; specs rewritten before code) — **COMPLETE 2026-07-18**
 
@@ -77,7 +78,12 @@ governance seam columns specced (`source_record.collection_policy_ref`,
 AC: specs/06 has the matrix for every route P2 ships; each row names its
 tests; seam columns in the T18 migration plan.
 
-## Milestone B — Identity core
+## Milestone B — Identity core — **COMPLETE 2026-07-19**
+
+Delivered T17 (PRs #22, #23), T18 (#24), T20 (#25), T19 (#26). Milestone C may
+now start. T20 was taken **before** T19 because both T18's and T19's remaining
+acceptance criteria depend on `adjudicate_identity` and its negative
+constraints; no chartered deliverable changed, only the order.
 
 T17 ships as two PRs, matching the two halves of its title: the **ledger
 migration** (schema, baseline, envelope, seams) and then **mention extraction
@@ -154,6 +160,21 @@ in `er_candidate` with per-feature waterfall weights; settings versioned in
 AC: the seeded Sinhala/English transliteration pair scores above threshold with
 per-feature weights persisted; a rejected pair is never re-emitted; the run
 records its settings version + graph snapshot id.
+
+**COMPLETE** (`aegis/er/splink_job.py`, `features.py`, `translit.py`). The
+seeded pair scores **0.963** against a 0.80 threshold while the hard negative
+is not proposed at all. Decisions: **PyICU is not a dependency** — it would
+romanize better, but its wheels are unreliable on the platforms this runs on,
+so `unidecode` + `jellyfish` metaphone are used and §6's harness decides
+whether that is good enough; the raw-script key is kept alongside the Latin one
+so a lossy romanization cannot manufacture agreement invisibly. **Weights are
+declared, not trained** — EM on a corpus this size converges to whatever the
+corpus contains and would be neither reproducible nor explainable, so every
+level carries an explicit starting probability versioned in
+`aegis/er/settings.py`. Ontology **1.2.0** adds `born_on`: date of birth is a
+comparison level rather than an identifier rule, because agreement is weak
+evidence while a conflict is strong. The graph snapshot id is a content digest
+of the association graph, so it moves when the graph does.
 
 **T20. ⛓ Adjudication actions over the ledger** (specs/05 §3) —
 `confirm_match`, `reject_match`, `split_entity`, `mark_unresolved` as
