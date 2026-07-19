@@ -25,6 +25,8 @@ from aegis.evidence import EvidenceVault
 from aegis.ontology import Ontology
 
 GATE_MARKER = "_aegis_gate"
+GATE_ROLES = "_aegis_roles"
+GATE_PURPOSE = "_aegis_purpose_required"
 
 
 def get_session(request: Request) -> Iterator[Session]:
@@ -122,6 +124,10 @@ def authorize(*roles: str, purpose_required: bool = False):
         return AuthContext(user=user, purpose=purpose)
 
     setattr(gate, GATE_MARKER, True)
+    # Introspectable policy metadata turns specs/06's matrix into an executable
+    # contract.  Tests do not have to infer a role gate from closure internals.
+    setattr(gate, GATE_ROLES, frozenset(roles))
+    setattr(gate, GATE_PURPOSE, purpose_required)
     return gate
 
 

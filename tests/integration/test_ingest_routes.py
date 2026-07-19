@@ -21,6 +21,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from aegis.actions import new_id
 from aegis.api import create_app
 from aegis.api.auth import OIDCAuthenticator
 from aegis.api.routes import ingest as ingest_routes
@@ -223,6 +224,31 @@ def test_pasted_text_lands_as_a_record(client: TestClient, db: Session) -> None:
     assert body["record"]["provenance"]["notes"] == "typed by the operator"
 
 
+@pytest.mark.requirement("B-08", "T24a")
+def test_landing_stores_and_returns_nullable_governance_seams(
+    client: TestClient, db: Session
+) -> None:
+    body = paste(
+        client,
+        "fictional governed note",
+        "governed.txt",
+        collection_policy="public-osint-v1",
+        retention_class="review-after-30d",
+        authority_ref="FICTIONAL-AUTHORITY-1",
+        authority_valid_from="2026-07-01T00:00:00Z",
+        authority_valid_to="2026-07-31T00:00:00Z",
+    ).json()["record"]
+
+    assert body["collection_policy_ref"] == "public-osint-v1"
+    assert body["retention_class"] == "review-after-30d"
+    assert body["authority_ref"] == "FICTIONAL-AUTHORITY-1"
+    row = db.get(SourceRecord, body["record_id"])
+    assert row is not None
+    assert row.collection_policy_ref == "public-osint-v1"
+    assert row.authority_valid_from is not None
+    assert row.authority_valid_to is not None
+
+
 def test_re_pasting_the_same_note_is_a_no_op(client: TestClient, db: Session) -> None:
     first = paste(client, "A short fictional note.", "note.txt").json()
     second = paste(client, "A short fictional note.", "note.txt").json()
@@ -277,11 +303,12 @@ def test_records_above_clearance_are_absent_from_the_list(client: TestClient) ->
     paste(client, "a restricted note", "restricted.txt", handling_code="restricted")
 
     visible = client.get("/v1/source-records", headers=LOW_CLEARANCE).json()
-    names = {row["provenance"]["original_filename"] for row in visible}
+    names = {row["provenance"]["original_filename"] for row in visible["items"]}
     assert names == {"open.txt"}
+    assert "total" not in visible
 
     everything = client.get("/v1/source-records", headers=ANALYST).json()
-    assert len(everything) == 2
+    assert len(everything["items"]) == 2
 
 
 def test_listing_filters_by_status(client: TestClient) -> None:
@@ -291,7 +318,68 @@ def test_listing_filters_by_status(client: TestClient) -> None:
     quarantined = client.get(
         "/v1/source-records", params={"status": "quarantined"}, headers=ANALYST
     ).json()
-    assert [row["status"] for row in quarantined] == ["quarantined"]
+    assert [row["status"] for row in quarantined["items"]] == ["quarantined"]
+
+
+def test_source_record_cursor_is_stable_under_a_concurrent_insert(
+    client: TestClient, db: Session,
+) -> None:
+    original = {
+        paste(client, f"note {index}", f"page-{index}.txt").json()["record"]["record_id"]
+        for index in range(3)
+    }
+    first = client.get(
+        "/v1/source-records", params={"limit": 2}, headers=ANALYST
+    ).json()
+    first_ids = {row["record_id"] for row in first["items"]}
+    assert first["next_cursor"] is not None
+
+    inserted = paste(client, "arrived between pages", "concurrent.txt").json()["record"]
+    second = client.get(
+        "/v1/source-records",
+        params={"limit": 2, "cursor": first["next_cursor"]},
+        headers=ANALYST,
+    ).json()
+    second_ids = {row["record_id"] for row in second["items"]}
+
+    assert first_ids.isdisjoint(second_ids)
+    assert first_ids | second_ids == original
+    assert inserted["record_id"] not in second_ids
+    assert "total" not in second
+
+
+@pytest.mark.requirement("Article-VI", "T24a", "T24b")
+def test_review_queue_omits_a_restricted_property_without_a_count(
+    client: TestClient, db: Session
+) -> None:
+    record_id = paste(client, "fictional identifiers", "fields.txt").json()["record"][
+        "record_id"
+    ]
+    for predicate in ("known_as", "has_nic"):
+        db.add(
+            ReviewQueue(
+                suggestion_id=new_id("sug"),
+                suggestion_kind="claim_draft",
+                schema_version=1,
+                payload={"predicate": predicate},
+                target_action="record_claim",
+                producer="test:t24",
+                producer_version="1",
+                producer_meta={},
+                record_id=record_id,
+                idempotency_key=new_id("idem"),
+            )
+        )
+    db.commit()
+
+    high = client.get("/v1/review-queue", headers=ANALYST).json()
+    low = client.get("/v1/review-queue", headers=LOW_CLEARANCE).json()
+    assert {row["payload"]["predicate"] for row in high["items"]} == {
+        "known_as",
+        "has_nic",
+    }
+    assert [row["payload"]["predicate"] for row in low["items"]] == ["known_as"]
+    assert "total" not in low
 
 
 # ── derivatives and extraction ───────────────────────────────────────────────

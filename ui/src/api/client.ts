@@ -21,11 +21,14 @@ export type ProjectionStamps = components["schemas"]["ProjectionStampsOut"];
 
 export type LandingResult = components["schemas"]["LandingOut"];
 export type SourceRecord = components["schemas"]["SourceRecordOut"];
+export type SourceRecordPage = components["schemas"]["SourceRecordPageOut"];
 export type SourceSummary = components["schemas"]["SourceOut"];
+export type SourcePage = components["schemas"]["SourcePageOut"];
 export type Derivative = components["schemas"]["DerivativeOut"];
 export type ExtractionResult = components["schemas"]["ExtractionOut"];
 export type LandingOutcome = LandingResult["outcome"];
 export type Suggestion = components["schemas"]["SuggestionOut"];
+export type SuggestionPage = components["schemas"]["SuggestionPageOut"];
 export type IdentityCandidate = components["schemas"]["CandidateOut"];
 export type CandidatePage = components["schemas"]["CandidateListOut"];
 export type CandidateSide = components["schemas"]["CandidateMentionOut"];
@@ -160,6 +163,10 @@ export interface LandFileFields {
   handling_code?: string;
   source_url?: string;
   collection_policy?: string;
+  retention_class?: string;
+  authority_ref?: string;
+  authority_valid_from?: string;
+  authority_valid_to?: string;
   notes?: string;
 }
 
@@ -184,12 +191,17 @@ export async function landText(
 export async function listSourceRecords(params?: {
   status?: string;
   source_id?: string;
-}): Promise<SourceRecord[]> {
+  cursor?: string;
+  limit?: number;
+}): Promise<SourceRecordPage> {
   return unwrap(await api.GET("/v1/source-records", { params: { query: params } }));
 }
 
-export async function listSources(): Promise<SourceSummary[]> {
-  return unwrap(await api.GET("/v1/sources", {}));
+export async function listSources(params?: {
+  cursor?: string;
+  limit?: number;
+}): Promise<SourcePage> {
+  return unwrap(await api.GET("/v1/sources", { params: { query: params } }));
 }
 
 export async function createSource(
@@ -223,7 +235,9 @@ export async function listSuggestions(params: {
   status?: string;
   kind?: string;
   producer?: string;
-}): Promise<Suggestion[]> {
+  cursor?: string;
+  limit?: number;
+}): Promise<SuggestionPage> {
   return unwrap(await api.GET("/v1/review-queue", { params: { query: params } }));
 }
 
@@ -271,6 +285,8 @@ export async function rejectSuggestion(
 export async function listIdentityCandidates(params: {
   disposition?: string;
   producer?: string;
+  cursor?: string;
+  limit?: number;
 }): Promise<CandidatePage> {
   return unwrap(await api.GET("/v1/identity/candidates", { params: { query: params } }));
 }
@@ -313,8 +329,11 @@ export async function getEntity(entityId: string): Promise<EntityDetail> {
 export async function searchEntities(
   q: string,
   limit = 10,
+  cursor?: string,
 ): Promise<SearchResults> {
-  return unwrap(await api.GET("/v1/search/entities", { params: { query: { q, limit } } }));
+  return unwrap(
+    await api.GET("/v1/search/entities", { params: { query: { q, limit, cursor } } }),
+  );
 }
 
 export async function rebuildProjections(): Promise<ProjectionRebuild> {

@@ -111,6 +111,17 @@ class SourceRecordOut(BaseModel):
     handling_code: str
     received_at: datetime
     provenance: dict[str, Any]
+    # P2 governance seams are visible but deliberately inert until P7.
+    collection_policy_ref: str | None
+    retention_class: str | None
+    authority_ref: str | None
+    authority_valid_from: datetime | None
+    authority_valid_to: datetime | None
+
+
+class SourceRecordPageOut(BaseModel):
+    items: list[SourceRecordOut]
+    next_cursor: str | None = None
 
 
 class OntologyVocabularyOut(BaseModel):
@@ -139,6 +150,10 @@ class LandTextIn(BaseModel):
     handling_code: str = "open"
     source_url: str | None = None
     collection_policy: str | None = None
+    retention_class: str | None = None
+    authority_ref: str | None = None
+    authority_valid_from: datetime | None = None
+    authority_valid_to: datetime | None = None
     notes: str | None = None
     source_time: datetime | None = None
 
@@ -216,6 +231,11 @@ class SuggestionOut(BaseModel):
     result_decision_id: str | None
     result_relation: dict[str, Any] | None
     created_at: datetime
+
+
+class SuggestionPageOut(BaseModel):
+    items: list[SuggestionOut]
+    next_cursor: str | None = None
 
 
 class AcceptIn(BaseModel):
@@ -296,6 +316,11 @@ class AuditOut(BaseModel):
     resource_id: str | None
     decision: str
     detail: dict[str, Any]
+
+
+class AuditPageOut(BaseModel):
+    items: list[AuditOut]
+    next_cursor: str | None = None
 
 
 class MentionOut(BaseModel):
@@ -455,6 +480,7 @@ class EntityHitOut(BaseModel):
 class SearchResultsOut(BaseModel):
     query: str
     results: list[EntityHitOut]
+    next_cursor: str | None = None
 
 
 class CandidateListOut(BaseModel):
@@ -470,6 +496,12 @@ class CandidateListOut(BaseModel):
 
     revision_id: int
     candidates: list[CandidateOut]
+    next_cursor: str | None = None
+
+
+class SourcePageOut(BaseModel):
+    items: list[SourceOut]
+    next_cursor: str | None = None
 
 
 class _DecisionBase(BaseModel):

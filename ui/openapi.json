@@ -118,6 +118,33 @@
         "title": "AuditOut",
         "type": "object"
       },
+      "AuditPageOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AuditOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "AuditPageOut",
+        "type": "object"
+      },
       "BatchConfirmIn": {
         "properties": {
           "candidate_ids": {
@@ -192,6 +219,41 @@
       },
       "Body_landFile": {
         "properties": {
+          "authority_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authority Ref"
+          },
+          "authority_valid_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authority Valid From"
+          },
+          "authority_valid_to": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authority Valid To"
+          },
           "collection_policy": {
             "anyOf": [
               {
@@ -224,6 +286,17 @@
               }
             ],
             "title": "Notes"
+          },
+          "retention_class": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retention Class"
           },
           "source_id": {
             "anyOf": [
@@ -263,6 +336,17 @@
             },
             "title": "Candidates",
             "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
           },
           "revision_id": {
             "title": "Revision Id",
@@ -1996,6 +2080,41 @@
       "LandTextIn": {
         "description": "A pasted note (spec 04 §1 — \"File / paste / curated entry\").\n\n``filename`` is not decoration: the ingest key is\n``sha256(source_system | filename | content hash)``, so it is half of what\nmakes re-pasting the same text under the same name a no-op, and it is what\nan operator will recognise the record by later.",
         "properties": {
+          "authority_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authority Ref"
+          },
+          "authority_valid_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authority Valid From"
+          },
+          "authority_valid_to": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authority Valid To"
+          },
           "collection_policy": {
             "anyOf": [
               {
@@ -2028,6 +2147,17 @@
               }
             ],
             "title": "Notes"
+          },
+          "retention_class": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retention Class"
           },
           "source_id": {
             "anyOf": [
@@ -2479,6 +2609,17 @@
       },
       "SearchResultsOut": {
         "properties": {
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
           "query": {
             "title": "Query",
             "type": "string"
@@ -2625,8 +2766,81 @@
         "title": "SourceOut",
         "type": "object"
       },
+      "SourcePageOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SourceOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "SourcePageOut",
+        "type": "object"
+      },
       "SourceRecordOut": {
         "properties": {
+          "authority_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authority Ref"
+          },
+          "authority_valid_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authority Valid From"
+          },
+          "authority_valid_to": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authority Valid To"
+          },
+          "collection_policy_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Collection Policy Ref"
+          },
           "content_hash": {
             "title": "Content Hash",
             "type": "string"
@@ -2671,6 +2885,17 @@
             "title": "Record Id",
             "type": "string"
           },
+          "retention_class": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retention Class"
+          },
           "source_id": {
             "title": "Source Id",
             "type": "string"
@@ -2689,9 +2914,41 @@
           "quarantine_reason",
           "handling_code",
           "received_at",
-          "provenance"
+          "provenance",
+          "collection_policy_ref",
+          "retention_class",
+          "authority_ref",
+          "authority_valid_from",
+          "authority_valid_to"
         ],
         "title": "SourceRecordOut",
+        "type": "object"
+      },
+      "SourceRecordPageOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SourceRecordOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "SourceRecordPageOut",
         "type": "object"
       },
       "SplitEntityIn": {
@@ -2908,6 +3165,33 @@
         "title": "SuggestionOut",
         "type": "object"
       },
+      "SuggestionPageOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SuggestionOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "SuggestionPageOut",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -3116,11 +3400,27 @@
           },
           {
             "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
             "name": "limit",
             "required": false,
             "schema": {
-              "default": 200,
-              "maximum": 1000,
+              "default": 50,
+              "minimum": 1,
               "title": "Limit",
               "type": "integer"
             }
@@ -3149,11 +3449,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/AuditOut"
-                  },
-                  "title": "Response Queryaudit",
-                  "type": "array"
+                  "$ref": "#/components/schemas/AuditPageOut"
                 }
               }
             },
@@ -4491,11 +4787,27 @@
           },
           {
             "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
             "name": "limit",
             "required": false,
             "schema": {
               "default": 50,
-              "maximum": 200,
+              "minimum": 1,
               "title": "Limit",
               "type": "integer"
             }
@@ -5027,11 +5339,27 @@
           },
           {
             "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
             "name": "limit",
             "required": false,
             "schema": {
-              "default": 100,
-              "maximum": 500,
+              "default": 50,
+              "minimum": 1,
               "title": "Limit",
               "type": "integer"
             }
@@ -5060,11 +5388,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/SuggestionOut"
-                  },
-                  "title": "Response Listsuggestions",
-                  "type": "array"
+                  "$ref": "#/components/schemas/SuggestionPageOut"
                 }
               }
             },
@@ -5261,11 +5585,27 @@
           },
           {
             "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
             "name": "limit",
             "required": false,
             "schema": {
               "default": 20,
-              "maximum": 50,
+              "minimum": 1,
               "title": "Limit",
               "type": "integer"
             }
@@ -5361,11 +5701,27 @@
           },
           {
             "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
             "name": "limit",
             "required": false,
             "schema": {
               "default": 50,
-              "maximum": 200,
+              "minimum": 1,
               "title": "Limit",
               "type": "integer"
             }
@@ -5394,11 +5750,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/SourceRecordOut"
-                  },
-                  "title": "Response Listsourcerecords",
-                  "type": "array"
+                  "$ref": "#/components/schemas/SourceRecordPageOut"
                 }
               }
             },
@@ -5717,6 +6069,33 @@
         "operationId": "listSources",
         "parameters": [
           {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
             "description": "Reason for access",
             "in": "query",
             "name": "purpose",
@@ -5740,11 +6119,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/SourceOut"
-                  },
-                  "title": "Response Listsources",
-                  "type": "array"
+                  "$ref": "#/components/schemas/SourcePageOut"
                 }
               }
             },

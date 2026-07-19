@@ -29,7 +29,9 @@ def open_case(
     session: DbSession,
     ontology: OntologyDep,
     fga=Depends(get_fga),
-    auth: AuthContext = Depends(authorize("analyst", "investigator")),
+    auth: AuthContext = Depends(
+        authorize("analyst", "investigator", purpose_required=True)
+    ),
 ) -> CaseFile:
     service = ActionService(session, ontology)
     row = service.open_case(

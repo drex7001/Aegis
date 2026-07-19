@@ -77,6 +77,7 @@ def auth(sub: str, *roles: str, clearance: int = 2) -> dict:
 
 
 ANALYST = auth("user:analyst", "analyst")
+LOW_CLEARANCE = auth("user:junior", "analyst", clearance=0)
 NO_ROLES = auth("user:outsider")
 
 
@@ -240,6 +241,26 @@ def test_identity_candidates_returns_both_bands_with_their_explanation(client, w
     # check (GOAL.md §10.4).
     assert scored["features"]["bf_name"] == pytest.approx(12.5)
     assert scored["features"]["gamma_dob"] == 0
+
+
+@pytest.mark.requirement("Article-VI", "T24a")
+def test_identifier_candidate_above_field_clearance_is_absent(client, world) -> None:
+    session: Session = world["session"]
+    with session.begin():
+        candidate = session.get(ErCandidate, world["candidate_verified"])
+        assert candidate is not None
+        candidate.producer = "rule:has_nic"
+        candidate.features = {**candidate.features, "predicate": "has_nic"}
+
+    high = _candidates(client)
+    low_response = client.get("/v1/identity/candidates", headers=LOW_CLEARANCE)
+    assert low_response.status_code == 200
+    low = low_response.json()
+    assert world["candidate_verified"] in {row["candidate_id"] for row in high}
+    assert world["candidate_verified"] not in {
+        row["candidate_id"] for row in low["candidates"]
+    }
+    assert "total" not in low
 
 
 def test_identity_candidates_carry_each_side_s_current_entity(client, world) -> None:

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import {
@@ -23,16 +23,19 @@ export function SuggestionQueue() {
   const [kind, setKind] = useState("");
   const queryClient = useQueryClient();
 
-  const suggestions = useQuery({
+  const suggestions = useInfiniteQuery({
     queryKey: ["review-queue", status, kind],
-    queryFn: () =>
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) =>
       listSuggestions({
         ...(status ? { status } : {}),
         ...(kind ? { kind } : {}),
+        ...(pageParam ? { cursor: pageParam } : {}),
       }),
+    getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
   });
 
-  const rows = suggestions.data ?? [];
+  const rows = suggestions.data?.pages.flatMap((page) => page.items) ?? [];
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ["review-queue"] });
   };
@@ -93,6 +96,16 @@ export function SuggestionQueue() {
           />
         ))}
       </ul>
+      {suggestions.hasNextPage && (
+        <button
+          type="button"
+          className="button"
+          disabled={suggestions.isFetchingNextPage}
+          onClick={() => void suggestions.fetchNextPage()}
+        >
+          {suggestions.isFetchingNextPage ? "Loading…" : "Load more"}
+        </button>
+      )}
     </section>
   );
 }

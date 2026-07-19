@@ -97,6 +97,10 @@ def land_bytes(
     media_type: str | None = None,
     source_url: str | None = None,
     collection_policy: str | None = None,
+    retention_class: str | None = None,
+    authority_ref: str | None = None,
+    authority_valid_from: datetime | None = None,
+    authority_valid_to: datetime | None = None,
     notes: str | None = None,
     handling_code: str = "open",
     source_time: datetime | None = None,
@@ -122,6 +126,10 @@ def land_bytes(
         operator=operator,
         source_url=source_url,
         collection_policy=collection_policy,
+        retention_class=retention_class,
+        authority_ref=authority_ref,
+        authority_valid_from=authority_valid_from,
+        authority_valid_to=authority_valid_to,
         notes=notes,
     )
     stored = vault.put(data, envelope, media_type=media_type)
@@ -173,6 +181,11 @@ def land_bytes(
             status="quarantined" if quarantined else "landed",
             quarantine_reason="; ".join(reasons) if reasons else None,
             provenance=envelope.model_dump(mode="json", exclude_none=True),
+            collection_policy_ref=collection_policy,
+            retention_class=retention_class,
+            authority_ref=authority_ref,
+            authority_valid_from=authority_valid_from,
+            authority_valid_to=authority_valid_to,
         )
         session.add(record)
         session.flush()

@@ -107,6 +107,16 @@ def matrix(authz_engine, ontology):
             sensitive_claim=claim("sensitive"),
             case_claim=claim("open", case_id=case.case_id),
         )
+        restricted_field = service.record_claim(
+            context,
+            subject_id=person,
+            predicate="has_nic",
+            object_value="FICTIONAL-0001",
+            record_id=record_id,
+            assertion_type="reported",
+            handling_code="open",
+        )
+        ids["restricted_field_claim"] = restricted_field.claim_id
         retracted = claim("open")
         service.retract_claim(context, claim_id=retracted, reason="matrix retraction")
         ids["retracted_claim"] = retracted
@@ -122,6 +132,7 @@ def _visible(session: Session, user: UserContext, ontology, ids: dict) -> set[st
         ids["sensitive_claim"],
         ids["case_claim"],
         ids["retracted_claim"],
+        ids["restricted_field_claim"],
     }
     rows = session.scalars(
         select(Claim.claim_id).where(*claim_filters(session, user, ontology))
@@ -141,6 +152,20 @@ def test_matrix_clearance_gates_handling(matrix, ontology) -> None:
     assert matrix["sensitive_claim"] not in mid
     high = _visible(session, _user(matrix["outsider"], "analyst", clearance=2), ontology, matrix)
     assert {matrix["open_claim"], matrix["restricted_claim"], matrix["sensitive_claim"]} <= high
+
+
+@pytest.mark.integration
+def test_matrix_field_sensitivity_is_absent_not_counted(matrix, ontology) -> None:
+    """An open row can still carry a restricted ontology property (T24a)."""
+    session = matrix["session"]
+    low = _visible(
+        session, _user(matrix["outsider"], "analyst", clearance=0), ontology, matrix
+    )
+    high = _visible(
+        session, _user(matrix["outsider"], "analyst", clearance=1), ontology, matrix
+    )
+    assert matrix["restricted_field_claim"] not in low
+    assert matrix["restricted_field_claim"] in high
 
 
 @pytest.mark.integration

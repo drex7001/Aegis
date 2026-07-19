@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from aegis.api.deps import AuthContext, DbSession, OntologyDep, authorize
+from aegis.api.pagination import decode_cursor, encode_cursor, page_limit, split_page
 from aegis.api.schemas import EntityHitOut, SearchResultsOut
 from aegis.search.entities import MAX_QUERY, search_entities
 
@@ -22,7 +23,8 @@ def search(
     session: DbSession,
     ontology: OntologyDep,
     q: Annotated[str, Query(max_length=MAX_QUERY, description="Free-text name query")],
-    limit: Annotated[int, Query(le=50)] = 20,
+    cursor: Annotated[str | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1)] = 20,
     auth: AuthContext = Depends(authorize()),
 ) -> SearchResultsOut:
     """Find entities by name, alias or the names they were mentioned under.
@@ -32,8 +34,28 @@ def search(
     caller's clearance is absent from the scan, so the result *count* cannot be
     used to infer that it exists.
     """
+    limit = min(page_limit(limit), 50)
+    key = decode_cursor(cursor, "entity-search", 3)
+    after = None
+    if key is not None:
+        try:
+            after = (float(key[0]), str(key[1]), str(key[2]))
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(422, "invalid cursor") from exc
     hits = search_entities(
-        session, query=q, user=auth.user, ontology=ontology, limit=limit
+        session,
+        query=q,
+        user=auth.user,
+        ontology=ontology,
+        limit=limit + 1,
+        after=after,
+    )
+    items, next_cursor = split_page(
+        hits,
+        limit,
+        lambda hit: encode_cursor(
+            "entity-search", [hit.score, hit.label, hit.entity_id]
+        ),
     )
     return SearchResultsOut(
         query=q,
@@ -45,6 +67,7 @@ def search(
                 score=hit.score,
                 matched=hit.matched,
             )
-            for hit in hits
+            for hit in items
         ],
+        next_cursor=next_cursor,
     )

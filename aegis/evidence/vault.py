@@ -48,6 +48,10 @@ class ProvenanceEnvelope(BaseModel):
     operator: str = Field(min_length=1)
     source_url: str | None = None
     collection_policy: str | None = None
+    retention_class: str | None = None
+    authority_ref: str | None = None
+    authority_valid_from: datetime | None = None
+    authority_valid_to: datetime | None = None
     schema_version: str | None = None
     notes: str | None = None
 

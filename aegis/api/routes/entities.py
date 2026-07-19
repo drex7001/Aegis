@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from aegis.api.deps import AuthContext, DbSession, OntologyDep, authorize
 from aegis.api.mappers import claim_provenance_out
 from aegis.api.schemas import ClaimProvenanceOut, EntityDetail, EntityOut
-from aegis.authz.filters import claim_filters
+from aegis.authz.filters import claim_filters, hidden_entity_types
 from aegis.queries.provenance import entity_provenance
 from aegis.store import Entity
 
@@ -35,7 +35,9 @@ def get_entity(
     disagreement rather than leaving the reader to spot it (Article VIII).
     """
     entity = session.get(Entity, entity_id)
-    if entity is None:
+    if entity is None or entity.entity_type in hidden_entity_types(
+        ontology, auth.user.clearance
+    ):
         raise HTTPException(404, "not found")
     result = entity_provenance(
         session,

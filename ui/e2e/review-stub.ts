@@ -178,7 +178,10 @@ export async function stubReview(page: Page): Promise<ReviewStub> {
     const status = new URL(route.request().url()).searchParams.get("status");
     return json(
       route,
-      suggestions.filter((row) => !status || row.status === status),
+      {
+        items: suggestions.filter((row) => !status || row.status === status),
+        next_cursor: null,
+      },
     );
   });
 
@@ -222,6 +225,7 @@ export async function stubReview(page: Page): Promise<ReviewStub> {
           (!disposition || row.disposition === disposition) &&
           (!producer || row.producer === producer),
       ),
+      next_cursor: null,
     });
   });
 

@@ -10,10 +10,10 @@ lettered subtasks keep the global T-numbering stable for pre-authored P3+ files.
 > non-deferrable (ADR-025). The Phase 1 closure addendum (T16a–T16d), which
 > gated Milestones B–D, closed 2026-07-18 (PRs #11–#14). **Milestones A and
 > B are complete** (T17a–T17d, PRs #17–#20; T17–T20, PRs #22–#26).
-> **Milestone C is in progress**: T21 (PRs #27, #29), T22, T23a, T23b and T23c
-> are complete; T24a (field-level sensitivity filtering) is next. With T23c the
-> Phase 2 API surface is complete — no route spec 06 declares for this phase is
-> unimplemented.
+> **Milestone C is complete 2026-07-19**: T21 (PRs #27, #29), T22, T23a,
+> T23b, T23c and T24a–T24c are complete. The Phase 2 API surface is complete —
+> no route spec 06 declares for this phase is unimplemented. Milestone D (T25)
+> is next.
 
 ## Milestone A — Design pack (⛓ blocks B–D; specs rewritten before code) — **COMPLETE 2026-07-18**
 
@@ -203,7 +203,7 @@ rebuilt by replaying decisions in revision order rather than reading current
 memberships — only the replay stays deterministic when a merged entity's
 mentions are later scattered across a split.
 
-## Milestone C — Workspace & governed UI loop
+## Milestone C — Workspace & governed UI loop — **COMPLETE 2026-07-19**
 
 **T21. ⛓ Projection rebuild v2 + "why connected?" API** (ADR-029, ADR-030;
 specs/06) — `edge_projection` resolves entity arguments through the active
@@ -576,6 +576,32 @@ a seeded restricted row proves strict-subset search behavior (M-13).
 pagination + deterministic ordering on queue, search, entities, audit list
 routes.
 AC: stable iteration under concurrent inserts; UI list views page correctly.
+
+**COMPLETE 2026-07-19.** Field sensitivity is enforced where claims enter a
+read query, so an over-clearance property disappears together with its value,
+relations, provenance, graph support, search candidacy and counts. Identifier
+predicates resolve sensitivity from their subject type's ontology-declared
+identifier property; a type whose display title is restricted is omitted
+rather than returned as an id-shaped hint. Review suggestions and ER candidates
+apply the same rule before pagination. The T17d governance columns remain
+nullable and inert as designed, but landing now stores and returns collection
+policy, retention class and legal-authority validity in those columns and the
+workspace displays them.
+
+The authorization matrix is executable at two layers: a contract test pins the
+role and purpose policy for all 37 shipped operations with no unlisted route,
+while PostgreSQL integration cases exercise handling, membership, retraction,
+field sensitivity, 404/no-count behavior and the admin-only rebuild. Opening a
+case now enforces the matrix's previously documentary purpose requirement.
+
+All P2 collections named by spec 06 use opaque route-scoped keyset cursors:
+review queue, identity candidates, entity search, sources, source records and
+audit. Each request rebuilds authorization filters; no cursor carries authority
+or total count. Ordering keeps the ULID as its final tie-breaker, the
+source-record regression inserts a row between pages to prove stable iteration,
+and the workspace's queue, candidate, search and record lists expose bounded
+"Load more" flows. No ADR was needed: the implementation follows specs/03 and
+06 without changing a load-bearing decision.
 
 ## Milestone D — MVP close-out
 

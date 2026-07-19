@@ -137,7 +137,7 @@ export async function stubIngest(page: Page): Promise<IngestStub> {
     }),
   );
 
-  await page.route("**/v1/sources", (route) =>
+  await page.route("**/v1/sources*", (route) =>
     route.request().method() === "POST"
       ? json(
           route,
@@ -151,7 +151,7 @@ export async function stubIngest(page: Page): Promise<IngestStub> {
           },
           201,
         )
-      : json(route, []),
+      : json(route, { items: [], next_cursor: null }),
   );
 
   await page.route("**/v1/ingest/file", async (route) => {
@@ -188,9 +188,14 @@ export async function stubIngest(page: Page): Promise<IngestStub> {
 
   await page.route("**/v1/source-records?*", (route) => {
     const status = new URL(route.request().url()).searchParams.get("status");
-    return json(route, status ? records.filter((r) => r.status === status) : records);
+    return json(route, {
+      items: status ? records.filter((r) => r.status === status) : records,
+      next_cursor: null,
+    });
   });
-  await page.route("**/v1/source-records", (route) => json(route, records));
+  await page.route("**/v1/source-records", (route) =>
+    json(route, { items: records, next_cursor: null }),
+  );
 
   await page.route("**/v1/source-records/*/derivatives", (route) => {
     const id = route.request().url().split("/").at(-2)!;
@@ -267,7 +272,10 @@ export async function stubIngest(page: Page): Promise<IngestStub> {
 
   await page.route("**/v1/review-queue?*", (route) => {
     const id = new URL(route.request().url()).searchParams.get("record");
-    return json(route, id ? (suggestions.get(id) ?? []) : []);
+    return json(route, {
+      items: id ? (suggestions.get(id) ?? []) : [],
+      next_cursor: null,
+    });
   });
 
   return { records: () => records, bearerTokens: () => bearers };

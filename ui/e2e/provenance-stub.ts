@@ -176,6 +176,7 @@ export const WHY_CONNECTED = {
 
 export const SEARCH_RESULTS = {
   query: "fictional",
+  next_cursor: null,
   results: [
     {
       entity_id: ENTITY_B,

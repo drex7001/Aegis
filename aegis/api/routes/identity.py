@@ -11,12 +11,13 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy import and_, nulls_last, select
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import Float, Integer, and_, case, cast, not_, or_, select
 from sqlalchemy.orm import aliased
 
 from aegis.actions import ActionContext, ActionService, ActionValidationError
 from aegis.api.deps import AuthContext, DbSession, OntologyDep, authorize
+from aegis.api.pagination import decode_cursor, encode_cursor, page_limit, split_page
 from aegis.api.schemas import (
     BatchConfirmIn,
     BatchConfirmOut,
@@ -30,7 +31,12 @@ from aegis.api.schemas import (
 )
 from aegis.er.adjudication import AdjudicationResult, StaleRevisionError
 from aegis.er.ledger import active_revision_id
-from aegis.store import Entity, ErCandidate, IdentityMembership, Mention
+from aegis.authz.filters import (
+    allowed_handling_codes,
+    forbidden_field_predicates,
+    hidden_entity_types,
+)
+from aegis.store import Entity, ErCandidate, IdentityMembership, Mention, SourceRecord
 
 router = APIRouter(tags=["identity"])
 
@@ -65,20 +71,33 @@ def _decision_out(result: AdjudicationResult) -> DecisionOut:
 )
 def list_candidates(
     session: DbSession,
+    ontology: OntologyDep,
     disposition: Annotated[str | None, Query()] = None,
     producer: Annotated[str | None, Query()] = None,
-    limit: Annotated[int, Query(le=200)] = 50,
+    cursor: Annotated[str | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1)] = 50,
     auth: AuthContext = Depends(authorize("analyst")),
 ) -> CandidateListOut:
     """Machine-proposed pairs with their full explanation (spec 06 §2.2)."""
     mention_a, mention_b = aliased(Mention), aliased(Mention)
     member_a, member_b = aliased(IdentityMembership), aliased(IdentityMembership)
     entity_a, entity_b = aliased(Entity), aliased(Entity)
+    record_a, record_b = aliased(SourceRecord), aliased(SourceRecord)
+    limit = page_limit(limit)
+    key = decode_cursor(cursor, "identity-candidates", 3)
+    # Numeric key for NULLS LAST that can also be used in the keyset predicate.
+    score_key = case(
+        (ErCandidate.score.is_(None), -1.0),
+        else_=cast(ErCandidate.score, Float),
+    )
+    pre_key = cast(ErCandidate.pre_verified, Integer)
 
     query = (
         select(ErCandidate, mention_a, mention_b, entity_a, entity_b)
         .join(mention_a, mention_a.mention_id == ErCandidate.mention_a)
         .join(mention_b, mention_b.mention_id == ErCandidate.mention_b)
+        .join(record_a, record_a.record_id == mention_a.record_id)
+        .join(record_b, record_b.record_id == mention_b.record_id)
         # Joined rather than resolved per row: an inbox page is 50-200
         # candidates, and a helper call per side is 400 round trips to render
         # one screen. The partial unique index on an open membership is what
@@ -99,24 +118,64 @@ def list_candidates(
         )
         .outerjoin(entity_a, entity_a.entity_id == member_a.entity_id)
         .outerjoin(entity_b, entity_b.entity_id == member_b.entity_id)
+        .where(
+            record_a.handling_code.in_(
+                allowed_handling_codes(ontology, auth.user.clearance)
+            ),
+            record_b.handling_code.in_(
+                allowed_handling_codes(ontology, auth.user.clearance)
+            ),
+        )
         .order_by(
             # The pre-verified band first, because it is the one an analyst can
             # act on in bulk. Then strongest first — `nulls_last` is load
             # bearing: Postgres sorts NULLs first under DESC, which would file
             # every rule candidate (which computes no score at all) above the
             # highest-scoring probabilistic one.
-            ErCandidate.pre_verified.desc(),
-            nulls_last(ErCandidate.score.desc()),
+            pre_key.desc(),
+            score_key.desc(),
             # ties broken by key so paging stays stable when T24c adds a cursor
             ErCandidate.candidate_id,
         )
-        .limit(limit)
+        .limit(limit + 1)
     )
+    hidden_types = hidden_entity_types(ontology, auth.user.clearance)
+    if hidden_types:
+        query = query.where(
+            or_(entity_a.entity_id.is_(None), not_(entity_a.entity_type.in_(hidden_types))),
+            or_(entity_b.entity_id.is_(None), not_(entity_b.entity_type.in_(hidden_types))),
+        )
+    forbidden = forbidden_field_predicates(ontology, auth.user.clearance)
+    if forbidden:
+        feature_predicate = ErCandidate.features["predicate"].astext
+        query = query.where(
+            not_(ErCandidate.producer.in_([f"rule:{name}" for name in forbidden])),
+            or_(feature_predicate.is_(None), not_(feature_predicate.in_(forbidden))),
+        )
+    if key is not None:
+        try:
+            pre_verified = bool(int(key[0]))
+            score = float(key[1])
+            candidate_id = str(key[2])
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(422, "invalid cursor") from exc
+        query = query.where(
+            or_(
+                pre_key < int(pre_verified),
+                and_(pre_key == int(pre_verified), score_key < score),
+                and_(
+                    pre_key == int(pre_verified),
+                    score_key == score,
+                    ErCandidate.candidate_id > candidate_id,
+                ),
+            )
+        )
     if disposition is not None:
         query = query.where(ErCandidate.disposition == disposition)
     if producer is not None:
         query = query.where(ErCandidate.producer == producer)
 
+    rows = list(session.execute(query))
     candidates = [
         CandidateOut(
             candidate_id=candidate.candidate_id,
@@ -131,12 +190,24 @@ def list_candidates(
             disposition=candidate.disposition,
             created_at=candidate.created_at,
         )
-        for candidate, row_mention_a, row_mention_b, row_entity_a, row_entity_b in session.execute(
-            query
-        )
+        for candidate, row_mention_a, row_mention_b, row_entity_a, row_entity_b in rows
     ]
+    items, next_cursor = split_page(
+        candidates,
+        limit,
+        lambda candidate: encode_cursor(
+            "identity-candidates",
+            [
+                int(candidate.pre_verified),
+                candidate.score if candidate.score is not None else -1.0,
+                candidate.candidate_id,
+            ],
+        ),
+    )
     return CandidateListOut(
-        revision_id=active_revision_id(session), candidates=candidates
+        revision_id=active_revision_id(session),
+        candidates=items,
+        next_cursor=next_cursor,
     )
 
 

@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from datetime import datetime
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import and_, or_, select
 
 from aegis.actions import ActionContext, new_id
 from aegis.api.deps import AuthContext, DbSession, OntologyDep, authorize
-from aegis.api.schemas import SourceIn, SourceOut, SourceRecordOut
+from aegis.api.pagination import decode_cursor, encode_cursor, page_limit, split_page
+from aegis.api.schemas import SourceIn, SourceOut, SourcePageOut, SourceRecordOut
 from aegis.audit import append as append_audit
 from aegis.authz.filters import allowed_handling_codes
 from aegis.store import Source, SourceRecord
@@ -43,13 +47,39 @@ def create_source(
 
 
 @router.get(
-    "/sources", response_model=list[SourceOut], operation_id="listSources"
+    "/sources", response_model=SourcePageOut, operation_id="listSources"
 )
 def list_sources(
     session: DbSession,
+    cursor: Annotated[str | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1)] = 50,
     auth: AuthContext = Depends(authorize("analyst")),
-) -> list[Source]:
-    return list(session.scalars(select(Source).order_by(Source.created_at)))
+) -> SourcePageOut:
+    limit = page_limit(limit)
+    key = decode_cursor(cursor, "sources", 2)
+    query = select(Source).order_by(Source.created_at, Source.source_id).limit(limit + 1)
+    if key is not None:
+        try:
+            created_at = datetime.fromisoformat(str(key[0]))
+            source_id = str(key[1])
+        except ValueError as exc:
+            raise HTTPException(422, "invalid cursor") from exc
+        query = query.where(
+            or_(
+                Source.created_at > created_at,
+                and_(Source.created_at == created_at, Source.source_id > source_id),
+            )
+        )
+    rows = list(session.scalars(query))
+    items, next_cursor = split_page(
+        rows,
+        limit,
+        lambda row: encode_cursor("sources", [row.created_at, row.source_id]),
+    )
+    return SourcePageOut(
+        items=[SourceOut.model_validate(row) for row in items],
+        next_cursor=next_cursor,
+    )
 
 
 @router.get(

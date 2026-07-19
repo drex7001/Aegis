@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
 import { searchEntities, type EntityHit } from "../api/client";
@@ -34,13 +34,15 @@ export function EntitySearch({ onPick }: EntitySearchProps) {
   }, [text]);
 
   const enabled = debounced.length >= MIN_QUERY;
-  const query = useQuery({
+  const query = useInfiniteQuery({
     queryKey: ["search", debounced],
-    queryFn: () => searchEntities(debounced),
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) => searchEntities(debounced, 10, pageParam),
+    getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
     enabled,
   });
 
-  const hits = query.data?.results ?? [];
+  const hits = query.data?.pages.flatMap((page) => page.results) ?? [];
   return (
     <div className="search" data-testid="entity-search">
       <label className="search__field">
@@ -61,28 +63,40 @@ export function EntitySearch({ onPick }: EntitySearchProps) {
         </p>
       )}
       {hits.length > 0 && (
-        <ul className="search__results" data-testid="search-results">
-          {hits.map((hit) => (
-            <li key={hit.entity_id}>
-              <button
-                type="button"
-                className="search__hit"
-                onClick={() => {
-                  onPick(hit.entity_id);
-                  setText("");
-                  setDebounced("");
-                }}
-                data-testid={`search-hit-${hit.entity_id}`}
-              >
-                <span className="search__label">{hit.label}</span>
-                <span className="search__meta">
-                  {hit.entity_type}
-                  <MatchedBy matched={hit.matched} />
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="search__results" data-testid="search-results">
+            {hits.map((hit) => (
+              <li key={hit.entity_id}>
+                <button
+                  type="button"
+                  className="search__hit"
+                  onClick={() => {
+                    onPick(hit.entity_id);
+                    setText("");
+                    setDebounced("");
+                  }}
+                  data-testid={`search-hit-${hit.entity_id}`}
+                >
+                  <span className="search__label">{hit.label}</span>
+                  <span className="search__meta">
+                    {hit.entity_type}
+                    <MatchedBy matched={hit.matched} />
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          {query.hasNextPage && (
+            <button
+              type="button"
+              className="button"
+              disabled={query.isFetchingNextPage}
+              onClick={() => void query.fetchNextPage()}
+            >
+              {query.isFetchingNextPage ? "Loading…" : "Load more"}
+            </button>
+          )}
+        </>
       )}
     </div>
   );

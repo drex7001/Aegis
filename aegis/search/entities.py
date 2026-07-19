@@ -19,6 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from sqlalchemy import (
+    and_,
     ColumnElement,
     Select,
     Text,
@@ -94,6 +95,7 @@ def search_entities(
     user: UserContext,
     ontology: Ontology,
     limit: int = 20,
+    after: tuple[float, str, str] | None = None,
 ) -> list[EntityHit]:
     """Rank entities against a free-text query.
 
@@ -105,6 +107,7 @@ def search_entities(
         return []
 
     visible = _visible_entity_ids(session, user, ontology)
+    filters = claim_filters(session, user, ontology)
     keys = {
         "norm": norm_key(text),
         "latin": latin_key(text),
@@ -112,11 +115,14 @@ def search_entities(
     }
 
     hits: dict[str, EntityHit] = {}
-    for row in session.execute(_label_matches(text, visible, limit)):
+    branch_limit = max(limit * 3, limit + 1)
+    for row in session.execute(_label_matches(text, visible, branch_limit, after)):
         _record(hits, row.entity_id, row.label, row.entity_type, float(row.score), "label")
-    for row in session.execute(_alias_matches(text, visible, limit)):
+    for row in session.execute(
+        _alias_matches(text, visible, filters, branch_limit, after)
+    ):
         _record(hits, row.entity_id, row.label, row.entity_type, float(row.score), "alias")
-    for row in session.execute(_mention_matches(keys, visible, limit)):
+    for row in session.execute(_mention_matches(keys, visible, branch_limit, after)):
         _record(
             hits, row.entity_id, row.label, row.entity_type, float(row.score), row.matched
         )
@@ -156,19 +162,47 @@ def _live(visible: Select[tuple[str]]) -> list[ColumnElement[bool]]:
     ]
 
 
-def _label_matches(text: str, visible: Select[tuple[str]], limit: int):
+def _after(score, after: tuple[float, str, str] | None) -> list[ColumnElement[bool]]:
+    if after is None:
+        return []
+    last_score, last_label, last_id = after
+    return [
+        or_(
+            score < last_score,
+            and_(score == last_score, Entity.label > last_label),
+            and_(
+                score == last_score,
+                Entity.label == last_label,
+                Entity.entity_id > last_id,
+            ),
+        )
+    ]
+
+
+def _label_matches(
+    text: str,
+    visible: Select[tuple[str]],
+    limit: int,
+    after: tuple[float, str, str] | None,
+):
     score = func.similarity(Entity.label, text)
     return (
         select(
             Entity.entity_id, Entity.label, Entity.entity_type, score.label("score")
         )
-        .where(*_live(visible), score >= SIMILARITY_FLOOR)
-        .order_by(score.desc())
+        .where(*_live(visible), score >= SIMILARITY_FLOOR, *_after(score, after))
+        .order_by(score.desc(), Entity.label, Entity.entity_id)
         .limit(limit)
     )
 
 
-def _alias_matches(text: str, visible: Select[tuple[str]], limit: int):
+def _alias_matches(
+    text: str,
+    visible: Select[tuple[str]],
+    filters: list[ColumnElement[bool]],
+    limit: int,
+    after: tuple[float, str, str] | None,
+):
     # `object_value` is JSONB. A plain cast to text keeps the JSON quotes, so
     # `"Charlie the Younger"` would be compared *with* them and never match.
     # `#>> '{}'` extracts the scalar as text, which is what similarity needs.
@@ -183,16 +217,23 @@ def _alias_matches(text: str, visible: Select[tuple[str]], limit: int):
         .join(Claim, Claim.subject_id == Entity.entity_id)
         .where(
             *_live(visible),
+            *filters,
             Claim.predicate == ALIAS_PREDICATE,
             Claim.object_value.is_not(None),
             score >= SIMILARITY_FLOOR,
+            *_after(score, after),
         )
-        .order_by(score.desc())
+        .order_by(score.desc(), Entity.label, Entity.entity_id)
         .limit(limit)
     )
 
 
-def _mention_matches(keys: dict[str, str], visible: Select[tuple[str]], limit: int):
+def _mention_matches(
+    keys: dict[str, str],
+    visible: Select[tuple[str]],
+    limit: int,
+    after: tuple[float, str, str] | None,
+):
     """Match through the mentions currently resolved to each entity.
 
     Three surfaces, scored so they cannot be confused: a romanized near-match
@@ -228,8 +269,9 @@ def _mention_matches(keys: dict[str, str], visible: Select[tuple[str]], limit: i
             *_live(visible),
             IdentityMembership.closed_revision_id.is_(None),
             or_(latin_score >= SIMILARITY_FLOOR, phonetic_hit),
+            *_after(score, after),
         )
-        .order_by(score.desc())
+        .order_by(score.desc(), Entity.label, Entity.entity_id)
         .limit(limit)
     )
 

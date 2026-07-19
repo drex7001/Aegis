@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import {
@@ -26,10 +26,17 @@ export function RecordLedger() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("");
 
-  const records = useQuery({
+  const records = useInfiniteQuery({
     queryKey: ["source-records", statusFilter],
-    queryFn: () => listSourceRecords(statusFilter ? { status: statusFilter } : undefined),
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) =>
+      listSourceRecords({
+        ...(statusFilter ? { status: statusFilter } : {}),
+        ...(pageParam ? { cursor: pageParam } : {}),
+      }),
+    getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
   });
+  const rows = records.data?.pages.flatMap((page) => page.items) ?? [];
 
   return (
     <section className="ledger" aria-labelledby="ledger-heading">
@@ -58,14 +65,14 @@ export function RecordLedger() {
             : "Records could not be loaded."}
         </p>
       )}
-      {records.data?.length === 0 && (
+      {records.data && rows.length === 0 && (
         <p className="empty" data-testid="ledger-empty">
           Nothing landed yet. Upload a file or paste text to add the first record.
         </p>
       )}
 
       <ul className="records" data-testid="ledger">
-        {records.data?.map((record) => (
+        {rows.map((record) => (
           <Row
             key={record.record_id}
             record={record}
@@ -76,6 +83,16 @@ export function RecordLedger() {
           />
         ))}
       </ul>
+      {records.hasNextPage && (
+        <button
+          type="button"
+          className="button"
+          disabled={records.isFetchingNextPage}
+          onClick={() => void records.fetchNextPage()}
+        >
+          {records.isFetchingNextPage ? "Loading…" : "Load more"}
+        </button>
+      )}
     </section>
   );
 }
@@ -154,8 +171,25 @@ function Detail({ record }: { record: SourceRecord }) {
           )}
         </Fact>
         <Fact label="Collection policy">
-          {String(provenance["collection_policy"] ?? "—")}
+          {record.collection_policy_ref ?? "—"}
         </Fact>
+        {record.retention_class != null && (
+          <Fact label="Retention class">{record.retention_class}</Fact>
+        )}
+        {record.authority_ref != null && (
+          <Fact label="Legal authority">{record.authority_ref}</Fact>
+        )}
+        {(record.authority_valid_from != null || record.authority_valid_to != null) && (
+          <Fact label="Authority validity">
+            {record.authority_valid_from
+              ? new Date(record.authority_valid_from).toLocaleDateString()
+              : "open"}
+            {" — "}
+            {record.authority_valid_to
+              ? new Date(record.authority_valid_to).toLocaleDateString()
+              : "open"}
+          </Fact>
+        )}
         {provenance["notes"] != null && (
           <Fact label="Notes">{String(provenance["notes"])}</Fact>
         )}
@@ -248,7 +282,7 @@ function Extraction({ record }: { record: SourceRecord }) {
     },
   });
 
-  const queued = suggestions.data?.filter((s) => s.status === "suggested").length ?? 0;
+  const queued = suggestions.data?.items.filter((s) => s.status === "suggested").length ?? 0;
 
   return (
     <div className="detail__action">

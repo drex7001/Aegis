@@ -19,12 +19,14 @@ which producer over what" is the question Article VII makes someone answer.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 
 from aegis.api.deps import AuthContext, DbSession, OntologyDep, VaultDep, authorize
+from aegis.api.pagination import decode_cursor, encode_cursor, page_limit, split_page
 from aegis.api.schemas import (
     DerivativeOut,
     ExtractIn,
@@ -32,6 +34,7 @@ from aegis.api.schemas import (
     LandingOut,
     LandTextIn,
     SourceRecordOut,
+    SourceRecordPageOut,
 )
 from aegis.audit import append as append_audit
 from aegis.authz.filters import allowed_handling_codes
@@ -70,6 +73,11 @@ def _outcome(result: LandingResult) -> str:
     if not result.created:
         return "already_landed"
     return "quarantined" if result.quarantined else "landed"
+
+
+def _check_authority_window(start: datetime | None, end: datetime | None) -> None:
+    if start is not None and end is not None and end < start:
+        raise HTTPException(422, "authority_valid_to must not precede authority_valid_from")
 
 
 def _landing_response(result: LandingResult) -> LandingOut:
@@ -125,6 +133,10 @@ def land_upload(
     handling_code: Annotated[str, Form()] = "open",
     source_url: Annotated[str | None, Form()] = None,
     collection_policy: Annotated[str | None, Form()] = None,
+    retention_class: Annotated[str | None, Form()] = None,
+    authority_ref: Annotated[str | None, Form()] = None,
+    authority_valid_from: Annotated[datetime | None, Form()] = None,
+    authority_valid_to: Annotated[datetime | None, Form()] = None,
     notes: Annotated[str | None, Form()] = None,
     auth: AuthContext = Depends(authorize("analyst", "investigator")),
 ) -> LandingOut:
@@ -136,6 +148,7 @@ def land_upload(
     # threadpool instead — which is what every other route here does — and
     # Starlette has already spooled the body, so nothing needs awaiting.
     _check_handling(ontology, auth, handling_code)
+    _check_authority_window(authority_valid_from, authority_valid_to)
     settings = get_settings()
     data = _read_bounded(file, settings.ingest_max_bytes)
     filename = file.filename or "upload"
@@ -150,6 +163,10 @@ def land_upload(
             media_type=file.content_type or None,
             source_url=source_url or None,
             collection_policy=collection_policy or None,
+            retention_class=retention_class or None,
+            authority_ref=authority_ref or None,
+            authority_valid_from=authority_valid_from,
+            authority_valid_to=authority_valid_to,
             notes=notes or None,
             handling_code=handling_code,
             oversize_bytes=settings.ingest_oversize_bytes,
@@ -174,6 +191,7 @@ def land_text(
 ) -> LandingOut:
     """Land pasted text (spec 04 §1 — "File / paste / curated entry")."""
     _check_handling(ontology, auth, body.handling_code)
+    _check_authority_window(body.authority_valid_from, body.authority_valid_to)
     data = body.text.encode("utf-8")
     settings = get_settings()
     if len(data) > settings.ingest_max_bytes:
@@ -191,6 +209,10 @@ def land_text(
             media_type=PASTE_MEDIA_TYPE,
             source_url=body.source_url,
             collection_policy=body.collection_policy,
+            retention_class=body.retention_class,
+            authority_ref=body.authority_ref,
+            authority_valid_from=body.authority_valid_from,
+            authority_valid_to=body.authority_valid_to,
             notes=body.notes,
             handling_code=body.handling_code,
             source_time=body.source_time,
@@ -203,7 +225,7 @@ def land_text(
 
 @router.get(
     "/source-records",
-    response_model=list[SourceRecordOut],
+    response_model=SourceRecordPageOut,
     operation_id="listSourceRecords",
 )
 def list_source_records(
@@ -211,13 +233,16 @@ def list_source_records(
     ontology: OntologyDep,
     status: Annotated[str | None, Query()] = None,
     source_id: Annotated[str | None, Query()] = None,
-    limit: Annotated[int, Query(le=200)] = 50,
+    cursor: Annotated[str | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1)] = 50,
     auth: AuthContext = Depends(authorize("analyst")),
-) -> list[SourceRecord]:
+) -> SourceRecordPageOut:
     """Landed records the caller may see, newest first.
 
     Rows above the caller's clearance are absent, not counted (specs/03 §4).
     """
+    limit = page_limit(limit)
+    key = decode_cursor(cursor, "source-records", 2)
     query = (
         select(SourceRecord)
         .where(
@@ -228,13 +253,39 @@ def list_source_records(
         # received_at ties are broken by the primary key so paging is stable
         # once T24c puts a cursor on it.
         .order_by(SourceRecord.received_at.desc(), SourceRecord.record_id.desc())
-        .limit(limit)
+        .limit(limit + 1)
     )
+    if key is not None:
+        try:
+            received_at = datetime.fromisoformat(str(key[0]))
+            record_id = str(key[1])
+        except ValueError as exc:
+            raise HTTPException(422, "invalid cursor") from exc
+        query = query.where(
+            or_(
+                SourceRecord.received_at < received_at,
+                and_(
+                    SourceRecord.received_at == received_at,
+                    SourceRecord.record_id < record_id,
+                ),
+            )
+        )
     if status is not None:
         query = query.where(SourceRecord.status == status)
     if source_id is not None:
         query = query.where(SourceRecord.source_id == source_id)
-    return list(session.scalars(query))
+    rows = list(session.scalars(query))
+    items, next_cursor = split_page(
+        rows,
+        limit,
+        lambda row: encode_cursor(
+            "source-records", [row.received_at, row.record_id]
+        ),
+    )
+    return SourceRecordPageOut(
+        items=[SourceRecordOut.model_validate(row) for row in items],
+        next_cursor=next_cursor,
+    )
 
 
 @router.get(

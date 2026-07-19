@@ -188,7 +188,7 @@ test("a search below the minimum length does not query", async ({ page }) => {
     calls += 1;
     return route.fulfill({
       contentType: "application/json",
-      body: JSON.stringify({ query: "f", results: [] }),
+      body: JSON.stringify({ query: "f", results: [], next_cursor: null }),
     });
   });
 

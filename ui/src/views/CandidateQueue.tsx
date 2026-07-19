@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import {
@@ -31,18 +31,21 @@ export function CandidateQueue() {
   const [batchResult, setBatchResult] = useState<BatchConfirmResult | null>(null);
   const queryClient = useQueryClient();
 
-  const page = useQuery({
+  const page = useInfiniteQuery({
     queryKey: ["identity-candidates", producer],
-    queryFn: () =>
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) =>
       listIdentityCandidates({
         disposition: "open",
         ...(producer ? { producer } : {}),
+        ...(pageParam ? { cursor: pageParam } : {}),
       }),
+    getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
   });
 
-  const candidates = page.data?.candidates ?? [];
+  const candidates = page.data?.pages.flatMap((entry) => entry.candidates) ?? [];
   const preVerified = candidates.filter((candidate) => candidate.pre_verified);
-  const revision = page.data?.revision_id;
+  const revision = page.data?.pages[0]?.revision_id;
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ["identity-candidates"] });
@@ -119,6 +122,16 @@ export function CandidateQueue() {
           />
         ))}
       </ul>
+      {page.hasNextPage && (
+        <button
+          type="button"
+          className="button"
+          disabled={page.isFetchingNextPage}
+          onClick={() => void page.fetchNextPage()}
+        >
+          {page.isFetchingNextPage ? "Loading…" : "Load more"}
+        </button>
+      )}
     </section>
   );
 }
@@ -330,7 +343,6 @@ function DecideOnPair({
           </button>
         ))}
       </div>
-
       <label className="field__label">
         <span className="field__name">Evidence note</span>
         <input

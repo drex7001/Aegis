@@ -28,7 +28,10 @@ export function IntakePanel({ onLanded }: { onLanded: (result: LandingResult) =>
   const queryClient = useQueryClient();
 
   const vocabulary = useQuery({ queryKey: ["vocabulary"], queryFn: getVocabulary });
-  const sources = useQuery({ queryKey: ["sources"], queryFn: listSources });
+  const sources = useQuery({
+    queryKey: ["sources"],
+    queryFn: () => listSources({ limit: 200 }),
+  });
 
   const [file, setFile] = useState<File | null>(null);
   const [text, setText] = useState("");
@@ -126,7 +129,7 @@ export function IntakePanel({ onLanded }: { onLanded: (result: LandingResult) =>
         )}
 
         <SourceField
-          sources={sources.data ?? []}
+          sources={sources.data?.items ?? []}
           sourceTypes={vocabulary.data?.source_types ?? []}
           value={sourceId}
           onChange={setSourceId}

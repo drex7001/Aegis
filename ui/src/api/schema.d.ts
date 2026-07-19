@@ -755,6 +755,13 @@ export interface components {
             /** Resource Type */
             resource_type: string | null;
         };
+        /** AuditPageOut */
+        AuditPageOut: {
+            /** Items */
+            items: components["schemas"]["AuditOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
         /** BatchConfirmIn */
         BatchConfirmIn: {
             /** Candidate Ids */
@@ -788,6 +795,12 @@ export interface components {
         };
         /** Body_landFile */
         Body_landFile: {
+            /** Authority Ref */
+            authority_ref?: string | null;
+            /** Authority Valid From */
+            authority_valid_from?: string | null;
+            /** Authority Valid To */
+            authority_valid_to?: string | null;
             /** Collection Policy */
             collection_policy?: string | null;
             /**
@@ -802,6 +815,8 @@ export interface components {
             handling_code?: string;
             /** Notes */
             notes?: string | null;
+            /** Retention Class */
+            retention_class?: string | null;
             /** Source Id */
             source_id?: string | null;
             /** Source Url */
@@ -821,6 +836,8 @@ export interface components {
         CandidateListOut: {
             /** Candidates */
             candidates: components["schemas"]["CandidateOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
             /** Revision Id */
             revision_id: number;
         };
@@ -1441,6 +1458,12 @@ export interface components {
          *     an operator will recognise the record by later.
          */
         LandTextIn: {
+            /** Authority Ref */
+            authority_ref?: string | null;
+            /** Authority Valid From */
+            authority_valid_from?: string | null;
+            /** Authority Valid To */
+            authority_valid_to?: string | null;
             /** Collection Policy */
             collection_policy?: string | null;
             /** Filename */
@@ -1452,6 +1475,8 @@ export interface components {
             handling_code?: string;
             /** Notes */
             notes?: string | null;
+            /** Retention Class */
+            retention_class?: string | null;
             /** Source Id */
             source_id?: string | null;
             /** Source Time */
@@ -1622,6 +1647,8 @@ export interface components {
         };
         /** SearchResultsOut */
         SearchResultsOut: {
+            /** Next Cursor */
+            next_cursor?: string | null;
             /** Query */
             query: string;
             /** Results */
@@ -1662,8 +1689,23 @@ export interface components {
             /** Url */
             url: string | null;
         };
+        /** SourcePageOut */
+        SourcePageOut: {
+            /** Items */
+            items: components["schemas"]["SourceOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
         /** SourceRecordOut */
         SourceRecordOut: {
+            /** Authority Ref */
+            authority_ref: string | null;
+            /** Authority Valid From */
+            authority_valid_from: string | null;
+            /** Authority Valid To */
+            authority_valid_to: string | null;
+            /** Collection Policy Ref */
+            collection_policy_ref: string | null;
             /** Content Hash */
             content_hash: string;
             /** Handling Code */
@@ -1683,10 +1725,19 @@ export interface components {
             received_at: string;
             /** Record Id */
             record_id: string;
+            /** Retention Class */
+            retention_class: string | null;
             /** Source Id */
             source_id: string;
             /** Status */
             status: string;
+        };
+        /** SourceRecordPageOut */
+        SourceRecordPageOut: {
+            /** Items */
+            items: components["schemas"]["SourceRecordOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
         };
         /** SplitEntityIn */
         SplitEntityIn: {
@@ -1759,6 +1810,13 @@ export interface components {
             /** Target Action */
             target_action: string;
         };
+        /** SuggestionPageOut */
+        SuggestionPageOut: {
+            /** Items */
+            items: components["schemas"]["SuggestionOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -1815,6 +1873,7 @@ export interface operations {
                 action?: string | null;
                 from?: string | null;
                 to?: string | null;
+                cursor?: string | null;
                 limit?: number;
                 /** @description Reason for access */
                 purpose?: string | null;
@@ -1831,7 +1890,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AuditOut"][];
+                    "application/json": components["schemas"]["AuditPageOut"];
                 };
             };
             /** @description Validation Error */
@@ -2498,6 +2557,7 @@ export interface operations {
             query?: {
                 disposition?: string | null;
                 producer?: string | null;
+                cursor?: string | null;
                 limit?: number;
                 /** @description Reason for access */
                 purpose?: string | null;
@@ -2743,6 +2803,7 @@ export interface operations {
                 status?: string | null;
                 producer?: string | null;
                 record?: string | null;
+                cursor?: string | null;
                 limit?: number;
                 /** @description Reason for access */
                 purpose?: string | null;
@@ -2759,7 +2820,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SuggestionOut"][];
+                    "application/json": components["schemas"]["SuggestionPageOut"];
                 };
             };
             /** @description Validation Error */
@@ -2854,6 +2915,7 @@ export interface operations {
             query: {
                 /** @description Free-text name query */
                 q: string;
+                cursor?: string | null;
                 limit?: number;
                 /** @description Reason for access */
                 purpose?: string | null;
@@ -2889,6 +2951,7 @@ export interface operations {
             query?: {
                 status?: string | null;
                 source_id?: string | null;
+                cursor?: string | null;
                 limit?: number;
                 /** @description Reason for access */
                 purpose?: string | null;
@@ -2905,7 +2968,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SourceRecordOut"][];
+                    "application/json": components["schemas"]["SourceRecordPageOut"];
                 };
             };
             /** @description Validation Error */
@@ -3063,6 +3126,8 @@ export interface operations {
     listSources: {
         parameters: {
             query?: {
+                cursor?: string | null;
+                limit?: number;
                 /** @description Reason for access */
                 purpose?: string | null;
             };
@@ -3078,7 +3143,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SourceOut"][];
+                    "application/json": components["schemas"]["SourcePageOut"];
                 };
             };
             /** @description Validation Error */

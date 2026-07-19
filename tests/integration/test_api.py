@@ -311,7 +311,7 @@ def test_create_and_list_sources(client: TestClient) -> None:
     assert created.status_code == 201
     listed = client.get("/v1/sources", headers=auth("ana", "analyst"))
     assert listed.status_code == 200
-    assert any(s["name"] == "Reuters" for s in listed.json())
+    assert any(s["name"] == "Reuters" for s in listed.json()["items"])
 
 
 def test_unknown_source_type_rejected(client: TestClient) -> None:
@@ -329,6 +329,7 @@ def test_unknown_source_type_rejected(client: TestClient) -> None:
 def _open_authorized_case(client: TestClient, fake_fga: _FakeFGA, owner: str) -> str:
     created = client.post(
         "/v1/cases",
+        params={"purpose": "open the fictional test case"},
         json={"title": "Revocation case", "purpose": "T16b verification"},
         headers=auth(owner, "analyst", "supervisor"),
     )
