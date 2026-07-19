@@ -46,6 +46,17 @@ class AdjudicationError(RuntimeError):
     """The decision cannot be applied as stated."""
 
 
+@dataclass(frozen=True, slots=True)
+class InterveningDecision:
+    """A decision that landed between the parent revision and now."""
+
+    decision_id: str
+    kind: str
+    decided_by: str
+    decision_note: str
+    result_revision_id: int
+
+
 class StaleRevisionError(AdjudicationError):
     """The decision was computed against evidence that has since changed.
 
@@ -55,7 +66,20 @@ class StaleRevisionError(AdjudicationError):
 
     def __init__(self, parent_revision_id: int, intervening: list[IdentityDecision]) -> None:
         self.parent_revision_id = parent_revision_id
-        self.intervening = intervening
+        # Snapshotted, not held as ORM rows. This exception is raised precisely
+        # when the transaction that loaded them is about to roll back, so
+        # anything reading them afterwards — an error handler rendering a 409,
+        # a log line — would find them detached from their session.
+        self.intervening = [
+            InterveningDecision(
+                decision_id=decision.decision_id,
+                kind=decision.kind,
+                decided_by=decision.decided_by,
+                decision_note=decision.decision_note,
+                result_revision_id=decision.result_revision_id,
+            )
+            for decision in intervening
+        ]
         super().__init__(
             f"decision was computed against revision {parent_revision_id}, but "
             f"{len(intervening)} later decision(s) changed an entity in its scope: "

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -124,6 +124,9 @@ class OntologyVocabularyOut(BaseModel):
     version: str
     handling_codes: list[str]
     source_types: list[str]
+    #: Core, not domain: how a claim is asserted is platform epistemics, so this
+    #: comes from a code-owned constant rather than `aegis.yaml` (Article XIV).
+    assertion_types: list[str]
 
 
 class LandTextIn(BaseModel):
@@ -357,6 +360,156 @@ class IdentityDecisionOut(BaseModel):
     result_revision_id: int
     decided_at: datetime
     entity_id: str | None = None
+
+
+class CandidateMentionOut(BaseModel):
+    """One side of a candidate pair, with the context needed to judge it.
+
+    ``entity_id`` comes from the mention's *active* membership rather than the
+    canonical map: a confirm moves memberships, so the active row is already
+    the survivor. A pair whose sides were merged by an earlier decision
+    therefore shows one entity on both sides, which is how an analyst tells
+    "confirm this" from "already done".
+    """
+
+    mention_id: str
+    record_id: str
+    raw_text: str
+    norm_key: str
+    script: str | None
+    language: str | None
+    entity_id: str | None
+    entity_label: str | None
+
+
+class CandidateOut(BaseModel):
+    """A machine-proposed pair with its explanation (spec 06 §2.2)."""
+
+    candidate_id: str
+    mention_a: CandidateMentionOut
+    mention_b: CandidateMentionOut
+    producer: str
+    producer_version: str
+    #: Which projection snapshot graph-context features were computed against.
+    #: Without it a score cannot be reproduced (H-07).
+    graph_snapshot_id: str | None
+    #: ``None`` from rule producers, which compute no probability. A fabricated
+    #: 1.0 would be indistinguishable from a model that was certain.
+    score: float | None
+    #: Verbatim as persisted, because its shape depends on the producer: rules
+    #: write ``{"rule": ..., "predicate": ...}``, Splink writes ``gamma_``/
+    #: ``bf_``/``tf_`` per column. Grouping it into a waterfall is a rendering
+    #: decision, and a server-side flattening would fit one producer while
+    #: quietly misrepresenting the others.
+    features: dict[str, Any]
+    pre_verified: bool
+    disposition: str
+    created_at: datetime
+
+
+class CandidateListOut(BaseModel):
+    """Candidates, plus the revision they were read at.
+
+    The revision travels with the list rather than through a separate lookup
+    because that is what makes the concurrency check mean anything: a decision's
+    ``parent_revision_id`` is meant to be *the state the analyst was looking at*
+    when they decided. Fetching it independently would let a client send a
+    revision newer than the screen it decided from, which is the exact race
+    spec 05 §2 exists to catch.
+    """
+
+    revision_id: int
+    candidates: list[CandidateOut]
+
+
+class _DecisionBase(BaseModel):
+    #: The revision the decision was computed against. A stale one in the same
+    #: entity scope is a 409 carrying what intervened (specs/05 §2).
+    parent_revision_id: int
+    note: str = Field(min_length=1)
+    protected_person: bool = False
+
+
+class ConfirmMatchIn(_DecisionBase):
+    mode: Literal["confirm_match"] = "confirm_match"
+    mention_a: str
+    mention_b: str
+    candidate_id: str | None = None
+
+
+class RejectMatchIn(_DecisionBase):
+    mode: Literal["reject_match"] = "reject_match"
+    mention_a: str
+    mention_b: str
+    #: Required on reject and nowhere else: it writes a durable constraint that
+    #: suppresses this pair from future suggestions, so what that rests on is
+    #: recorded with it rather than inferred later.
+    evidence_basis: str = Field(min_length=1)
+    candidate_id: str | None = None
+
+
+class SplitEntityIn(_DecisionBase):
+    mode: Literal["split_entity"] = "split_entity"
+    entity_id: str
+    mention_ids: list[str] = Field(min_length=1)
+    target_entity_id: str | None = None
+
+
+class MarkUnresolvedIn(_DecisionBase):
+    mode: Literal["mark_unresolved"] = "mark_unresolved"
+    mention_a: str
+    mention_b: str
+    candidate_id: str | None = None
+
+
+#: Typed per mode rather than one bag of optional fields. The modes genuinely
+#: take different arguments — only reject carries an evidence basis, only split
+#: names an entity and the mentions leaving it — and a union says so in the
+#: OpenAPI document instead of leaving every client to learn it by 422.
+DecisionIn = Annotated[
+    ConfirmMatchIn | RejectMatchIn | SplitEntityIn | MarkUnresolvedIn,
+    Field(discriminator="mode"),
+]
+
+
+class DecisionOut(BaseModel):
+    """What an adjudication did, in enough detail to update a screen."""
+
+    decision: IdentityDecisionOut
+    moved_mentions: list[str]
+    surviving_entity_id: str | None
+    new_entity_id: str | None
+    #: A split can leave claims it cannot attribute to either side. They are
+    #: queued for a human, never reassigned (spec 02 §3.1 rule 4), and are
+    #: reported here so the analyst sees the follow-up their decision created
+    #: instead of discovering it in the queue later.
+    unattributable_claims: list[str]
+
+
+class BatchConfirmIn(BaseModel):
+    #: Bounded because this is one human action standing behind every pair in
+    #: it: a batch nobody could read before approving is a rubber stamp.
+    candidate_ids: list[str] = Field(min_length=1, max_length=100)
+    parent_revision_id: int
+    note: str = Field(min_length=1)
+
+
+class BatchSkipOut(BaseModel):
+    candidate_id: str
+    reason: str
+
+
+class BatchConfirmOut(BaseModel):
+    """One decision per confirmed pair (ADR-027), plus what was refused.
+
+    Partial rather than all-or-nothing, and the refusals are itemised. Two
+    pairs in one batch can share an entity, in which case the second genuinely
+    conflicts with the first — reporting that is more useful than either
+    failing the batch or hiding it.
+    """
+
+    confirmed: list[DecisionOut]
+    skipped: list[BatchSkipOut]
 
 
 class WhyConnectedOut(BaseModel):

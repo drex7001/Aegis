@@ -26,6 +26,20 @@ export type Derivative = components["schemas"]["DerivativeOut"];
 export type ExtractionResult = components["schemas"]["ExtractionOut"];
 export type LandingOutcome = LandingResult["outcome"];
 export type Suggestion = components["schemas"]["SuggestionOut"];
+export type IdentityCandidate = components["schemas"]["CandidateOut"];
+export type CandidatePage = components["schemas"]["CandidateListOut"];
+export type CandidateSide = components["schemas"]["CandidateMentionOut"];
+export type IdentityDecisionResult = components["schemas"]["DecisionOut"];
+export type BatchConfirmResult = components["schemas"]["BatchConfirmOut"];
+/**
+ * Typed per mode by the server's discriminated union, so a reject that forgets
+ * its evidence basis is a compile error here rather than a 422 at the desk.
+ */
+export type DecisionRequest =
+  | components["schemas"]["ConfirmMatchIn"]
+  | components["schemas"]["RejectMatchIn"]
+  | components["schemas"]["SplitEntityIn"]
+  | components["schemas"]["MarkUnresolvedIn"];
 export type OntologyVocabulary = components["schemas"]["OntologyVocabularyOut"];
 
 /**
@@ -195,6 +209,8 @@ export async function extractRecord(
 export async function listSuggestions(params: {
   record?: string;
   status?: string;
+  kind?: string;
+  producer?: string;
 }): Promise<Suggestion[]> {
   return unwrap(await api.GET("/v1/review-queue", { params: { query: params } }));
 }
@@ -214,4 +230,76 @@ export async function releaseRecord(recordId: string): Promise<SourceRecord> {
       params: { path: { record_id: recordId } },
     }),
   );
+}
+
+export async function acceptSuggestion(
+  suggestionId: string,
+  body: { edits?: Record<string, unknown>; note?: string },
+): Promise<Suggestion> {
+  return unwrap(
+    await api.POST("/v1/review-queue/{suggestion_id}/accept", {
+      params: { path: { suggestion_id: suggestionId } },
+      body,
+    }),
+  );
+}
+
+export async function rejectSuggestion(
+  suggestionId: string,
+  reason: string,
+): Promise<Suggestion> {
+  return unwrap(
+    await api.POST("/v1/review-queue/{suggestion_id}/reject", {
+      params: { path: { suggestion_id: suggestionId } },
+      body: { reason },
+    }),
+  );
+}
+
+export async function listIdentityCandidates(params: {
+  disposition?: string;
+  producer?: string;
+}): Promise<CandidatePage> {
+  return unwrap(await api.GET("/v1/identity/candidates", { params: { query: params } }));
+}
+
+export async function recordIdentityDecision(
+  body: DecisionRequest,
+): Promise<IdentityDecisionResult> {
+  return unwrap(await api.POST("/v1/identity/decisions", { body }));
+}
+
+export async function batchConfirmCandidates(body: {
+  candidate_ids: string[];
+  parent_revision_id: number;
+  note: string;
+}): Promise<BatchConfirmResult> {
+  return unwrap(await api.POST("/v1/identity/candidates/batch-confirm", { body }));
+}
+
+/**
+ * The one error body this client reads for meaning.
+ *
+ * `ProblemDetail` is otherwise treated as opaque prose, because error bodies are
+ * written so that asking cannot confirm a resource exists. A stale-revision 409
+ * is not that channel: it reports decisions from the identity ledger the caller
+ * has already been authorized to read, and spec 05 §2 requires the analyst be
+ * re-presented with them. Showing a bare "conflict" instead is what teaches
+ * people to retry until it sticks.
+ */
+export interface StaleRevisionProblem extends ProblemDetail {
+  parent_revision_id: number;
+  intervening: {
+    decision_id: string;
+    kind: string;
+    decided_by: string;
+    note: string;
+    result_revision_id: number;
+  }[];
+}
+
+export function asStaleRevision(error: unknown): StaleRevisionProblem | null {
+  if (!(error instanceof ApiError) || error.status !== 409) return null;
+  const problem = error.problem as StaleRevisionProblem;
+  return Array.isArray(problem.intervening) ? problem : null;
 }

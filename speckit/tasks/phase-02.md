@@ -10,8 +10,8 @@ lettered subtasks keep the global T-numbering stable for pre-authored P3+ files.
 > non-deferrable (ADR-025). The Phase 1 closure addendum (T16a–T16d), which
 > gated Milestones B–D, closed 2026-07-18 (PRs #11–#14). **Milestones A and
 > B are complete** (T17a–T17d, PRs #17–#20; T17–T20, PRs #22–#26).
-> **Milestone C is in progress**: T21 (PRs #27, #29), T22 and T23a are
-> complete; T23b (review queue & adjudication UI) is next.
+> **Milestone C is in progress**: T21 (PRs #27, #29), T22, T23a and T23b are
+> complete; T23c (provenance panel, contradictions & entity search) is next.
 
 ## Milestone A — Design pack (⛓ blocks B–D; specs rewritten before code) — **COMPLETE 2026-07-18**
 
@@ -448,16 +448,59 @@ a graph notice — and an ordinary record keeps the geometry without the colour,
 so a mark still means something. Quarantine uses caution bronze, never a
 failure colour: a governance hold is not an alarm (spec 07 §5).
 
-**T23b. Review queue & adjudication UI** (ADR-031; specs/04 §4) — typed inbox
-(queue + `er_candidate`), filters by kind/producer/status/document;
-accept / edit-then-accept / reject with reason; assertion-type picker on
-accept (plan §4.2); producer metadata (model, prompt hash, rule, score
-waterfall) rendered per kind; identity candidates: pre-verified batch-confirm
-flow + full waterfall view; bulk-reject for hallucinated entities.
+**T23b. Review queue & adjudication UI** (ADR-031; specs/04 §4) — **COMPLETE
+2026-07-19** — typed inbox (queue + `er_candidate`), filters by
+kind/producer/status/document; accept / edit-then-accept / reject with reason;
+assertion-type picker on accept (plan §4.2); producer metadata (model, prompt
+hash, rule, score waterfall) rendered per kind; identity candidates:
+pre-verified batch-confirm flow + full waterfall view; bulk-reject for
+hallucinated entities.
 AC: a Gemini-pass suggestion accepted in the UI appears in the rebuilt
 projection and a rejected one never does; a Splink candidate is confirmed
 end-to-end from the browser and the graph reflects the merge; batch-confirm
 writes one human-actored decision per pair.
+
+Like T23a, the UI task exposed a missing layer under it. `adjudicate_identity`
+had shipped in T20 as an *action* and nothing exposed it over HTTP, so spec 06
+§2.2's three routes existed only on paper — the AC's "confirmed end-to-end from
+the browser" was unreachable. They are implemented here to the matrix as
+written, so no ADR: `GET /v1/identity/candidates`,
+`POST /v1/identity/candidates/batch-confirm`, `POST /v1/identity/decisions`.
+
+Three design points settled in the building:
+
+- **The decision body is a discriminated union, not a bag of optional fields.**
+  The modes genuinely differ — only reject carries an `evidence_basis`, only
+  split names an entity and the mentions leaving it — so the OpenAPI document
+  says which arguments a mode takes instead of leaving each client to discover
+  it by 422.
+- **The candidate listing reports the revision it was read at.** A decision's
+  `parent_revision_id` is meant to be *the state the analyst was looking at*;
+  fetching it from a separate lookup would let a client send a revision newer
+  than the screen it decided from, which is the exact race spec 05 §2 exists to
+  catch. That envelope is also what T24c's cursor will need.
+- **`assertion_types` joins the vocabulary route.** It is platform epistemics
+  rather than ontology vocabulary (Article XIV), so it comes from a code-owned
+  constant — but it still must not be a second copy in the bundle.
+
+Two defects the tests found. A stale-scope conflict surfaced as **422 with the
+intervening decisions flattened into a string**, because the service wrapped
+every `AdjudicationError` into `ActionValidationError`; spec 06 requires 409
+with them in the body, and the existing test could only assert on substrings
+because the structure had already been destroyed. `StaleRevisionError` now
+propagates and snapshots its decisions rather than holding ORM rows — it is
+raised exactly when the transaction that loaded them is rolling back. And the
+batch-confirm result was owned by the panel that produced it, so confirming the
+last pre-verified pair emptied the band, unmounted the panel, and took the
+result banner with it: the reviewer clicked Confirm and saw nothing.
+
+The rule the review screens add to T23a's: **only the exceptional state is
+marked** extends to evidence, not just status. A candidate's waterfall runs in
+both directions from a centre line, because a Bayes factor below 1 argues
+*against* the match — a one-directional bar would show only the half that
+agrees, and a single score would hide the disagreement entirely. Bronze for the
+column that argues against, never the failure colour: it is a judgement about
+evidence, not something that went wrong.
 
 **T23c. Provenance panel, contradiction surfacing & entity search** (specs/06,
 ADR-012 minimal) — edge/node click opens the why-connected panel (all three

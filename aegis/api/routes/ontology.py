@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
+from aegis.actions.service import ASSERTION_TYPES
 from aegis.api.deps import AuthContext, OntologyDep, authorize
 from aegis.api.schemas import OntologyVocabularyOut
 
@@ -42,4 +43,11 @@ def get_vocabulary(
         # must not sort it for display.
         handling_codes=list(ontology.handling_codes),
         source_types=list(ontology.source_types),
+        # Platform vocabulary rather than ontology vocabulary: how a claim is
+        # asserted is core epistemics (Article XIV), which is why this comes
+        # from a code-owned constant and not from `aegis.yaml`. It rides along
+        # here for the same reason the others do — the reviewer's picker must
+        # not be a second copy of a list the server already owns. Sorted for a
+        # stable render; unlike handling codes, the order carries no meaning.
+        assertion_types=sorted(ASSERTION_TYPES),
     )

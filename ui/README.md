@@ -16,9 +16,15 @@ surface, both deleted in the same change (ADR-026).
 - **Sources view** (T23a) — land a file or a pasted note with its provenance,
   read the register of what has landed, and run the derivative + extraction
   stages per record. Quarantined records show their reason and offer release.
+- **Review view** (T23b) — the inbox, composed over two sources rather than
+  merged into one: `review_queue` suggestions (accept, edit-then-accept, reject
+  with a reason) and `er_candidate` identity pairs (confirm, reject, "cannot
+  tell", plus batch-confirm for the pre-verified band). Every suggestion shows
+  the producer metadata that makes it checkable; every candidate shows its
+  per-feature waterfall.
 
-T23b–c add the review queue, identity adjudication, the full provenance panel,
-and entity search. P4 adds object views, cases and timeline to this same app.
+T23c adds the full provenance panel and entity search. P4 adds object views,
+cases and timeline to this same app.
 
 ## Two rules the screens follow
 
@@ -35,6 +41,13 @@ accident:
    character-by-character comparison is the point. Prose stays in the body face.
    The digest chip is what makes "already landed" believable: you can see the
    hash coming back is the hash of what you sent.
+3. **Evidence is shown in both directions** (T23b). A candidate's waterfall runs
+   left and right from a centre line, because a Bayes factor below 1 argues
+   *against* the match. A one-directional bar would render only the half that
+   agrees, and a single combined score would hide the disagreement entirely —
+   which is the one thing a reviewer is there to weigh. The column arguing
+   against uses the caution bronze, never the failure colour: it is a judgement
+   about evidence, not a request that failed.
 
 ## Navigation
 

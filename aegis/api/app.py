@@ -32,6 +32,7 @@ from aegis.api.routes import (
     entities,
     evidence,
     graph,
+    identity,
     ingest,
     ontology as ontology_routes,
     provenance,
@@ -119,6 +120,7 @@ def create_app() -> FastAPI:
         provenance.router,
         graph.router,
         ingest.router,
+        identity.router,
         ontology_routes.router,
     ):
         app.include_router(router, prefix="/v1")

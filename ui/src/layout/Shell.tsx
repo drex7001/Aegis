@@ -8,8 +8,11 @@ import { ROUTES, type Route, navigate } from "../routing";
  * navigate; a nav bar full of dead links would be a promise the product does
  * not keep.
  */
+// Ordered as the work flows: land a record, review what was proposed from it,
+// then look at the graph that results.
 const VIEWS: Array<{ route: Route; label: string }> = [
   { route: ROUTES.sources, label: "Sources" },
+  { route: ROUTES.review, label: "Review" },
   { route: ROUTES.graph, label: "Graph" },
 ];
 

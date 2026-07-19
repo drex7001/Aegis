@@ -15,6 +15,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from aegis.actions import ActionContext, ActionService, ActionValidationError, new_id
+from aegis.er.adjudication import StaleRevisionError
 from aegis.er.canonical import CanonicalMapError, canonical_entity, rebuild_canonical_map
 from aegis.er.ledger import active_entity_for_mention, active_revision_id, open_membership
 from aegis.store import (
@@ -245,7 +246,10 @@ def test_a_stale_decision_in_scope_is_rejected_and_re_presented(world) -> None:
     _confirm(world, world["mention_a"], world["mention_b"])
     session.commit()
 
-    with pytest.raises(ActionValidationError) as excinfo:
+    # Not an ActionValidationError: the decision was well-formed and was valid
+    # when it was computed — what changed is the world, so it surfaces as a
+    # conflict (409) rather than a 422.
+    with pytest.raises(StaleRevisionError) as excinfo:
         world["service"].adjudicate_identity(
             world["context"],
             mode="confirm_match",
@@ -258,6 +262,10 @@ def test_a_stale_decision_in_scope_is_rejected_and_re_presented(world) -> None:
     # Re-presented, not silently retried: the message names what intervened.
     assert "later decision" in str(excinfo.value)
     assert "confirm" in str(excinfo.value)
+    # And it survives as *data*, not only prose. Matching a message string is
+    # how a caller ends up unable to show the analyst what actually happened.
+    assert excinfo.value.parent_revision_id == stale_parent
+    assert [decision.kind for decision in excinfo.value.intervening] == ["confirm"]
 
 
 @pytest.mark.integration
