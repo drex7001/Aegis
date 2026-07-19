@@ -1231,6 +1231,40 @@
         "title": "EntityDetail",
         "type": "object"
       },
+      "EntityHitOut": {
+        "description": "One search result, with how it was found.",
+        "properties": {
+          "entity_id": {
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "entity_type": {
+            "title": "Entity Type",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "matched": {
+            "title": "Matched",
+            "type": "string"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          }
+        },
+        "required": [
+          "entity_id",
+          "label",
+          "entity_type",
+          "score",
+          "matched"
+        ],
+        "title": "EntityHitOut",
+        "type": "object"
+      },
       "EntityOut": {
         "properties": {
           "created_at": {
@@ -2376,6 +2410,27 @@
           "reason"
         ],
         "title": "RetractIn",
+        "type": "object"
+      },
+      "SearchResultsOut": {
+        "properties": {
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/EntityHitOut"
+            },
+            "title": "Results",
+            "type": "array"
+          }
+        },
+        "required": [
+          "query",
+          "results"
+        ],
+        "title": "SearchResultsOut",
         "type": "object"
       },
       "SourceIn": {
@@ -5061,6 +5116,86 @@
         "summary": "Reject Suggestion",
         "tags": [
           "review-queue"
+        ]
+      }
+    },
+    "/v1/search/entities": {
+      "get": {
+        "description": "Find entities by name, alias or the names they were mentioned under.\n\nAuthorization is applied while candidates are chosen, not after they are\nhydrated (ADR-012, B-17): an entity reachable only through claims above the\ncaller's clearance is absent from the scan, so the result *count* cannot be\nused to infer that it exists.",
+        "operationId": "searchEntities",
+        "parameters": [
+          {
+            "description": "Free-text name query",
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "description": "Free-text name query",
+              "maxLength": 200,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResultsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Search",
+        "tags": [
+          "search"
         ]
       }
     },

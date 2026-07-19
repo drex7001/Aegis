@@ -131,6 +131,16 @@ class Mention(Base):
             name="ck_mention_offset_order",
         ),
         Index("ix_mention_norm_key", "norm_key"),
+        # Cross-script search reaches these, so they are indexed the way they
+        # are queried: trigram for "close enough", btree for the phonetic
+        # block's exact hit (ADR-035).
+        Index(
+            "ix_mention_latin_key_trgm",
+            "latin_key",
+            postgresql_using="gin",
+            postgresql_ops={"latin_key": "gin_trgm_ops"},
+        ),
+        Index("ix_mention_phonetic_key", "phonetic_key"),
     )
 
     mention_id: Mapped[str] = mapped_column(Text, primary_key=True)
@@ -139,6 +149,12 @@ class Mention(Base):
     )
     raw_text: Mapped[str] = mapped_column(Text, nullable=False)
     norm_key: Mapped[str] = mapped_column(Text, nullable=False)
+    #: Romanized and phonetic forms, stored rather than recomputed (ADR-035).
+    #: `norm_key` preserves non-Latin script on purpose, so it can never match
+    #: a Latin query against a Sinhala name; these are what can. Derived data:
+    #: a change to `translit.py` means a backfill, never a lost fact.
+    latin_key: Mapped[str | None] = mapped_column(Text)
+    phonetic_key: Mapped[str | None] = mapped_column(Text)
     char_start: Mapped[int | None] = mapped_column(Integer)
     char_end: Mapped[int | None] = mapped_column(Integer)
     script: Mapped[str | None] = mapped_column(Text)  # ISO 15924, when detected

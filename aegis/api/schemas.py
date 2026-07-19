@@ -407,6 +407,25 @@ class CandidateOut(BaseModel):
     created_at: datetime
 
 
+class EntityHitOut(BaseModel):
+    """One search result, with how it was found."""
+
+    entity_id: str
+    label: str
+    entity_type: str
+    score: float
+    #: `label`, `alias`, `mention` or `phonetic`. Reported because they are not
+    #: equally strong evidence: metaphone collapses genuinely different names,
+    #: so a phonetic hit is a lead, and a list that renders it like a name
+    #: match invites the reader to treat it as one.
+    matched: str
+
+
+class SearchResultsOut(BaseModel):
+    query: str
+    results: list[EntityHitOut]
+
+
 class CandidateListOut(BaseModel):
     """Candidates, plus the revision they were read at.
 

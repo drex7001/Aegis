@@ -29,6 +29,7 @@ from sqlalchemy.orm import Session
 
 from aegis.ids import new_id
 from aegis.er.normalize import detect_script, norm_key
+from aegis.er.translit import latin_key, phonetic_key
 from aegis.store import Mention, SourceRecord
 
 #: Characters of surrounding text kept with each mention, for the reviewer and
@@ -120,6 +121,11 @@ def extract_mentions(
             # reported it when we could not.
             raw_text=text[start:end] if span is not None else name,
             norm_key=key,
+            # Written here, once, rather than recomputed per ER run (ADR-035).
+            # Keyed off the same string `raw_text` records, so the stored keys
+            # and a freshly computed one can never disagree about the input.
+            latin_key=latin_key(name),
+            phonetic_key=phonetic_key(name),
             char_start=start,
             char_end=end,
             script=detect_script(name),

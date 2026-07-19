@@ -1004,3 +1004,49 @@ is small and will stop being acceptable as it grows.
 — a poll has no request to hold open, so that is where a job model first earns
 its complexity, and it should be introduced there rather than retrofitted
 here.
+
+---
+
+## ADR-035: Transliteration keys are stored on `mention`, and search reads them
+
+**Context.** T23c requires `GET /v1/search/entities` to satisfy "a
+transliterated query variant finds the seeded entity", where the seeded set is
+spec 05 §6's Sinhala/English variant pairs. Spec 06 §2.1 describes the search
+surface as "`pg_trgm` over names/aliases/mention **norm_keys**".
+
+Those two cannot both hold. `norm_key` deliberately **preserves non-Latin
+script** (`aegis/er/normalize.py`): in Sinhala and Tamil the combining marks
+are vowel signs that carry meaning, so folding them would merge names that are
+not the same name. A Sinhala mention therefore has a Sinhala `norm_key`, and no
+key derivable from a Latin query is ever Sinhala. Searching `norm_key` alone
+can match romanized-to-romanized, and never Latin-to-Sinhala.
+
+The cross-script keys already exist — `latin_key`, `script_key`,
+`phonetic_key` in `aegis/er/translit.py` — but they are computed per run inside
+`aegis/er/features.py` and never stored, so no query can reach them.
+
+**Decision.** Persist `latin_key` and `phonetic_key` on `mention`, written at
+mention creation, backfilled by migration `0009`, and indexed (GIN/trigram on
+`latin_key`, btree on `phonetic_key`). `GET /v1/search/entities` matches a
+query's own keys against them in SQL, alongside `Entity.label` and alias
+claims.
+
+`script_key` is **not** stored: it is `norm_key` for the cases that matter, and
+a third near-duplicate column earns nothing.
+
+**Consequences.**
+
+- Cross-script search works in one SQL statement, which is what keeps
+  authorization *in candidate generation* rather than in hydration (spec 06
+  §2.1, ADR-012, B-17). A Python post-filter over a candidate set would have
+  made the result count leak what a caller may not read.
+- ER gains a single stored definition of the keys instead of recomputing them
+  on every run; `features.py` reads the columns.
+- The keys are derived data, so a change to `translit.py` requires a backfill.
+  They are not identity and never were (Article V) — losing them costs a
+  reindex, not a fact.
+- Spec 06 §2.1's "mention norm_keys" is widened to "mention keys" to match.
+
+**Revisit when.** ADR-012's trigger fires and search moves to a dedicated
+engine, which would own its own analysis chain and make these columns a
+denormalization rather than the index.

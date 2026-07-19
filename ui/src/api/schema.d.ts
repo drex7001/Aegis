@@ -540,6 +540,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/search/entities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search
+         * @description Find entities by name, alias or the names they were mentioned under.
+         *
+         *     Authorization is applied while candidates are chosen, not after they are
+         *     hydrated (ADR-012, B-17): an entity reachable only through claims above the
+         *     caller's clearance is absent from the scan, so the result *count* cannot be
+         *     used to infer that it exists.
+         */
+        get: operations["searchEntities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/source-records": {
         parameters: {
             query?: never;
@@ -1082,6 +1107,22 @@ export interface components {
             };
             entity: components["schemas"]["EntityOut"];
         };
+        /**
+         * EntityHitOut
+         * @description One search result, with how it was found.
+         */
+        EntityHitOut: {
+            /** Entity Id */
+            entity_id: string;
+            /** Entity Type */
+            entity_type: string;
+            /** Label */
+            label: string;
+            /** Matched */
+            matched: string;
+            /** Score */
+            score: number;
+        };
         /** EntityOut */
         EntityOut: {
             /**
@@ -1507,6 +1548,13 @@ export interface components {
         RetractIn: {
             /** Reason */
             reason: string;
+        };
+        /** SearchResultsOut */
+        SearchResultsOut: {
+            /** Query */
+            query: string;
+            /** Results */
+            results: components["schemas"]["EntityHitOut"][];
         };
         /** SourceIn */
         SourceIn: {
@@ -2685,6 +2733,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SuggestionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    searchEntities: {
+        parameters: {
+            query: {
+                /** @description Free-text name query */
+                q: string;
+                limit?: number;
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResultsOut"];
                 };
             };
             /** @description Validation Error */
