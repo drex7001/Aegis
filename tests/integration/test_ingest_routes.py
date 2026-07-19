@@ -364,6 +364,28 @@ def test_re_extracting_queues_no_duplicate_suggestions(
     assert db.scalar(sa.select(sa.func.count()).select_from(ReviewQueue)) == 1
 
 
+def test_semantic_mock_labels_itself_as_a_mock(client: TestClient, db: Session) -> None:
+    """The workspace offers this producer, so the path it triggers is covered.
+
+    The browser has no model credentials, so the UI's "semantic" option runs
+    the offline extractor. What keeps that honest is that `producer_meta` says
+    `model: mock` — a reviewer can always see what produced a suggestion, so
+    the affordance is not a way to slip fabricated output in as model output.
+    """
+    _, response = _land_and_extract(client, producer="semantic", mock=True)
+    assert response.status_code == 200, response.text
+    assert response.json()["producer"] == "semantic"
+
+    suggestion = db.scalar(sa.select(ReviewQueue))
+    assert suggestion is not None
+    assert suggestion.producer == "semantic_pass"
+    assert suggestion.producer_meta["model"] == "mock"
+    assert suggestion.producer_meta["raw_response_ref"].startswith("sha256:")
+    # Still a suggestion, never a claim — the producer does not change that.
+    assert suggestion.status == "suggested"
+    assert db.scalar(sa.select(sa.func.count()).select_from(Claim)) == 0
+
+
 def test_extraction_of_a_quarantined_record_is_refused(client: TestClient) -> None:
     upload(client, remand_annex_pdf(), "annex-b.pdf")
     conflicting = upload(client, minimal_pdf(["Conflicting content."]), "annex-b.pdf").json()

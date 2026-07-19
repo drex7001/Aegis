@@ -85,10 +85,11 @@ test("a version conflict shows its quarantine reason", async ({ page }) => {
   // Held, not lost, and the screen says who unblocks it.
   await expect(outcome).toContainText("supervisor");
 
-  await expect(page.getByTestId("record-status").first()).toHaveText("quarantined");
-  await expect(page.getByTestId("record-reason").first()).toContainText(
-    "version conflict",
-  );
+  // These test ids exist only on a held row, so exactly one must appear —
+  // asserting the count first also pins that the *other* upload stayed landed.
+  await expect(page.getByTestId("record-status")).toHaveCount(1);
+  await expect(page.getByTestId("record-status")).toHaveText("quarantined");
+  await expect(page.getByTestId("record-reason")).toContainText("version conflict");
 });
 
 test("extracting a landed PDF records a derivative and queues a suggestion", async ({
@@ -147,7 +148,14 @@ test("a quarantined record offers release instead of extraction", async ({ page 
   });
   await page.getByTestId("intake-submit").click();
 
-  const held = page.getByTestId("record").first();
+  // Selected by what makes it quarantined, not by position. The register
+  // refetches after a landing, so `.first()` can resolve to the row that was
+  // there before the new one arrives — and Playwright's auto-wait does not
+  // rescue that, because an element *is* present, just the wrong one.
+  const held = page
+    .getByTestId("record")
+    .filter({ has: page.getByTestId("record-status") });
+  await expect(held).toHaveCount(1);
   await held.getByRole("button").first().click();
 
   await expect(page.getByTestId("record-release")).toBeVisible();
