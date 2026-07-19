@@ -54,13 +54,16 @@ even when repository coverage already exceeds its threshold.
 
 ## Environments and CI
 
-Pull requests run four blocking jobs: fast tests, PostgreSQL integration tests,
-OpenFGA system tests, and combined coverage/governance gates. The coverage job
-uses the compose stack and runs every automated blocking layer. Browser E2E is
-added when the Phase 2 UI exists.
+Pull requests run five blocking jobs: fast tests, PostgreSQL integration tests,
+OpenFGA system tests, combined coverage/governance gates, and the workspace
+type-check/build/hermetic-browser job. The coverage job uses the compose stack
+and runs every automated Python blocking layer. Phase 2's live-stack
+non-builder journey is the manual `MAN-P2-001` usability gate; its backend and
+workspace behaviors remain automated at integration/system and `ui/e2e`
+boundaries.
 
 The final `test` status is a branch-protection compatibility gate. It depends
-on all four jobs and passes only when every blocking stage succeeds.
+on all five jobs and passes only when every blocking stage succeeds.
 
 Local fast tests require no service. Integration tests require
 `AEGIS_TEST_DATABASE_URL`. System tests require `make up && make bootstrap`.

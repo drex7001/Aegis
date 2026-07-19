@@ -4,7 +4,8 @@ Ordered; each task lists acceptance criteria (AC). Tasks marked ⛓ block everyt
 after them. Reference specs in parentheses. Numbering continues from Phase 1 (T16);
 lettered subtasks keep the global T-numbering stable for pre-authored P3+ files.
 
-> **Status: ACTIVE.** Rewritten 2026-07-18 (ADR-033) after the external-review
+> **Status: COMPLETE 2026-07-20 — ★ MVP GATE PASSED.** Rewritten 2026-07-18
+> (ADR-033) after the external-review
 > disposition (`../reviews/2026-07-18-external-review-disposition.md`). Phase 2
 > closes with the **★ MVP gate** — see the charter. Gate criteria are
 > non-deferrable (ADR-025). The Phase 1 closure addendum (T16a–T16d), which
@@ -13,7 +14,9 @@ lettered subtasks keep the global T-numbering stable for pre-authored P3+ files.
 > **Milestone C is complete 2026-07-19**: T21 (PRs #27, #29), T22, T23a,
 > T23b, T23c and T24a–T24c are complete. The Phase 2 API surface is complete —
 > no route spec 06 declares for this phase is unimplemented. Milestone D T25,
-> T26 and T27 are complete; T28 is next.
+> T26–T28 are complete. Exit evidence and carryovers are recorded in
+> `../reviews/phase-02-exit-review.md`; Phase 3 remains inactive until its T29
+> re-validation is explicitly started.
 
 ## Milestone A — Design pack (⛓ blocks B–D; specs rewritten before code) — **COMPLETE 2026-07-18**
 
@@ -711,6 +714,17 @@ tests); update speckit docs where reality diverged; append ADRs for changed
 decisions; write `../reviews/phase-02-exit-review.md`.
 AC: every gate criterion checked; non-blocking deliverables carried over with
 owner + target phase recorded; statuses updated everywhere (M-01).
+
+**COMPLETE 2026-07-20.** The Phase 2 exit review checks all five
+non-deferrable charter criteria and all fourteen constitutional articles,
+with named Article VI/VII tests and the T27 live operator record. No gate is
+deferred. The review records the manual real-OSINT smoke, P7 governance-seam
+enforcement, P8 legacy extraction retirement, and the independent pilot gate
+with explicit owners and targets; none is a hidden Phase 2 criterion. Reality
+matches ADR-025…ADR-036, so no new ADR was required. Status surfaces now mark
+Phase 2 complete and Phase 3 ready for—but not yet in—T29 re-validation. The
+package advances to 0.2.0 and the merged review is tagged `phase-2-mvp` under
+the repository release workflow.
 
 ## Explicit non-goals for Phase 2
 

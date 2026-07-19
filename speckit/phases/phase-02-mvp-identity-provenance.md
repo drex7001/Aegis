@@ -1,6 +1,8 @@
 # Phase 2 Charter — MVP: Identity, provenance & analyst workspace ★
 
-Status: ACTIVE · Constitutional basis: Articles I, III, V, VI, VII, VIII ·
+Status: **COMPLETE 2026-07-20 — ★ MVP GATE PASSED** · Exit review:
+`../reviews/phase-02-exit-review.md` · Constitutional basis: Articles I, III,
+V, VI, VII, VIII ·
 GOAL.md §10, §12 (minimal), §18 ("Why connected?"), §40 M-II ·
 ADR-005, ADR-022, **ADR-025…ADR-033** (2026-07 recomposition) ·
 Tasks: `../tasks/phase-02.md` · Effort: **XL**
@@ -87,19 +89,19 @@ none is out of scope (see non-goals).
 
 ## Exit criteria — the MVP gate (non-deferrable, ADR-025)
 
-- [ ] Merge → intervening claim edits → split restores mention-attributable
+- [x] Merge → intervening claim edits → split restores mention-attributable
       state exactly; a concurrent adjudication against a stale revision is
       rejected and re-presented (ledger history tests).
-- [ ] Every rendered edge opens a provenance panel listing ≥ 1 source record
+- [x] Every rendered edge opens a provenance panel listing ≥ 1 source record
       with reliability/credibility/verification shown independently; seeded
       contradictions render side by side.
-- [ ] A seeded transliteration variant pair (Sinhala/English) scores above the
+- [x] A seeded transliteration variant pair (Sinhala/English) scores above the
       recorded numeric threshold, is adjudicated in the UI, and the graph
       reflects the merge; the seeded distinct same-name pair stays unmerged.
-- [ ] A field with `sensitivity: restricted` is absent from responses to a
+- [x] A field with `sensitivity: restricted` is absent from responses to a
       low-clearance caller on every shipped route; the route lint passes with
       **no** public exemption.
-- [ ] **The full ingest → suggest → review → accept → projection loop runs on
+- [x] **The full ingest → suggest → review → accept → projection loop runs on
       the fictional fixture, driven entirely from the UI by someone who didn't
       build it, following `docs/MVP_DEMO.md`.**
 

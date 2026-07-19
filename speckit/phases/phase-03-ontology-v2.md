@@ -1,6 +1,7 @@
 # Phase 3 Charter — Ontology modules & contracts
 
-Status: charter (narrowed 2026-07-18, ADR-033 — was "ontology v2: semantic &
+Status: **READY FOR T29 RE-VALIDATION, NOT ACTIVE** (Phase 2 complete
+2026-07-20; narrowed 2026-07-18, ADR-033 — was "ontology v2: semantic &
 kinetic completion") · tasks: `../tasks/phase-03.md` (T29–T40; re-validated by
 T29 at phase start) · Constitutional basis: Articles XI, XIV ·
 GOAL.md §7.8–7.10 · ADR-021, ADR-033 · Spec: `../specs/08-ontology-v2.md`

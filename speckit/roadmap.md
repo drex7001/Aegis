@@ -26,7 +26,7 @@ external-review disposition (`reviews/2026-07-18-external-review-disposition.md`
 
 ```
 Milestone I    Governed foundation      P0 governance ▸ P1 claim store + RBAC     [COMPLETE]
-Milestone II   MVP                      P2 identity, provenance & workspace       ★ MVP
+Milestone II   MVP                      P2 identity, provenance & workspace       [COMPLETE — ★ MVP]
 Milestone III  Ontology platform        P3 modules & contracts ▸ P4 workspace v2 & object views
 Milestone IV   Intelligence domain      P5 events, geo & time ▸ P6 search, object sets & analytics
 Milestone V    Trust boundaries & AI    P7 sharing & governance ▸ P8 controlled AI & reasoning
@@ -109,9 +109,9 @@ Milestone A completed, so nothing in P2 is gated on it now.
 
 ---
 
-## Milestone II — MVP
+## Milestone II — MVP *(complete 2026-07-20)*
 
-### Phase 2 — Identity, provenance & analyst workspace *(GOAL.md §40 M-II · effort: XL · ★ MVP gate)*
+### Phase 2 — Identity, provenance & analyst workspace *(GOAL.md §40 M-II · effort: XL · COMPLETE — ★ MVP gate passed)*
 
 **Goal.** Slugs stop being identity; every connection explains itself; and the
 platform becomes **usable end-to-end by an analyst in one durable UI** — land a
@@ -138,19 +138,23 @@ provenance. Charter: `phases/phase-02-mvp-identity-provenance.md` · tasks:
 5. **Quality gates**: ER evaluation harness with numeric precision/recall
    thresholds and review-load bound; fictional deterministic demo fixture.
 
-**Exit criteria — the MVP gate (non-deferrable, ADR-025)**
-- Merge → intervening edits → split restores mention-attributable state
+**Exit criteria — the MVP gate (non-deferrable, ADR-025; all met 2026-07-20)**
+- [x] Merge → intervening edits → split restores mention-attributable state
   exactly (ledger history test incl. concurrent-decision case).
-- Every rendered edge opens a provenance panel listing ≥ 1 source record with
+- [x] Every rendered edge opens a provenance panel listing ≥ 1 source record with
   all three grading dimensions; contradictions render side by side.
-- A seeded transliteration variant pair is found by Splink above the recorded
+- [x] A seeded transliteration variant pair is found by Splink above the recorded
   numeric threshold, adjudicated in the UI, and the graph reflects the merge.
-- Field-sensitivity filtering and no-anonymous-route hold on every shipped
+- [x] Field-sensitivity filtering and no-anonymous-route hold on every shipped
   route (authz matrix green; lint has no public exemption).
-- **The full ingest → suggest → review → accept → projection loop runs on the
+- [x] **The full ingest → suggest → review → accept → projection loop runs on the
   fictional fixture, driven entirely from the UI by someone who didn't build
   it, following `docs/MVP_DEMO.md`.** (Real-corpus walkthrough runs as an
   authorized manual smoke test, not the blocking gate — H-09.)
+
+The evidence, Article VI/VII spot-check, carryovers, and release verdict are in
+`reviews/phase-02-exit-review.md`. Phase 3 may begin only with T29's explicit
+re-validation of its pre-authored plan against the P2-as-built system.
 
 ---
 
@@ -349,8 +353,8 @@ Items may be completed any time; none may be waived.
 
 | GOAL.md capability | Status |
 |---|---|
-| Claims, grading, provenance, evidence, audit, review queue | **Scheduled** P1–P2 |
-| Reversible identity, ER, multilingual matching | **Scheduled** P2 |
+| Claims, grading, provenance, evidence, audit, review queue | **Implemented** P1–P2 |
+| Reversible identity, ER, multilingual matching | **Implemented** P2 |
 | Ontology modules, interfaces, typed clients | **Scheduled** P3 |
 | Investigation workspace, object views, hypotheses, as-of (narrowed) | **Scheduled** P4 |
 | Events, geospatial, timeline, map privacy | **Scheduled** P5 |

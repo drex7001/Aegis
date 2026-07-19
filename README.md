@@ -21,16 +21,17 @@ The core principle:
 |---|---|
 | Vision (north star) | [`GOAL.md`](GOAL.md) |
 | Constitution | [`speckit/constitution.md`](speckit/constitution.md) — 14 non-negotiable articles |
-| Build path | [`speckit/`](speckit/README.md) — roadmap v2 (P0–P9), phase charters, ADRs, detailed specs |
+| Build path | [`speckit/`](speckit/README.md) — roadmap v2.1 (P0–P9), phase charters, ADRs, detailed specs |
 | Domain artifact | [`ontology/aegis.yaml`](ontology/aegis.yaml) — the single source of domain truth (Article XI) |
 | Contributing | [`docs/GIT_WORKFLOW.md`](docs/GIT_WORKFLOW.md) — GitHub Flow: branch → PR → green CI → squash |
 
 ## What exists today
 
-**Milestone I (Phases 0–1) is complete**, including the ADR-033 closure
-addendum (T16a–T16d, closed 2026-07-18 — see `speckit/tasks/phase-01.md`).
-Phase 2 is underway: its blocking design pack (T17a–T17d) is done and
-Milestone B is the active work. The governed foundation:
+**Milestones I and II (Phases 0–2) are complete.** Phase 2 passed the ★ MVP
+gate on 2026-07-20: reversible identity, provenance, field filtering, numeric
+ER gates, and the complete fictional UI operator loop are all verified in
+[`speckit/reviews/phase-02-exit-review.md`](speckit/reviews/phase-02-exit-review.md).
+The governed MVP now includes:
 
 - **Claim store** (PostgreSQL + PostGIS): every relationship and attribute is a
   claim with source, grading, time window, and handling code — never a bare fact.
@@ -52,12 +53,11 @@ Milestone B is the active work. The governed foundation:
   `aegis serve` on the same origin as the API.
 - **API v1 + `aegis` CLI**, migrations, backup/restore runbook.
 
-**Active phase: Phase 2 — the ★ MVP gate** (identity decision ledger, durable
-React workspace with the full ingest → review → adjudicate → graph loop,
-provenance panels, basic search; recomposed 2026-07-18 per ADR-025…033 — see
-[`speckit/tasks/phase-02.md`](speckit/tasks/phase-02.md)). The full roadmap to
-production is [`speckit/roadmap.md`](speckit/roadmap.md); the external-review
-disposition is
+**Next phase: Phase 3 — ontology modules and contracts.** It is ready but not
+active: T29 must first re-validate the pre-authored plan against the Phase 2
+system. See [`speckit/tasks/phase-03.md`](speckit/tasks/phase-03.md). The full
+roadmap to production is [`speckit/roadmap.md`](speckit/roadmap.md); the
+external-review disposition is
 [`speckit/reviews/2026-07-18-external-review-disposition.md`](speckit/reviews/2026-07-18-external-review-disposition.md).
 
 ## Quickstart
@@ -103,7 +103,7 @@ tests/
 ├── contract/      # ontology, schema, OpenAPI, and governance invariants
 ├── integration/   # PostgreSQL-backed behavior
 ├── system/        # real multi-service behavior such as OpenFGA convergence
-├── e2e/           # reserved for Phase 2 browser journeys
+├── e2e/           # live-stack browser boundary and manual journey evidence
 ├── fixtures/      # deterministic fictional inputs
 ├── snapshots/     # reviewed expected outputs
 └── support/       # test-only factories, constants, and paths
@@ -131,7 +131,7 @@ commands and results in the pull request.
 | `ui/` | React + TypeScript investigation workspace (ADR-032) — the single durable UI, landed at Phase 2 T22 and grown in place from there |
 | `migrations/` | Alembic schema migrations |
 | `infra/` | Compose stack + bootstrap (PostgreSQL/PostGIS, MinIO, Keycloak, OpenFGA) |
-| `tests/` | Layered unit, component, contract, integration, system, and future E2E suites; see [`docs/testing/`](docs/testing/README.md) |
+| `tests/` | Layered unit, component, contract, integration, system, and live-journey evidence; see [`docs/testing/`](docs/testing/README.md) |
 | `docs/` | Active runbooks: git workflow, backup/restore, governed ingestion, and testing |
 | `data/` | Corpora: `data/real/` (public-reporting OSINT — **read [`data/real/README.md`](data/real/README.md) first**) and `data/sample/` (fictional) |
 | `speckit/` | Constitution, spec, plan, decisions (ADRs), roadmap, phase charters, detailed specs |

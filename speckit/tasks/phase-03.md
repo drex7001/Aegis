@@ -4,12 +4,13 @@ Ordered; each task lists acceptance criteria (AC). Tasks marked ⛓ block everyt
 after them; narrower dependencies are noted in the task text. Reference specs in
 parentheses. Numbering continues from Phase 2 (T28).
 
-> **Status: PRE-AUTHORED, NOT ACTIVE.** Rewritten 2026-07-18 to the narrowed
+> **Status: READY FOR T29 RE-VALIDATION, NOT ACTIVE.** Phase 2 passed the ★ MVP
+> gate on 2026-07-20. Rewritten 2026-07-18 to the narrowed
 > charter (ADR-033): module composition is the headline; functions execution,
 > side-effect engine, and the Python SDK moved out to their consumer phases.
-> Phase 2 (T17–T28) must close the ★ MVP gate first. T29 re-validates this plan
-> and spec 08 against whatever Phase 2 actually shipped before any other task
-> starts. Charter: `../phases/phase-03-ontology-v2.md` · spec:
+> T29 re-validates this plan and spec 08 against what Phase 2 actually shipped
+> before any other task starts; no Phase 3 implementation is active yet.
+> Charter: `../phases/phase-03-ontology-v2.md` · spec:
 > `../specs/08-ontology-v2.md`.
 
 ## Milestone A — Spec finalization & module composition
