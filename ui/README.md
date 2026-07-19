@@ -151,9 +151,10 @@ realm are non-obvious and cost real debugging time:
    (`preferred_username`, `realm_access.roles`, `clearance`, and the
    `aegis-api` audience) is minted by the `aegis` scope's mappers.
 2. **`redirectUris` and `webOrigins` list both `127.0.0.1` and `localhost`** on
-   ports 8000 (served bundle), 5173 (dev) and 4173 (preview). They are different
-   origins to a browser, and `origin` is what the redirect URI is matched
-   against.
+   ports 8000 (served bundle), 5173 (dev) and 4173 (preview). Each bare origin
+   is a valid post-logout destination and each `/auth/callback` is a valid
+   sign-in destination. They are different origins to a browser, and `origin`
+   is what the redirect URI is matched against.
 
 The API tolerates 60s of clock skew on token validation
 (`AEGIS_OIDC_CLOCK_SKEW_SECONDS`): the identity provider is a different host,

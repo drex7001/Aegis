@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { stubGraphRoute, stubIdentityProvider } from "./oidc-stub";
+import { GRAPH_FIXTURE, stubGraphRoute, stubIdentityProvider } from "./oidc-stub";
 import {
   EARLIER_DOB,
   ENTITY_B,
@@ -195,4 +195,47 @@ test("a search below the minimum length does not query", async ({ page }) => {
   await page.getByTestId("search-input").fill("f");
   await page.waitForTimeout(600);
   expect(calls).toBe(0);
+});
+
+test("an analyst is not offered the admin projection action", async ({ page }) => {
+  await signedInGraph(page);
+  await expect(page.getByTestId("projection-rebuild")).toHaveCount(0);
+});
+
+test("an admin rebuilds the projection and the graph refreshes", async ({ page }) => {
+  await stubIdentityProvider(page, { roles: ["admin"] });
+  let graphCalls = 0;
+  await page.route("**/v1/graph/expand", async (route) => {
+    graphCalls += 1;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify(GRAPH_FIXTURE),
+    });
+  });
+  await stubProvenanceRoutes(page);
+  await page.route("**/v1/projections/rebuild", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        anchor_resolved: 2,
+        builder_version: "edge-projection-v2",
+        built_at_revision_id: 8,
+        claims_considered: 1,
+        collapsed_endpoints: 0,
+        edges: 1,
+        map_resolved: 0,
+        ontology_version: "1.2.0",
+        segments: 1,
+      }),
+    }),
+  );
+
+  await page.goto("/");
+  await expect(page.getByTestId("graph-canvas")).toBeVisible();
+  await page.getByTestId("projection-rebuild").click();
+
+  await expect(page.getByTestId("projection-rebuild-result")).toContainText(
+    "Rebuilt 1 edges / 1 segments at revision 8",
+  );
+  await expect.poll(() => graphCalls).toBeGreaterThan(1);
 });

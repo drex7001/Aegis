@@ -1,7 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
+import { useAuth } from "react-oidc-context";
 
-import { ApiError, expandGraph } from "../api/client";
+import { ApiError, expandGraph, rebuildProjections } from "../api/client";
 import { EntitySearch } from "./EntitySearch";
 import { GraphCanvas } from "./GraphCanvas";
 import { ProvenancePanel, type PanelSelection } from "./ProvenancePanel";
@@ -21,6 +22,8 @@ import { ProvenancePanel, type PanelSelection } from "./ProvenancePanel";
  * panel instead, so it stays a decision rather than a side effect.
  */
 export function GraphView() {
+  const auth = useAuth();
+  const queryClient = useQueryClient();
   const [seedId, setSeedId] = useState<string | null>(null);
   const [maxHops, setMaxHops] = useState(1);
   const [selection, setSelection] = useState<PanelSelection | null>(null);
@@ -32,6 +35,13 @@ export function GraphView() {
         seed_ids: seedId ? [seedId] : [],
         max_hops: seedId ? maxHops : 0,
       }),
+  });
+  const roles = (
+    auth.user?.profile["realm_access"] as { roles?: string[] } | undefined
+  )?.roles ?? [];
+  const rebuild = useMutation({
+    mutationFn: rebuildProjections,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["graph"] }),
   });
 
   const onSelectEdge = useCallback(
@@ -83,6 +93,30 @@ export function GraphView() {
           </>
         )}
         <Stamps view={query.data} />
+        {roles.includes("admin") && (
+          <button
+            type="button"
+            className="button"
+            data-testid="projection-rebuild"
+            disabled={rebuild.isPending}
+            onClick={() => rebuild.mutate()}
+          >
+            {rebuild.isPending ? "Rebuilding…" : "Rebuild projection"}
+          </button>
+        )}
+        {rebuild.data && (
+          <span className="muted" data-testid="projection-rebuild-result">
+            Rebuilt {rebuild.data.edges} edges / {rebuild.data.segments} segments at
+            revision {rebuild.data.built_at_revision_id}.
+          </span>
+        )}
+        {rebuild.error && (
+          <span className="notice notice--error" role="alert">
+            {rebuild.error instanceof ApiError
+              ? rebuild.error.message
+              : "The projection could not be rebuilt."}
+          </span>
+        )}
       </div>
 
       {/* Body and panel side by side. `.graph` is a column, so a panel that is

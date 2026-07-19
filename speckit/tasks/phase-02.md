@@ -12,8 +12,8 @@ lettered subtasks keep the global T-numbering stable for pre-authored P3+ files.
 > B are complete** (T17a–T17d, PRs #17–#20; T17–T20, PRs #22–#26).
 > **Milestone C is complete 2026-07-19**: T21 (PRs #27, #29), T22, T23a,
 > T23b, T23c and T24a–T24c are complete. The Phase 2 API surface is complete —
-> no route spec 06 declares for this phase is unimplemented. Milestone D T25
-> and T26 are complete; T27 is next.
+> no route spec 06 declares for this phase is unimplemented. Milestone D T25,
+> T26 and T27 are complete; T28 is next.
 
 ## Milestone A — Design pack (⛓ blocks B–D; specs rewritten before code) — **COMPLETE 2026-07-18**
 
@@ -680,6 +680,30 @@ sensitive output, provider/egress notes, cleanup path).
 AC: a person who didn't build the system completes the fixture loop in one
 sitting following only the document; the real-corpus smoke is documented as
 manual and non-blocking; drift between doc and product fails the phase review.
+
+**COMPLETE 2026-07-20.** `docs/MVP_DEMO.md` is a 30–45 minute operator path on
+a disposable database. A fresh browser run against the served production
+bundle landed `remand-register.txt`, ran structural extraction, accepted its
+proposal as a named analyst, switched to the local admin, rebuilt one edge,
+and observed the graph refresh. The same run loaded the rest of the T25 fixture,
+adjudicated the Sinhala/English Nimal candidate at 0.99, rebuilt at identity
+revision 1, found one Nimal result and two distinct Ruwan Silva results. The
+runbook separately checks the Maya contradiction, restricted-field absence,
+and three-dimensional edge provenance.
+
+The live role handoff found that an existing Keycloak volume could sign in but
+rejected the bare-origin post-logout redirect. The realm now declares exact
+bare origins beside its callback URIs, and `infra/bootstrap.sh` idempotently
+synchronizes the browser client because Keycloak realm import is create-only.
+The graph also had no UI path to its already-shipped admin rebuild route;
+`GraphView` now gives only an admin a rebuild action, reports the exact build
+stamp, and refetches the graph. Hermetic browser cases pin both the analyst
+absence and admin success/refresh paths; the contract suite pins the runbook's
+commands, labels, roles, fixture expectations, cleanup, logout origins, and
+manual real-data boundary. The OSINT appendix is explicitly manual,
+non-blocking, local-structural by default, no hosted egress, no captured
+sensitive output, and requires cleanup. No ADR was needed: both fixes make the
+workspace conform to ADR-032 and the existing admin-only route matrix.
 
 **T28. Phase exit review** — walk the charter's gate criteria (non-deferrable,
 ADR-025); verify the constitution-conformance spot-check (Articles VI/VII

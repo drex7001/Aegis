@@ -41,7 +41,10 @@ export interface StubHandle {
  */
 export async function stubIdentityProvider(
   page: Page,
-  { autoApprove = true }: { autoApprove?: boolean } = {},
+  {
+    autoApprove = true,
+    roles = ["analyst"],
+  }: { autoApprove?: boolean; roles?: string[] } = {},
 ): Promise<StubHandle> {
   let authorize: URL | null = null;
   let nonce: string | null = null;
@@ -87,7 +90,7 @@ export async function stubIdentityProvider(
       iat: now,
       exp: now + 300,
       preferred_username: USERNAME,
-      realm_access: { roles: ["analyst"] },
+      realm_access: { roles },
       clearance: 2,
     };
     await route.fulfill({

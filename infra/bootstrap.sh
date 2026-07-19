@@ -38,6 +38,31 @@ else
   exit 1
 fi
 
+# Realm imports are create-only: Keycloak deliberately ignores an import when
+# the named realm already exists.  Keep the dev browser client's local origins
+# synchronized here as well, otherwise an older volume can sign in but rejects
+# oidc-client-ts's post-logout redirect to the bare application origin.
+kc_clients_json="$("${COMPOSE[@]}" exec -T keycloak sh -ec '
+  /opt/keycloak/bin/kcadm.sh config credentials \
+    --server http://localhost:8080 --realm master \
+    --user "$KC_BOOTSTRAP_ADMIN_USERNAME" \
+    --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" >/dev/null
+  /opt/keycloak/bin/kcadm.sh get clients -r aegis -q clientId=aegis-ui --fields id
+')"
+kc_ui_client_id="$(printf '%s' "$kc_clients_json" | "$PY" -c '
+import json, sys
+clients = json.load(sys.stdin)
+print(clients[0]["id"] if len(clients) == 1 else "")
+')"
+[ -n "$kc_ui_client_id" ] || {
+  echo "ERROR: expected exactly one enabled aegis-ui Keycloak client" >&2
+  exit 1
+}
+kc_ui_redirects='["http://127.0.0.1:8000","http://localhost:8000","http://127.0.0.1:5173","http://localhost:5173","http://127.0.0.1:4173","http://localhost:4173","http://127.0.0.1:8000/auth/callback","http://localhost:8000/auth/callback","http://127.0.0.1:5173/auth/callback","http://localhost:5173/auth/callback","http://127.0.0.1:4173/auth/callback","http://localhost:4173/auth/callback"]'
+"${COMPOSE[@]}" exec -T keycloak /opt/keycloak/bin/kcadm.sh \
+  update "clients/$kc_ui_client_id" -r aegis -s "redirectUris=$kc_ui_redirects"
+echo "keycloak client 'aegis-ui': local sign-in/logout redirects synchronized"
+
 step "openfga: ensure store 'aegis'"
 store_id="$(curl -fsS "$FGA_URL/stores" | "$PY" -c '
 import json, sys
