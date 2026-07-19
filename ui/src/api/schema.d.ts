@@ -358,6 +358,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/identity/candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Candidates
+         * @description Machine-proposed pairs with their full explanation (spec 06 §2.2).
+         */
+        get: operations["listIdentityCandidates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/identity/candidates/batch-confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Batch Confirm
+         * @description Confirm a pre-verified band — one ledger decision per pair (ADR-027).
+         *
+         *     Not one decision covering many pairs: each pair gets its own decision, its
+         *     own revision and its own audit row, so a later reviewer can reverse one
+         *     merge without unpicking the batch it arrived in.
+         */
+        post: operations["batchConfirmCandidates"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/identity/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record Decision
+         * @description Confirm, reject, split or mark unresolved — one action, one ledger row.
+         *
+         *     A stale ``parent_revision_id`` in the same entity scope raises
+         *     ``StaleRevisionError``, which the app's error handler renders as a 409
+         *     carrying the intervening decisions.
+         */
+        post: operations["recordIdentityDecision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ingest/file": {
         parameters: {
             query?: never;
@@ -630,6 +698,37 @@ export interface components {
             /** Resource Type */
             resource_type: string | null;
         };
+        /** BatchConfirmIn */
+        BatchConfirmIn: {
+            /** Candidate Ids */
+            candidate_ids: string[];
+            /** Note */
+            note: string;
+            /** Parent Revision Id */
+            parent_revision_id: number;
+        };
+        /**
+         * BatchConfirmOut
+         * @description One decision per confirmed pair (ADR-027), plus what was refused.
+         *
+         *     Partial rather than all-or-nothing, and the refusals are itemised. Two
+         *     pairs in one batch can share an entity, in which case the second genuinely
+         *     conflicts with the first — reporting that is more useful than either
+         *     failing the batch or hiding it.
+         */
+        BatchConfirmOut: {
+            /** Confirmed */
+            confirmed: components["schemas"]["DecisionOut"][];
+            /** Skipped */
+            skipped: components["schemas"]["BatchSkipOut"][];
+        };
+        /** BatchSkipOut */
+        BatchSkipOut: {
+            /** Candidate Id */
+            candidate_id: string;
+            /** Reason */
+            reason: string;
+        };
         /** Body_landFile */
         Body_landFile: {
             /** Collection Policy */
@@ -650,6 +749,82 @@ export interface components {
             source_id?: string | null;
             /** Source Url */
             source_url?: string | null;
+        };
+        /**
+         * CandidateListOut
+         * @description Candidates, plus the revision they were read at.
+         *
+         *     The revision travels with the list rather than through a separate lookup
+         *     because that is what makes the concurrency check mean anything: a decision's
+         *     ``parent_revision_id`` is meant to be *the state the analyst was looking at*
+         *     when they decided. Fetching it independently would let a client send a
+         *     revision newer than the screen it decided from, which is the exact race
+         *     spec 05 §2 exists to catch.
+         */
+        CandidateListOut: {
+            /** Candidates */
+            candidates: components["schemas"]["CandidateOut"][];
+            /** Revision Id */
+            revision_id: number;
+        };
+        /**
+         * CandidateMentionOut
+         * @description One side of a candidate pair, with the context needed to judge it.
+         *
+         *     ``entity_id`` comes from the mention's *active* membership rather than the
+         *     canonical map: a confirm moves memberships, so the active row is already
+         *     the survivor. A pair whose sides were merged by an earlier decision
+         *     therefore shows one entity on both sides, which is how an analyst tells
+         *     "confirm this" from "already done".
+         */
+        CandidateMentionOut: {
+            /** Entity Id */
+            entity_id: string | null;
+            /** Entity Label */
+            entity_label: string | null;
+            /** Language */
+            language: string | null;
+            /** Mention Id */
+            mention_id: string;
+            /** Norm Key */
+            norm_key: string;
+            /** Raw Text */
+            raw_text: string;
+            /** Record Id */
+            record_id: string;
+            /** Script */
+            script: string | null;
+        };
+        /**
+         * CandidateOut
+         * @description A machine-proposed pair with its explanation (spec 06 §2.2).
+         */
+        CandidateOut: {
+            /** Candidate Id */
+            candidate_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Disposition */
+            disposition: string;
+            /** Features */
+            features: {
+                [key: string]: unknown;
+            };
+            /** Graph Snapshot Id */
+            graph_snapshot_id: string | null;
+            mention_a: components["schemas"]["CandidateMentionOut"];
+            mention_b: components["schemas"]["CandidateMentionOut"];
+            /** Pre Verified */
+            pre_verified: boolean;
+            /** Producer */
+            producer: string;
+            /** Producer Version */
+            producer_version: string;
+            /** Score */
+            score: number | null;
         };
         /** CaseIn */
         CaseIn: {
@@ -813,6 +988,29 @@ export interface components {
             source: components["schemas"]["SourceOut"] | null;
             subject_mention: components["schemas"]["MentionOut"] | null;
         };
+        /** ConfirmMatchIn */
+        ConfirmMatchIn: {
+            /** Candidate Id */
+            candidate_id?: string | null;
+            /** Mention A */
+            mention_a: string;
+            /** Mention B */
+            mention_b: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            mode: "confirm_match";
+            /** Note */
+            note: string;
+            /** Parent Revision Id */
+            parent_revision_id: number;
+            /**
+             * Protected Person
+             * @default false
+             */
+            protected_person?: boolean;
+        };
         /** CustodyEventIn */
         CustodyEventIn: {
             /** From Actor */
@@ -833,6 +1031,21 @@ export interface components {
             purpose: string;
             /** To Actor */
             to_actor: string;
+        };
+        /**
+         * DecisionOut
+         * @description What an adjudication did, in enough detail to update a screen.
+         */
+        DecisionOut: {
+            decision: components["schemas"]["IdentityDecisionOut"];
+            /** Moved Mentions */
+            moved_mentions: string[];
+            /** New Entity Id */
+            new_entity_id: string | null;
+            /** Surviving Entity Id */
+            surviving_entity_id: string | null;
+            /** Unattributable Claims */
+            unattributable_claims: string[];
         };
         /**
          * DerivativeOut
@@ -1178,6 +1391,29 @@ export interface components {
             outcome: "landed" | "already_landed" | "quarantined";
             record: components["schemas"]["SourceRecordOut"];
         };
+        /** MarkUnresolvedIn */
+        MarkUnresolvedIn: {
+            /** Candidate Id */
+            candidate_id?: string | null;
+            /** Mention A */
+            mention_a: string;
+            /** Mention B */
+            mention_b: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            mode: "mark_unresolved";
+            /** Note */
+            note: string;
+            /** Parent Revision Id */
+            parent_revision_id: number;
+            /**
+             * Protected Person
+             * @default false
+             */
+            protected_person?: boolean;
+        };
         /**
          * MentionOut
          * @description The words a claim's argument came from (ADR-029).
@@ -1205,6 +1441,8 @@ export interface components {
          * @description Closed vocabularies, served so no client hand-writes them (Article XI).
          */
         OntologyVocabularyOut: {
+            /** Assertion Types */
+            assertion_types: string[];
             /** Handling Codes */
             handling_codes: string[];
             /** Source Types */
@@ -1232,6 +1470,31 @@ export interface components {
         RejectIn: {
             /** Reason */
             reason: string;
+        };
+        /** RejectMatchIn */
+        RejectMatchIn: {
+            /** Candidate Id */
+            candidate_id?: string | null;
+            /** Evidence Basis */
+            evidence_basis: string;
+            /** Mention A */
+            mention_a: string;
+            /** Mention B */
+            mention_b: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            mode: "reject_match";
+            /** Note */
+            note: string;
+            /** Parent Revision Id */
+            parent_revision_id: number;
+            /**
+             * Protected Person
+             * @default false
+             */
+            protected_person?: boolean;
         };
         /** RelationIn */
         RelationIn: {
@@ -1305,6 +1568,29 @@ export interface components {
             source_id: string;
             /** Status */
             status: string;
+        };
+        /** SplitEntityIn */
+        SplitEntityIn: {
+            /** Entity Id */
+            entity_id: string;
+            /** Mention Ids */
+            mention_ids: string[];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            mode: "split_entity";
+            /** Note */
+            note: string;
+            /** Parent Revision Id */
+            parent_revision_id: number;
+            /**
+             * Protected Person
+             * @default false
+             */
+            protected_person?: boolean;
+            /** Target Entity Id */
+            target_entity_id?: string | null;
         };
         /** SuggestionOut */
         SuggestionOut: {
@@ -2075,6 +2361,113 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GraphPathsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listIdentityCandidates: {
+        parameters: {
+            query?: {
+                disposition?: string | null;
+                producer?: string | null;
+                limit?: number;
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateListOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    batchConfirmCandidates: {
+        parameters: {
+            query?: {
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchConfirmIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchConfirmOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recordIdentityDecision: {
+        parameters: {
+            query?: {
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmMatchIn"] | components["schemas"]["RejectMatchIn"] | components["schemas"]["SplitEntityIn"] | components["schemas"]["MarkUnresolvedIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecisionOut"];
                 };
             };
             /** @description Validation Error */

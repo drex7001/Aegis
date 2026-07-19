@@ -3,9 +3,9 @@ import { useEffect, useState } from "react";
 /**
  * Path-based view selection, on the History API directly.
  *
- * P2 has two views, and a router library is not what two views need. What they
- * do need is real URLs — the back button, a deep link to `/sources`, and a path
- * the auth guard can hand to `returnTo` — which is all this provides.
+ * P2 has three views, and a router library is not what three views need. What
+ * they do need is real URLs — the back button, a deep link to `/sources`, and a
+ * path the auth guard can hand to `returnTo` — which is all this provides.
  *
  * The reason it is here rather than `react-router` is narrower than "fewer
  * dependencies": the OIDC callback finishes by rewriting the URL with
@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 export const ROUTES = {
   graph: "/graph",
   sources: "/sources",
+  review: "/review",
 } as const;
 
 export type Route = (typeof ROUTES)[keyof typeof ROUTES];
@@ -64,5 +65,7 @@ export function navigate(to: Route): void {
 
 /** `/` opens the graph; anything unrecognised does too, rather than 404-ing. */
 export function activeRoute(path: string): Route {
-  return path.startsWith(ROUTES.sources) ? ROUTES.sources : ROUTES.graph;
+  if (path.startsWith(ROUTES.sources)) return ROUTES.sources;
+  if (path.startsWith(ROUTES.review)) return ROUTES.review;
+  return ROUTES.graph;
 }

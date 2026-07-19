@@ -25,6 +25,7 @@ from aegis.er.adjudication import (
     ADJUDICATION_MODES,
     AdjudicationError,
     AdjudicationResult,
+    StaleRevisionError,
     confirm_match,
     mark_unresolved,
     reject_match,
@@ -632,6 +633,14 @@ class ActionService:
                 raise ActionValidationError(
                     f"adjudicate_identity.{mode}", f"invalid arguments: {exc}"
                 ) from exc
+            except StaleRevisionError:
+                # Deliberately not folded into ActionValidationError below. The
+                # input was valid when it was computed; what changed is the
+                # world. Flattening it to a validation failure costs the
+                # `intervening` decisions — the one thing spec 05 §2 says the
+                # analyst must be re-presented with — leaving callers to
+                # recover them by matching on a message string.
+                raise
             except AdjudicationError as exc:
                 raise ActionValidationError(f"adjudicate_identity.{mode}", str(exc)) from exc
             # Claims a split could not attribute are queued for a human, never

@@ -118,6 +118,78 @@
         "title": "AuditOut",
         "type": "object"
       },
+      "BatchConfirmIn": {
+        "properties": {
+          "candidate_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Candidate Ids",
+            "type": "array"
+          },
+          "note": {
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          },
+          "parent_revision_id": {
+            "title": "Parent Revision Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "candidate_ids",
+          "parent_revision_id",
+          "note"
+        ],
+        "title": "BatchConfirmIn",
+        "type": "object"
+      },
+      "BatchConfirmOut": {
+        "description": "One decision per confirmed pair (ADR-027), plus what was refused.\n\nPartial rather than all-or-nothing, and the refusals are itemised. Two\npairs in one batch can share an entity, in which case the second genuinely\nconflicts with the first — reporting that is more useful than either\nfailing the batch or hiding it.",
+        "properties": {
+          "confirmed": {
+            "items": {
+              "$ref": "#/components/schemas/DecisionOut"
+            },
+            "title": "Confirmed",
+            "type": "array"
+          },
+          "skipped": {
+            "items": {
+              "$ref": "#/components/schemas/BatchSkipOut"
+            },
+            "title": "Skipped",
+            "type": "array"
+          }
+        },
+        "required": [
+          "confirmed",
+          "skipped"
+        ],
+        "title": "BatchConfirmOut",
+        "type": "object"
+      },
+      "BatchSkipOut": {
+        "properties": {
+          "candidate_id": {
+            "title": "Candidate Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "candidate_id",
+          "reason"
+        ],
+        "title": "BatchSkipOut",
+        "type": "object"
+      },
       "Body_landFile": {
         "properties": {
           "collection_policy": {
@@ -180,6 +252,183 @@
           "file"
         ],
         "title": "Body_landFile",
+        "type": "object"
+      },
+      "CandidateListOut": {
+        "description": "Candidates, plus the revision they were read at.\n\nThe revision travels with the list rather than through a separate lookup\nbecause that is what makes the concurrency check mean anything: a decision's\n``parent_revision_id`` is meant to be *the state the analyst was looking at*\nwhen they decided. Fetching it independently would let a client send a\nrevision newer than the screen it decided from, which is the exact race\nspec 05 §2 exists to catch.",
+        "properties": {
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/CandidateOut"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "revision_id": {
+            "title": "Revision Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revision_id",
+          "candidates"
+        ],
+        "title": "CandidateListOut",
+        "type": "object"
+      },
+      "CandidateMentionOut": {
+        "description": "One side of a candidate pair, with the context needed to judge it.\n\n``entity_id`` comes from the mention's *active* membership rather than the\ncanonical map: a confirm moves memberships, so the active row is already\nthe survivor. A pair whose sides were merged by an earlier decision\ntherefore shows one entity on both sides, which is how an analyst tells\n\"confirm this\" from \"already done\".",
+        "properties": {
+          "entity_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Id"
+          },
+          "entity_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Label"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "mention_id": {
+            "title": "Mention Id",
+            "type": "string"
+          },
+          "norm_key": {
+            "title": "Norm Key",
+            "type": "string"
+          },
+          "raw_text": {
+            "title": "Raw Text",
+            "type": "string"
+          },
+          "record_id": {
+            "title": "Record Id",
+            "type": "string"
+          },
+          "script": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Script"
+          }
+        },
+        "required": [
+          "mention_id",
+          "record_id",
+          "raw_text",
+          "norm_key",
+          "script",
+          "language",
+          "entity_id",
+          "entity_label"
+        ],
+        "title": "CandidateMentionOut",
+        "type": "object"
+      },
+      "CandidateOut": {
+        "description": "A machine-proposed pair with its explanation (spec 06 §2.2).",
+        "properties": {
+          "candidate_id": {
+            "title": "Candidate Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "disposition": {
+            "title": "Disposition",
+            "type": "string"
+          },
+          "features": {
+            "additionalProperties": true,
+            "title": "Features",
+            "type": "object"
+          },
+          "graph_snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Graph Snapshot Id"
+          },
+          "mention_a": {
+            "$ref": "#/components/schemas/CandidateMentionOut"
+          },
+          "mention_b": {
+            "$ref": "#/components/schemas/CandidateMentionOut"
+          },
+          "pre_verified": {
+            "title": "Pre Verified",
+            "type": "boolean"
+          },
+          "producer": {
+            "title": "Producer",
+            "type": "string"
+          },
+          "producer_version": {
+            "title": "Producer Version",
+            "type": "string"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          }
+        },
+        "required": [
+          "candidate_id",
+          "mention_a",
+          "mention_b",
+          "producer",
+          "producer_version",
+          "graph_snapshot_id",
+          "score",
+          "features",
+          "pre_verified",
+          "disposition",
+          "created_at"
+        ],
+        "title": "CandidateOut",
         "type": "object"
       },
       "CaseIn": {
@@ -751,6 +1000,57 @@
         "title": "ClaimProvenanceOut",
         "type": "object"
       },
+      "ConfirmMatchIn": {
+        "properties": {
+          "candidate_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidate Id"
+          },
+          "mention_a": {
+            "title": "Mention A",
+            "type": "string"
+          },
+          "mention_b": {
+            "title": "Mention B",
+            "type": "string"
+          },
+          "mode": {
+            "const": "confirm_match",
+            "default": "confirm_match",
+            "title": "Mode",
+            "type": "string"
+          },
+          "note": {
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          },
+          "parent_revision_id": {
+            "title": "Parent Revision Id",
+            "type": "integer"
+          },
+          "protected_person": {
+            "default": false,
+            "title": "Protected Person",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "parent_revision_id",
+          "note",
+          "mention_a",
+          "mention_b"
+        ],
+        "title": "ConfirmMatchIn",
+        "type": "object"
+      },
       "CustodyEventIn": {
         "properties": {
           "from_actor": {
@@ -802,6 +1102,59 @@
           "purpose"
         ],
         "title": "CustodyEventIn",
+        "type": "object"
+      },
+      "DecisionOut": {
+        "description": "What an adjudication did, in enough detail to update a screen.",
+        "properties": {
+          "decision": {
+            "$ref": "#/components/schemas/IdentityDecisionOut"
+          },
+          "moved_mentions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Moved Mentions",
+            "type": "array"
+          },
+          "new_entity_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New Entity Id"
+          },
+          "surviving_entity_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Surviving Entity Id"
+          },
+          "unattributable_claims": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unattributable Claims",
+            "type": "array"
+          }
+        },
+        "required": [
+          "decision",
+          "moved_mentions",
+          "surviving_entity_id",
+          "new_entity_id",
+          "unattributable_claims"
+        ],
+        "title": "DecisionOut",
         "type": "object"
       },
       "DerivativeOut": {
@@ -1701,6 +2054,57 @@
         "title": "LandingOut",
         "type": "object"
       },
+      "MarkUnresolvedIn": {
+        "properties": {
+          "candidate_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidate Id"
+          },
+          "mention_a": {
+            "title": "Mention A",
+            "type": "string"
+          },
+          "mention_b": {
+            "title": "Mention B",
+            "type": "string"
+          },
+          "mode": {
+            "const": "mark_unresolved",
+            "default": "mark_unresolved",
+            "title": "Mode",
+            "type": "string"
+          },
+          "note": {
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          },
+          "parent_revision_id": {
+            "title": "Parent Revision Id",
+            "type": "integer"
+          },
+          "protected_person": {
+            "default": false,
+            "title": "Protected Person",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "parent_revision_id",
+          "note",
+          "mention_a",
+          "mention_b"
+        ],
+        "title": "MarkUnresolvedIn",
+        "type": "object"
+      },
       "MentionOut": {
         "description": "The words a claim's argument came from (ADR-029).",
         "properties": {
@@ -1781,6 +2185,13 @@
       "OntologyVocabularyOut": {
         "description": "Closed vocabularies, served so no client hand-writes them (Article XI).",
         "properties": {
+          "assertion_types": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Assertion Types",
+            "type": "array"
+          },
           "handling_codes": {
             "items": {
               "type": "string"
@@ -1803,7 +2214,8 @@
         "required": [
           "version",
           "handling_codes",
-          "source_types"
+          "source_types",
+          "assertion_types"
         ],
         "title": "OntologyVocabularyOut",
         "type": "object"
@@ -1875,6 +2287,63 @@
           "reason"
         ],
         "title": "RejectIn",
+        "type": "object"
+      },
+      "RejectMatchIn": {
+        "properties": {
+          "candidate_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidate Id"
+          },
+          "evidence_basis": {
+            "minLength": 1,
+            "title": "Evidence Basis",
+            "type": "string"
+          },
+          "mention_a": {
+            "title": "Mention A",
+            "type": "string"
+          },
+          "mention_b": {
+            "title": "Mention B",
+            "type": "string"
+          },
+          "mode": {
+            "const": "reject_match",
+            "default": "reject_match",
+            "title": "Mode",
+            "type": "string"
+          },
+          "note": {
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          },
+          "parent_revision_id": {
+            "title": "Parent Revision Id",
+            "type": "integer"
+          },
+          "protected_person": {
+            "default": false,
+            "title": "Protected Person",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "parent_revision_id",
+          "note",
+          "mention_a",
+          "mention_b",
+          "evidence_basis"
+        ],
+        "title": "RejectMatchIn",
         "type": "object"
       },
       "RelationIn": {
@@ -2103,6 +2572,61 @@
           "provenance"
         ],
         "title": "SourceRecordOut",
+        "type": "object"
+      },
+      "SplitEntityIn": {
+        "properties": {
+          "entity_id": {
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "mention_ids": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Mention Ids",
+            "type": "array"
+          },
+          "mode": {
+            "const": "split_entity",
+            "default": "split_entity",
+            "title": "Mode",
+            "type": "string"
+          },
+          "note": {
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          },
+          "parent_revision_id": {
+            "title": "Parent Revision Id",
+            "type": "integer"
+          },
+          "protected_person": {
+            "default": false,
+            "title": "Protected Person",
+            "type": "boolean"
+          },
+          "target_entity_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Entity Id"
+          }
+        },
+        "required": [
+          "parent_revision_id",
+          "note",
+          "entity_id",
+          "mention_ids"
+        ],
+        "title": "SplitEntityIn",
         "type": "object"
       },
       "SuggestionOut": {
@@ -3804,6 +4328,263 @@
         "summary": "Graph Paths",
         "tags": [
           "graph"
+        ]
+      }
+    },
+    "/v1/identity/candidates": {
+      "get": {
+        "description": "Machine-proposed pairs with their full explanation (spec 06 §2.2).",
+        "operationId": "listIdentityCandidates",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "disposition",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Disposition"
+            }
+          },
+          {
+            "in": "query",
+            "name": "producer",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Producer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateListOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Candidates",
+        "tags": [
+          "identity"
+        ]
+      }
+    },
+    "/v1/identity/candidates/batch-confirm": {
+      "post": {
+        "description": "Confirm a pre-verified band — one ledger decision per pair (ADR-027).\n\nNot one decision covering many pairs: each pair gets its own decision, its\nown revision and its own audit row, so a later reviewer can reverse one\nmerge without unpicking the batch it arrived in.",
+        "operationId": "batchConfirmCandidates",
+        "parameters": [
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchConfirmIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchConfirmOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Batch Confirm",
+        "tags": [
+          "identity"
+        ]
+      }
+    },
+    "/v1/identity/decisions": {
+      "post": {
+        "description": "Confirm, reject, split or mark unresolved — one action, one ledger row.\n\nA stale ``parent_revision_id`` in the same entity scope raises\n``StaleRevisionError``, which the app's error handler renders as a 409\ncarrying the intervening decisions.",
+        "operationId": "recordIdentityDecision",
+        "parameters": [
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "discriminator": {
+                  "mapping": {
+                    "confirm_match": "#/components/schemas/ConfirmMatchIn",
+                    "mark_unresolved": "#/components/schemas/MarkUnresolvedIn",
+                    "reject_match": "#/components/schemas/RejectMatchIn",
+                    "split_entity": "#/components/schemas/SplitEntityIn"
+                  },
+                  "propertyName": "mode"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ConfirmMatchIn"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RejectMatchIn"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SplitEntityIn"
+                  },
+                  {
+                    "$ref": "#/components/schemas/MarkUnresolvedIn"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Record Decision",
+        "tags": [
+          "identity"
         ]
       }
     },

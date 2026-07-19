@@ -83,9 +83,9 @@ required · **cursor** paginated per §4.
 | `GET /v1/review-queue?kind=&producer=&status=&record=` | analyst | — | typed rows (specs/02 §3.2); cursor | — | matrix suite |
 | `POST /v1/review-queue/{id}/accept` | analyst | case `can_edit` | body may edit the payload; **dispatches through `target_action`** with the reviewer as actor (ADR-031 §2) — the route never writes tables | body 1 MiB | `test_review_dispatch` per kind |
 | `POST /v1/review-queue/{id}/reject` | analyst | case `can_edit` | reason required | — | `test_actions.py` |
-| `GET /v1/identity/candidates?disposition=&producer=` | analyst | — | `er_candidate` rows with full per-feature waterfall; pre-verified band first; cursor | — | `test_identity_candidates` |
+| `GET /v1/identity/candidates?disposition=&producer=` | analyst | — | `er_candidate` rows with full per-feature waterfall; pre-verified band first, then strongest score (nulls last — a rule computes no score and must not sort above a confident one); cursor. Returns `{revision_id, candidates}`: the revision travels with the list because `parent_revision_id` means *the state the analyst decided from*, and a separate lookup would let a client send one newer than the screen it read (T23b) | limit ≤ 200 | `test_identity_candidates` |
 | `POST /v1/identity/candidates/batch-confirm` | analyst | — | pre-verified band only; **one human action, one ledger decision per pair** (ADR-027); note required | ≤ 100 pairs | `test_batch_confirm` |
-| `POST /v1/identity/decisions` | analyst | — | confirm/reject/split/unresolved; `parent_revision_id` required; **409 on stale scope** with intervening decisions in the body (specs/05 §2) | — | `test_concurrency` |
+| `POST /v1/identity/decisions` | analyst | — | confirm/reject/split/unresolved; `parent_revision_id` required; **409 on stale scope** with intervening decisions in the body (specs/05 §2). The body is a **discriminated union on `mode`**, not one bag of optional fields: only reject carries `evidence_basis`, only split names an entity and the mentions leaving it, so the document states it rather than leaving clients to learn it by 422 (T23b) | — | `test_concurrency` |
 | `GET /v1/entities/{id}/identity-history` | — | — | the decision line: who, when, why, which revision | — | `test_why_connected.py` (T21) |
 
 `POST /v1/entities/{id}/split` from the Phase-1 draft is **folded into**
@@ -137,7 +137,7 @@ one audit shape.
 
 | Route | R | F | Notes / filters | Limits | Tests |
 |---|---|---|---|---|---|
-| `GET /v1/ontology/vocabulary` | — | — | handling codes (**ordered** — clearance is an index into the list) and source types, so no client hard-codes a domain vocabulary (Article XI). Authenticated but unrestricted by role: it is the shape of the domain, not an assertion about anyone in it. Superseded in P4 by the generated `ui_meta.json` (spec 07 §3) | — | `test_ingest_routes.py`, `test_openapi.py` |
+| `GET /v1/ontology/vocabulary` | — | — | handling codes (**ordered** — clearance is an index into the list), source types, and `assertion_types`, so no client hard-codes a vocabulary the server owns. The first two come from `aegis.yaml` (Article XI); `assertion_types` is **platform epistemics, not domain vocabulary** (Article XIV), so it comes from a code-owned constant and is sorted — unlike handling codes, its order carries no meaning (T23b). Authenticated but unrestricted by role: it is the shape of the domain, not an assertion about anyone in it. Superseded in P4 by the generated `ui_meta.json` (spec 07 §3) | — | `test_ingest_routes.py`, `test_openapi.py` |
 
 ### 2.8 Audit
 
