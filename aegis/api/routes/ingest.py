@@ -90,16 +90,19 @@ def _visible_record(
     return record
 
 
-async def _read_bounded(upload: UploadFile, limit: int) -> bytes:
+def _read_bounded(upload: UploadFile, limit: int) -> bytes:
     """Read the body in chunks, aborting past ``limit``.
 
-    Reading first and measuring after would mean an attacker chooses how much
+    Reading first and measuring after would mean the sender chooses how much
     memory we allocate; Content-Length is not checked instead of this because
     it is a claim by the sender, not a fact.
+
+    Synchronous, over the spooled file Starlette has already filled, so this
+    route can stay a ``def`` — see the note on the handler.
     """
     chunks: list[bytes] = []
     total = 0
-    while chunk := await upload.read(_READ_CHUNK):
+    while chunk := upload.file.read(_READ_CHUNK):
         total += len(chunk)
         if total > limit:
             raise HTTPException(413, f"upload exceeds the {limit}-byte ingest bound")
@@ -113,7 +116,7 @@ async def _read_bounded(upload: UploadFile, limit: int) -> bytes:
     status_code=201,
     operation_id="landFile",
 )
-async def land_upload(
+def land_upload(
     session: DbSession,
     ontology: OntologyDep,
     vault: VaultDep,
@@ -126,9 +129,15 @@ async def land_upload(
     auth: AuthContext = Depends(authorize("analyst", "investigator")),
 ) -> LandingOut:
     """Land an uploaded artifact (spec 04 §1 stage 1)."""
+    # Deliberately `def`, not `async def`, even though the body arrives as an
+    # upload. Landing writes to the vault and the database and both are
+    # blocking: on the event loop, one large upload to object storage would
+    # stall every other request in the process. A sync handler runs in the
+    # threadpool instead — which is what every other route here does — and
+    # Starlette has already spooled the body, so nothing needs awaiting.
     _check_handling(ontology, auth, handling_code)
     settings = get_settings()
-    data = await _read_bounded(file, settings.ingest_max_bytes)
+    data = _read_bounded(file, settings.ingest_max_bytes)
     filename = file.filename or "upload"
     try:
         result = land_bytes(
