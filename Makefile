@@ -1,5 +1,5 @@
 # Aegis dev workflow (speckit T1/T2). Run from repo root.
-.PHONY: up down nuke bootstrap ps logs install test test-fast test-integration test-system test-coverage lint-ontology ui-install ui-build ui-test openapi
+.PHONY: up down nuke bootstrap ps logs install test test-fast test-integration test-mvp test-system test-coverage lint-ontology ui-install ui-build ui-test openapi
 
 ENVFILE := $(wildcard .env)
 COMPOSE = docker compose $(if $(ENVFILE),--env-file $(ENVFILE)) -f infra/docker-compose.yml
@@ -41,6 +41,9 @@ test-fast:
 
 test-integration:
 	$(PYTEST) -q tests/integration
+
+test-mvp:          ## deterministic offline ingest → review → accept → projection smoke (T25)
+	$(PYTEST) -q tests/integration/test_mvp_fixture.py
 
 test-system:
 	$(PYTEST) -q tests/system

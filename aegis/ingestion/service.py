@@ -39,11 +39,12 @@ from aegis.audit import append as append_audit
 from aegis.er.ledger import resolve_norm_key
 from aegis.er.mentions import extract_mentions
 from aegis.evidence import EvidenceVault, ProvenanceEnvelope
+
 # The extraction passes still grade with the legacy tag rubric; its one
 # authoritative mapping lives in the migration adapter (ADR-016).
 from aegis.migration.legacy import CONFIDENCE_TAG_GRADING, LEGACY_SCHEME
 from aegis.ontology import Ontology
-from aegis.store import Entity, IdentityMembership, Mention, ReviewQueue, Source, SourceRecord
+from aegis.store import ReviewQueue, Source, SourceRecord
 
 DEFAULT_SOURCE_SYSTEM = "manual-upload"
 MANUAL_SOURCE_ID = "src_manual_upload"
@@ -52,15 +53,23 @@ MANUAL_SOURCE_ID = "src_manual_upload"
 # an ontology predicate under a different name.
 STRUCTURAL_PREDICATES = {"co_located_with": "co_located_in_prison_with"}
 
-COLLECTION_METHODS = {"STRUCTURAL": "structural", "SEMANTIC": "semantic_llm", "CURATED": "curated"}
+COLLECTION_METHODS = {
+    "STRUCTURAL": "structural",
+    "SEMANTIC": "semantic_llm",
+    "CURATED": "curated",
+}
 
 
 class IngestionError(RuntimeError):
     """A landing or extraction request that cannot proceed."""
 
 
-def make_ingest_key(source_system: str, original_filename: str, content_hash: str) -> str:
-    return sha256(f"{source_system}|{original_filename}|{content_hash}".encode()).hexdigest()
+def make_ingest_key(
+    source_system: str, original_filename: str, content_hash: str
+) -> str:
+    return sha256(
+        f"{source_system}|{original_filename}|{content_hash}".encode()
+    ).hexdigest()
 
 
 @dataclass(frozen=True, slots=True)
@@ -140,7 +149,9 @@ def land_bytes(
             select(SourceRecord).where(SourceRecord.ingest_key == ingest_key)
         )
         if existing is not None:
-            return LandingResult(existing, created=False, quarantined=existing.status == "quarantined")
+            return LandingResult(
+                existing, created=False, quarantined=existing.status == "quarantined"
+            )
 
         if source_id is None:
             source = ensure_manual_source(session)
@@ -152,7 +163,8 @@ def land_bytes(
         siblings = session.scalars(
             select(SourceRecord).where(
                 SourceRecord.provenance["source_system"].astext == source_system,
-                SourceRecord.provenance["original_filename"].astext == original_filename,
+                SourceRecord.provenance["original_filename"].astext
+                == original_filename,
                 SourceRecord.content_hash != stored.content_hash,
             )
         ).all()
@@ -277,6 +289,7 @@ def run_semantic_pass(
     ontology: Ontology | None = None,
     model_name: str | None = None,
     mock: bool = False,
+    cached_output: bytes | None = None,
     chunk_index: int = 0,
 ) -> list[ReviewQueue]:
     """LLM pass (Article VII strictly): output lands as suggestions only.
@@ -284,11 +297,54 @@ def run_semantic_pass(
     The pass's parsed output is itself vaulted so every suggestion carries a
     resolvable ``raw_response_ref`` (spec 04 §4 debuggability).
     """
-    from legacy.pipeline.semantic_pass import SYSTEM_PROMPT, extract_semantic, resolve_model_name
+    from legacy.pipeline.models import ExtractionResult
+    from legacy.pipeline.semantic_pass import (
+        SYSTEM_PROMPT,
+        extract_semantic,
+        resolve_model_name,
+    )
 
-    result = extract_semantic(text, source_file=record.record_id, model_name=model_name, mock=mock)
-    resolved_model = "mock" if mock else resolve_model_name(model_name)
-    response_bytes = json.dumps(result.to_graph_json(), sort_keys=True).encode()
+    if mock and cached_output is not None:
+        raise IngestionError(
+            "semantic extraction cannot use --mock and cached output together"
+        )
+    if model_name is not None and cached_output is not None:
+        raise IngestionError(
+            "semantic extraction cannot override --model when cached output declares it"
+        )
+
+    prompt_sha256 = sha256(SYSTEM_PROMPT.encode()).hexdigest()
+    cache_sha256: str | None = None
+    if cached_output is not None:
+        try:
+            envelope = json.loads(cached_output)
+            if envelope.get("schema") != "aegis.cached-semantic/v1":
+                raise ValueError("schema must be 'aegis.cached-semantic/v1'")
+            if envelope.get("prompt_sha256") != prompt_sha256:
+                raise ValueError(
+                    "prompt_sha256 does not match the extraction prompt; refresh the cache explicitly"
+                )
+            cached_model = envelope["model"]
+            if not isinstance(cached_model, str) or not cached_model.strip():
+                raise ValueError("model must be a non-empty string")
+            result = ExtractionResult.model_validate(envelope["result"])
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise IngestionError(f"invalid cached semantic output: {exc}") from exc
+        # The prefix is deliberately visible in the review queue. A cached
+        # response exercises the semantic adapter but must never look like a
+        # live provider call to the analyst deciding it.
+        resolved_model = f"cached:{cached_model}"
+        response_bytes = cached_output
+        cache_sha256 = sha256(cached_output).hexdigest()
+    else:
+        result = extract_semantic(
+            text,
+            source_file=record.record_id,
+            model_name=model_name,
+            mock=mock,
+        )
+        resolved_model = "mock" if mock else resolve_model_name(model_name)
+        response_bytes = json.dumps(result.to_graph_json(), sort_keys=True).encode()
     stored = vault.put(
         response_bytes,
         ProvenanceEnvelope(
@@ -301,13 +357,19 @@ def run_semantic_pass(
         ),
         media_type="application/json",
     )
-    prompt_sha256 = sha256(SYSTEM_PROMPT.encode()).hexdigest()
     producer_meta = {
         "model": resolved_model,
         "prompt_sha256": prompt_sha256,
         "chunk_index": chunk_index,
         "raw_response_ref": f"sha256:{stored.content_hash}",
     }
+    if cache_sha256 is not None:
+        producer_meta.update(
+            {
+                "cached": True,
+                "cache_sha256": cache_sha256,
+            }
+        )
     return _submit_result(
         session,
         record=record,
@@ -317,7 +379,10 @@ def run_semantic_pass(
         # Model *and* prompt: the same model behind a changed prompt is a
         # different producer, and acceptance-rate metrics are computed per
         # (model, prompt hash) (spec 04 §4).
-        producer_version=f"{resolved_model}+{prompt_sha256[:12]}",
+        producer_version=(
+            f"{resolved_model}+{prompt_sha256[:12]}"
+            + (f"+{cache_sha256[:12]}" if cache_sha256 is not None else "")
+        ),
         producer_meta=producer_meta,
         actor=actor,
         ontology=ontology,
@@ -419,7 +484,8 @@ def _submit_result(
         subject_mention = mention_by_key.get(edge.source)
         object_mention = mention_by_key.get(edge.target)
         needs_entity = [
-            ref for ref, entity in ((edge.source, subject_id), (edge.target, object_id))
+            ref
+            for ref, entity in ((edge.source, subject_id), (edge.target, object_id))
             if entity is None
         ]
         payload = {
@@ -430,7 +496,9 @@ def _submit_result(
             # acceptance record_claim creates the entity from this mention
             # (spec 02 §3.2).  An argument with neither an entity nor an
             # anchor is one the reviewer must resolve by hand.
-            "subject_mention_id": subject_mention.mention_id if subject_mention else None,
+            "subject_mention_id": subject_mention.mention_id
+            if subject_mention
+            else None,
             "object_mention_id": object_mention.mention_id if object_mention else None,
             "subject_entity_type": node_types.get(edge.source),
             "object_entity_type": node_types.get(edge.target),

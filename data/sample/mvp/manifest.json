@@ -1,0 +1,199 @@
+{
+  "schema_version": 1,
+  "documents": [
+    {
+      "key": "remand_register",
+      "path": "remand-register.txt",
+      "original_filename": "mvp-remand-register.txt",
+      "producer": "structural"
+    },
+    {
+      "key": "harbor_note",
+      "path": "harbor-note.txt",
+      "original_filename": "mvp-harbor-note.txt",
+      "producer": "semantic",
+      "cached_output": "harbor-note.semantic.json"
+    },
+    {
+      "key": "nimal_latin",
+      "path": "nimal-latin.txt",
+      "original_filename": "mvp-nimal-latin.txt",
+      "mentions": {"person": "Nimal Perera"}
+    },
+    {
+      "key": "nimal_sinhala",
+      "path": "nimal-sinhala.txt",
+      "original_filename": "mvp-nimal-sinhala.txt",
+      "mentions": {"person": "නිමල් පෙරේරා"}
+    },
+    {
+      "key": "namesake_north",
+      "path": "namesake-north.txt",
+      "original_filename": "mvp-namesake-north.txt",
+      "mentions": {"person": "Ruwan Silva"}
+    },
+    {
+      "key": "namesake_south",
+      "path": "namesake-south.txt",
+      "original_filename": "mvp-namesake-south.txt",
+      "mentions": {"person": "Ruwan Silva"}
+    },
+    {
+      "key": "maya_first",
+      "path": "maya-first.txt",
+      "original_filename": "mvp-maya-first.txt",
+      "mentions": {"person": "Maya Fernando"}
+    },
+    {
+      "key": "maya_second",
+      "path": "maya-second.txt",
+      "original_filename": "mvp-maya-second.txt",
+      "mentions": {"person": "Maya Fernando"}
+    },
+    {
+      "key": "quarantine_original",
+      "path": "quarantine/original/demo-intake.txt",
+      "original_filename": "mvp-demo-intake.txt"
+    },
+    {
+      "key": "quarantine_conflict",
+      "path": "quarantine/conflict/demo-intake.txt",
+      "original_filename": "mvp-demo-intake.txt"
+    }
+  ],
+  "curated_claims": [
+    {
+      "key": "nimal_latin_alias",
+      "document": "nimal_latin",
+      "mention": "person",
+      "entity_key": "nimal_latin",
+      "entity_type": "person",
+      "predicate": "known_as",
+      "object_value": "Mali"
+    },
+    {
+      "key": "nimal_latin_affiliation",
+      "document": "nimal_latin",
+      "mention": "person",
+      "entity_key": "nimal_latin",
+      "entity_type": "person",
+      "predicate": "affiliated_with",
+      "object_value": "Harbor Mutual Society"
+    },
+    {
+      "key": "nimal_latin_dob",
+      "document": "nimal_latin",
+      "mention": "person",
+      "entity_key": "nimal_latin",
+      "entity_type": "person",
+      "predicate": "born_on",
+      "object_value": "1990-06-15"
+    },
+    {
+      "key": "nimal_sinhala_alias",
+      "document": "nimal_sinhala",
+      "mention": "person",
+      "entity_key": "nimal_sinhala",
+      "entity_type": "person",
+      "predicate": "known_as",
+      "object_value": "Mali"
+    },
+    {
+      "key": "nimal_sinhala_affiliation",
+      "document": "nimal_sinhala",
+      "mention": "person",
+      "entity_key": "nimal_sinhala",
+      "entity_type": "person",
+      "predicate": "affiliated_with",
+      "object_value": "Harbor Mutual Society"
+    },
+    {
+      "key": "nimal_sinhala_dob",
+      "document": "nimal_sinhala",
+      "mention": "person",
+      "entity_key": "nimal_sinhala",
+      "entity_type": "person",
+      "predicate": "born_on",
+      "object_value": "1990-06-15"
+    },
+    {
+      "key": "namesake_north_alias",
+      "document": "namesake_north",
+      "mention": "person",
+      "entity_key": "ruwan_north",
+      "entity_type": "person",
+      "predicate": "known_as",
+      "object_value": "Ruwan North"
+    },
+    {
+      "key": "namesake_north_dob",
+      "document": "namesake_north",
+      "mention": "person",
+      "entity_key": "ruwan_north",
+      "entity_type": "person",
+      "predicate": "born_on",
+      "object_value": "1984-03-12"
+    },
+    {
+      "key": "namesake_south_alias",
+      "document": "namesake_south",
+      "mention": "person",
+      "entity_key": "ruwan_south",
+      "entity_type": "person",
+      "predicate": "known_as",
+      "object_value": "Ruwan South"
+    },
+    {
+      "key": "namesake_south_dob",
+      "document": "namesake_south",
+      "mention": "person",
+      "entity_key": "ruwan_south",
+      "entity_type": "person",
+      "predicate": "born_on",
+      "object_value": "1992-10-08"
+    },
+    {
+      "key": "maya_name",
+      "document": "maya_first",
+      "mention": "person",
+      "entity_key": "maya",
+      "entity_type": "person",
+      "predicate": "known_as",
+      "object_value": "Maya Fernando"
+    },
+    {
+      "key": "maya_dob_first",
+      "document": "maya_first",
+      "mention": "person",
+      "entity_key": "maya",
+      "entity_type": "person",
+      "predicate": "born_on",
+      "object_value": "1988-02-10"
+    },
+    {
+      "key": "maya_restricted_identifier",
+      "document": "maya_first",
+      "mention": "person",
+      "entity_key": "maya",
+      "entity_type": "person",
+      "predicate": "has_nic",
+      "object_value": "DEMO-NIC-MAYA-001"
+    },
+    {
+      "key": "maya_dob_second",
+      "document": "maya_second",
+      "mention": "person",
+      "entity_key": "maya",
+      "entity_type": "person",
+      "predicate": "born_on",
+      "object_value": "1989-02-10"
+    }
+  ],
+  "claim_relations": [
+    {
+      "from_claim": "maya_dob_first",
+      "to_claim": "maya_dob_second",
+      "relation": "contradicts"
+    }
+  ]
+}

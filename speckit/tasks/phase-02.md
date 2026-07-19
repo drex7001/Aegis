@@ -614,6 +614,33 @@ AC: fixture load → demo loop is reproducible offline with no hosted-model
 dependency (extraction runs structural pass; a cached LLM-output fixture
 exercises the semantic path); CI smoke runs the loop headlessly.
 
+**COMPLETE 2026-07-19.** `data/sample/mvp/` is a ten-document, manifest-driven
+fictional corpus loaded by one `aegis ingest mvp` command. It carries the
+Sinhala/English Nimal Perera pair with corroborating fictional evidence, two
+distinct Ruwan Silva records with conflicting identity features, two preserved
+DOB claims for one Maya Fernando entity linked as `contradicts`, an open row
+whose `has_nic` property is ontology-restricted, deterministic structural and
+semantic suggestions, and an intentional same-filename version conflict that
+lands quarantined. No artifact represents a real person or event.
+
+The semantic cache is not the old hard-coded mock. It is a validated
+`aegis.cached-semantic/v1` envelope containing the model label, the exact
+prompt digest and the structured result. Prompt drift fails rather than
+quietly replaying an answer produced for different instructions; the review
+queue visibly labels the producer `cached:*` and vaults the exact cache bytes.
+Machine outputs still stop at `suggested` — the headless smoke accepts one
+structural suggestion as `user:mvp-reviewer`, then rebuilds the canonical map
+and edge projection and proves the claim appears.
+
+`aegis ingest mvp --reset --yes` restores revision 0 and rebuilds empty
+projections only on a loopback database containing fixture-only records,
+sources and no cases. It refuses mixed state and points the operator to the
+governed backup/restore path instead of selectively deleting canonical or
+audit history from a real store. The loader itself is fully idempotent. CI
+runs the seven-case PostgreSQL smoke explicitly via `make test-mvp`; the T27
+browser-driven gate remains the next consumer of this corpus. No ADR was
+needed: T25 implements H-09 and the existing ingestion/review decisions.
+
 **T26. ER evaluation harness with numeric gates** (specs/05 §5; H-08) — golden
 set (fictional: transliteration pairs incl. Sinhala script, hard negatives,
 common names, missing fields); CI computes pairwise precision/recall and

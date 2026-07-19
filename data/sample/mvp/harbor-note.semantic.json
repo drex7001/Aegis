@@ -1,0 +1,32 @@
+{
+  "schema": "aegis.cached-semantic/v1",
+  "model": "fixture:mvp-semantic-v1",
+  "prompt_sha256": "ac02c3109069a8ec059655380e2ddb6302e20745fadb49272702558c4246a1c6",
+  "result": {
+    "nodes": [
+      {
+        "name": "Kavindi Senanayake",
+        "node_type": "PERSON",
+        "source_excerpt": "Kavindi Senanayake was affiliated with Solis Cooperative"
+      },
+      {
+        "name": "Solis Cooperative",
+        "node_type": "ORGANIZATION",
+        "source_excerpt": "Kavindi Senanayake was affiliated with Solis Cooperative"
+      }
+    ],
+    "edges": [
+      {
+        "source": "kavindi_senanayake",
+        "target": "solis_cooperative",
+        "relation": "affiliated_with",
+        "layer": "IDEOLOGICAL",
+        "confidence": "EXTRACTED",
+        "start_date": "2025-04-12",
+        "end_date": "2025-04-12",
+        "location": "fictional harbour-safety workshop",
+        "source_excerpt": "Kavindi Senanayake was affiliated with Solis Cooperative during its fictional harbour-safety workshop on 2025-04-12"
+      }
+    ]
+  }
+}
