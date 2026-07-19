@@ -54,6 +54,8 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
       - run: uv sync --locked --extra dev
+      - name: Headless fictional MVP loop (T25)
+        run: make test-mvp
       - run: make test-integration
 
   system-tests:

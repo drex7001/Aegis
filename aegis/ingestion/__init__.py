@@ -26,6 +26,14 @@ from aegis.ingestion.service import (
     run_semantic_pass,
     run_structural_pass,
 )
+from aegis.ingestion.mvp_fixture import (
+    MVP_FIXTURE_ROOT,
+    MvpFixtureError,
+    MvpFixtureReport,
+    MvpResetReport,
+    load_mvp_fixture,
+    reset_mvp_fixture,
+)
 
 __all__ = [
     "DEFAULT_SOURCE_SYSTEM",
@@ -46,4 +54,10 @@ __all__ = [
     "resolve_media_type",
     "run_semantic_pass",
     "run_structural_pass",
+    "MVP_FIXTURE_ROOT",
+    "MvpFixtureError",
+    "MvpFixtureReport",
+    "MvpResetReport",
+    "load_mvp_fixture",
+    "reset_mvp_fixture",
 ]

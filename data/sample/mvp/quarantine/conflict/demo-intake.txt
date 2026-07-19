@@ -1,0 +1,3 @@
+FICTIONAL INTAKE VERSION B
+
+This harmless demo record intentionally differs while reusing the same original filename, so the second landing is quarantined as a version conflict.

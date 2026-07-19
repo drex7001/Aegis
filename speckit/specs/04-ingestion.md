@@ -6,6 +6,8 @@ through the declared action, and the review inbox is a UI composition over
 `review_queue` + `er_candidate`. Where this text conflicts with ADR-031, the ADR
 wins.** · **§1 stage 3 and §3 updated 2026-07-19 by P2 T23a (ADR-034): the
 derivative stage is implemented, and the pipeline is reachable over HTTP.** ·
+**§4/§6 updated 2026-07-19 by P2 T25: the committed fictional MVP corpus uses
+a prompt-pinned cached semantic envelope for reproducible offline extraction.** ·
 Constitutional basis: Articles I, IV, VII · GOAL.md §9 · ADR-027, ADR-031, ADR-034
 
 The existing ingestion stack (`pipeline/ingest.py`, `pdf_ingest.py`, `transcribe.py`,
@@ -136,6 +138,16 @@ refused: it would create evidence the operator can never afterwards read.
 - Acceptance-rate metrics per (model, prompt hash) are computable from `review_queue`
   — this becomes the extraction-quality dashboard.
 
+For the T25 fictional demo only, the same adapter accepts an
+`aegis.cached-semantic/v1` JSON envelope. It contains a non-empty model label,
+the SHA-256 of `SYSTEM_PROMPT`, and an `ExtractionResult`. The prompt digest
+must match the running extractor; a stale cache is refused by name. The exact
+envelope bytes are vaulted as the raw response, the producer is visibly
+prefixed `cached:`, and its digest participates in the suggestion producer
+version. This is deterministic replay of a fictional fixture, not a claim that
+a hosted model ran. It changes no Article VII rule: output remains a suggestion
+until a human accepts it.
+
 ### Batch review ergonomics (learned from current `--semantic` noise)
 - The review **inbox** is a UI composition over `review_queue` and `er_candidate`
   (ADR-031 §3), grouped by document and by predicate; bulk-reject for hallucinated
@@ -163,6 +175,10 @@ refused: it would create evidence the operator can never afterwards read.
 - Phase 2 (T23a): `aegis ingest extract` runs the derivative stage first, so a
   PDF is extractable from the CLI and the workspace alike; the same operations
   are reachable over HTTP (§3).
+- Phase 2 (T25): `aegis ingest mvp` lands and extracts the committed fictional
+  corpus in one offline command. `--reset --yes` restores a fixture-only local
+  database to revision 0 and rebuilds empty projections; it refuses mixed or
+  non-loopback state.
 - Later (Dagster trigger, plan §2): scheduled polls of RSS/press sources, webhooks —
   each a `source` with its own reliability grading. This is also where a job
   model earns its complexity: a scheduled poll has no request to hold open,

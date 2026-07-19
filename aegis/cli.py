@@ -57,7 +57,9 @@ def db_upgrade(revision: str = typer.Argument("head")) -> None:
 
 
 @db_app.command("downgrade")
-def db_downgrade(revision: str = typer.Argument(..., help="Target revision, e.g. -1 or base")) -> None:
+def db_downgrade(
+    revision: str = typer.Argument(..., help="Target revision, e.g. -1 or base"),
+) -> None:
     from alembic import command
 
     command.downgrade(_alembic_config(), revision)
@@ -80,7 +82,9 @@ def db_revision(message: str = typer.Option(..., "-m", "--message")) -> None:
 
 @ontology_app.command("validate")
 def ontology_validate(
-    path: Path = typer.Argument(None, help="Ontology YAML (default: AEGIS_ONTOLOGY_PATH)"),
+    path: Path = typer.Argument(
+        None, help="Ontology YAML (default: AEGIS_ONTOLOGY_PATH)"
+    ),
 ) -> None:
     """Validate the ontology artifact; exit 1 with precise errors on failure."""
     from aegis.config import get_settings
@@ -196,7 +200,9 @@ def serve(
         )
     import uvicorn
 
-    typer.secho(f"aegis API on http://{host}:{port}  (docs at /docs)", fg=typer.colors.GREEN)
+    typer.secho(
+        f"aegis API on http://{host}:{port}  (docs at /docs)", fg=typer.colors.GREEN
+    )
     uvicorn.run(
         "aegis.api:create_app" if not reload else "aegis.api:create_app",
         factory=True,
@@ -249,7 +255,9 @@ def migrate_legacy(
 @projections_app.command("rebuild")
 def projections_rebuild(
     output_dir: Path = typer.Option(
-        Path("output"), "--output", help="Directory for real_graph.json / real_ingest.cypher."
+        Path("output"),
+        "--output",
+        help="Directory for real_graph.json / real_ingest.cypher.",
     ),
 ) -> None:
     """Rebuild every projection from canonical state (Article XIII, T10/T21).
@@ -262,12 +270,18 @@ def projections_rebuild(
     from aegis.config import get_settings
     from aegis.er.canonical import rebuild_canonical_map
     from aegis.ontology import load
-    from aegis.projections import build_full_graph, rebuild_edge_projection, write_outputs
+    from aegis.projections import (
+        build_full_graph,
+        rebuild_edge_projection,
+        write_outputs,
+    )
     from aegis.store import get_sessionmaker
 
     settings = get_settings()
     ontology_path = Path(settings.ontology_path)
-    ontology = load(ontology_path if ontology_path.is_absolute() else REPO_ROOT / ontology_path)
+    ontology = load(
+        ontology_path if ontology_path.is_absolute() else REPO_ROOT / ontology_path
+    )
     with get_sessionmaker()() as session:
         identity = rebuild_canonical_map(session)
         edges = rebuild_edge_projection(session, ontology=ontology)
@@ -307,7 +321,9 @@ def authz_sync(
             err=True,
         )
         raise typer.Exit(code=1)
-    typer.secho(f"authz sync OK: {report.processed} row(s) drained", fg=typer.colors.GREEN)
+    typer.secho(
+        f"authz sync OK: {report.processed} row(s) drained", fg=typer.colors.GREEN
+    )
 
 
 @authz_app.command("rebuild")
@@ -346,7 +362,9 @@ def identity_run_rules(
 
     settings = get_settings()
     ontology_path = Path(settings.ontology_path)
-    ontology = load(ontology_path if ontology_path.is_absolute() else REPO_ROOT / ontology_path)
+    ontology = load(
+        ontology_path if ontology_path.is_absolute() else REPO_ROOT / ontology_path
+    )
     with get_sessionmaker()() as session:
         report = run_rules(session, ontology=ontology, record_id=record_id)
         session.commit()
@@ -394,7 +412,9 @@ def identity_run_splink(
         f"  skipped: {report.below_threshold} below threshold, "
         f"{report.same_entity} already one entity, {report.already_open} already open"
     )
-    typer.echo(f"  suppressed: {report.suppressed_constraint} previously rejected pairs")
+    typer.echo(
+        f"  suppressed: {report.suppressed_constraint} previously rejected pairs"
+    )
     typer.echo(
         f"  settings: {report.settings_version}  snapshot: {report.graph_snapshot_id}"
     )
@@ -431,7 +451,9 @@ def identity_backfill_anchors(
         f"({report.ambiguous} ambiguous, {report.unmatched} with no mention in record)"
     )
     if report.ambiguous_claims:
-        typer.echo("  ambiguous sample: " + ", ".join(report.to_dict()["ambiguous_sample"]))
+        typer.echo(
+            "  ambiguous sample: " + ", ".join(report.to_dict()["ambiguous_sample"])
+        )
         typer.echo(
             "  these follow the re-adjudication path on a split, by design "
             "(spec 02 §3.1 rule 4)"
@@ -441,9 +463,13 @@ def identity_backfill_anchors(
 @ingest_app.command("land")
 def ingest_land(
     paths: list[Path] = typer.Argument(..., help="Files or directories to land."),
-    operator: str = typer.Option(..., "--operator", help="Acting user, e.g. user:ayodhya"),
+    operator: str = typer.Option(
+        ..., "--operator", help="Acting user, e.g. user:ayodhya"
+    ),
     source_id: str = typer.Option(
-        None, "--source-id", help="Existing source row (default: the manual-upload source)."
+        None,
+        "--source-id",
+        help="Existing source row (default: the manual-upload source).",
     ),
     handling_code: str = typer.Option("open", "--handling"),
 ) -> None:
@@ -497,20 +523,107 @@ def ingest_status() -> None:
     with get_sessionmaker()() as session:
         counts = dict(
             session.execute(
-                sa.select(SourceRecord.status, sa.func.count()).group_by(SourceRecord.status)
+                sa.select(SourceRecord.status, sa.func.count()).group_by(
+                    SourceRecord.status
+                )
             ).all()
         )
         typer.echo(
             "records: "
-            + ", ".join(f"{status}={counts.get(status, 0)}" for status in ("landed", "quarantined", "processed"))
+            + ", ".join(
+                f"{status}={counts.get(status, 0)}"
+                for status in ("landed", "quarantined", "processed")
+            )
         )
         quarantined = session.scalars(
             sa.select(SourceRecord).where(SourceRecord.status == "quarantined")
         ).all()
         for record in quarantined:
             typer.secho(
-                f"  {record.record_id}: {record.quarantine_reason}", fg=typer.colors.YELLOW
+                f"  {record.record_id}: {record.quarantine_reason}",
+                fg=typer.colors.YELLOW,
             )
+
+
+@ingest_app.command("mvp")
+def ingest_mvp(
+    reset: bool = typer.Option(
+        False, "--reset", help="Restore the empty migrated baseline."
+    ),
+    yes: bool = typer.Option(
+        False, "--yes", help="Confirm the destructive local reset."
+    ),
+    fixture_dir: Path = typer.Option(
+        REPO_ROOT / "data" / "sample" / "mvp",
+        "--fixture-dir",
+        help="Committed fictional fixture directory.",
+    ),
+    output_dir: Path = typer.Option(
+        Path("output/mvp"),
+        "--output",
+        help="Directory for rebuilt projection artifacts.",
+    ),
+    actor: str = typer.Option(
+        "user:mvp-demo-operator",
+        "--actor",
+        help="Human operator recorded on curated fixture actions.",
+    ),
+) -> None:
+    """Load the fully local fictional MVP corpus, or reset its disposable store."""
+    from sqlalchemy.engine import make_url
+
+    from aegis.config import get_settings
+    from aegis.evidence import get_vault
+    from aegis.ingestion import MvpFixtureError, load_mvp_fixture, reset_mvp_fixture
+    from aegis.store import get_sessionmaker
+
+    host = make_url(get_settings().database_url).host
+    try:
+        local = host is None or ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        local = host == "localhost"
+    if not local:
+        typer.secho(
+            "the MVP fixture is local-only and refuses a non-loopback database",
+            fg=typer.colors.RED,
+            err=True,
+        )
+        raise typer.Exit(code=1)
+    if reset and not yes:
+        typer.secho(
+            "--reset is destructive; repeat with --yes", fg=typer.colors.RED, err=True
+        )
+        raise typer.Exit(code=1)
+
+    try:
+        with get_sessionmaker()() as session:
+            if reset:
+                report = reset_mvp_fixture(session, output_dir=output_dir)
+                typer.secho(
+                    f"MVP baseline restored; projections rebuilt ({report.projection_edges} edges)",
+                    fg=typer.colors.GREEN,
+                )
+                return
+            report = load_mvp_fixture(
+                session,
+                get_vault(),
+                root=fixture_dir,
+                actor=actor,
+                output_dir=output_dir,
+            )
+    except MvpFixtureError as exc:
+        typer.secho(f"MVP fixture failed: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+
+    typer.secho(
+        f"MVP fixture ready: {report.records} records ({report.quarantined} quarantined), "
+        f"{report.suggestions} new suggestions, {report.curated_claims} curated claims",
+        fg=typer.colors.GREEN,
+    )
+    typer.echo(
+        f"  candidates: rules={report.rule_candidates}, splink={report.splink_candidates}; "
+        f"projection edges={report.projection_edges}"
+    )
 
 
 @ingest_app.command("extract")
@@ -518,26 +631,56 @@ def ingest_extract(
     record_id: str = typer.Argument(..., help="A landed source_record id."),
     producer: str = typer.Option(..., "--producer", help="structural or semantic"),
     actor: str = typer.Option(..., "--actor", help="Acting user, e.g. user:ayodhya"),
-    model: str = typer.Option(None, "--model", help="semantic only: provider:model override"),
-    mock: bool = typer.Option(False, "--mock", help="semantic only: offline mock extraction"),
+    model: str = typer.Option(
+        None, "--model", help="semantic only: provider:model override"
+    ),
+    mock: bool = typer.Option(
+        False, "--mock", help="semantic only: offline mock extraction"
+    ),
+    cached_output: Path = typer.Option(
+        None,
+        "--cached-output",
+        help="semantic only: validated aegis.cached-semantic/v1 JSON (offline)",
+    ),
 ) -> None:
     """Run an extraction pass over a landed record → review-queue suggestions.
 
     Never writes claims (Article VII): review with `review_suggestion`.
     """
     from aegis.evidence import get_vault
-    from aegis.ingestion import IngestionError, ensure_text, run_semantic_pass, run_structural_pass
+    from aegis.ingestion import (
+        IngestionError,
+        ensure_text,
+        run_semantic_pass,
+        run_structural_pass,
+    )
     from aegis.store import SourceRecord, get_sessionmaker
 
     if producer not in {"structural", "semantic"}:
-        typer.secho("--producer must be structural or semantic", fg=typer.colors.RED, err=True)
+        typer.secho(
+            "--producer must be structural or semantic", fg=typer.colors.RED, err=True
+        )
+        raise typer.Exit(code=1)
+    if cached_output is not None and producer != "semantic":
+        typer.secho(
+            "--cached-output is only valid with --producer semantic",
+            fg=typer.colors.RED,
+            err=True,
+        )
+        raise typer.Exit(code=1)
+    if cached_output is not None and not cached_output.is_file():
+        typer.secho(
+            f"cached output not found: {cached_output}", fg=typer.colors.RED, err=True
+        )
         raise typer.Exit(code=1)
 
     vault = get_vault()
     with get_sessionmaker()() as session:
         record = session.get(SourceRecord, record_id)
         if record is None:
-            typer.secho(f"record {record_id!r} does not exist", fg=typer.colors.RED, err=True)
+            typer.secho(
+                f"record {record_id!r} does not exist", fg=typer.colors.RED, err=True
+            )
             raise typer.Exit(code=1)
         if record.status == "quarantined":
             typer.secho(
@@ -559,7 +702,9 @@ def ingest_extract(
             )
         text = extraction.text
         if producer == "structural":
-            suggestions = run_structural_pass(session, record=record, text=text, actor=actor)
+            suggestions = run_structural_pass(
+                session, record=record, text=text, actor=actor
+            )
         else:
             suggestions = run_semantic_pass(
                 session,
@@ -569,6 +714,9 @@ def ingest_extract(
                 actor=actor,
                 model_name=model,
                 mock=mock,
+                cached_output=cached_output.read_bytes()
+                if cached_output is not None
+                else None,
             )
         session.commit()
     typer.secho(

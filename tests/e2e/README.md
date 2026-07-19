@@ -1,8 +1,9 @@
 # End-to-end tests
 
 Reserved for the **live-stack** MVP journey: `data/sample/mvp/` loaded through
-the real API, Keycloak and database, driven from the browser (T25/T27). Nothing
-lives here yet.
+the real API, Keycloak and database, driven from the browser (T27). T25's
+headless PostgreSQL loop lives in `tests/integration/test_mvp_fixture.py`; the
+browser gate itself lands here with its runbook consumer.
 
 The workspace's own browser tests are **not** here — they live beside the code
 they exercise, in [`ui/e2e/`](../../ui/e2e), and run in the Node-only CI job
