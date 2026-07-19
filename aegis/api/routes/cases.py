@@ -21,7 +21,9 @@ from aegis.store import CaseFile, CaseMember
 router = APIRouter(tags=["cases"])
 
 
-@router.post("/cases", response_model=CaseOut, status_code=201)
+@router.post(
+    "/cases", response_model=CaseOut, status_code=201, operation_id="openCase"
+)
 def open_case(
     body: CaseIn,
     session: DbSession,
@@ -47,7 +49,7 @@ def open_case(
     return row
 
 
-@router.get("/cases/{case_id}", response_model=CaseOut)
+@router.get("/cases/{case_id}", response_model=CaseOut, operation_id="getCase")
 def get_case(
     case_id: str,
     session: DbSession,
@@ -63,7 +65,9 @@ def get_case(
     return case
 
 
-@router.post("/cases/{case_id}/members", status_code=201)
+@router.post(
+    "/cases/{case_id}/members", status_code=201, operation_id="addCaseMember"
+)
 def add_member(
     case_id: str,
     body: CaseMemberIn,
@@ -98,6 +102,7 @@ def add_member(
     "/cases/{case_id}/members/{user_id}",
     status_code=204,
     response_class=Response,
+    operation_id="removeCaseMember",
 )
 def remove_member(
     case_id: str,

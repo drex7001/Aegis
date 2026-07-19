@@ -55,16 +55,26 @@ class Settings(BaseSettings):
     keycloak_url: str = Field(default="http://localhost:8180", validation_alias="KEYCLOAK_URL")
     keycloak_realm: str = Field(default="aegis", validation_alias="KEYCLOAK_REALM")
     api_audience: str = Field(default="aegis-api", validation_alias="AEGIS_API_AUDIENCE")
-
-    legacy_api_max_response_bytes: int = Field(
-        default=5 * 1024 * 1024,
-        ge=1024,
-        validation_alias="AEGIS_LEGACY_API_MAX_RESPONSE_BYTES",
-    )
-    legacy_api_rate_limit_per_minute: int = Field(
+    # Tolerated clock difference between Keycloak and this process when checking
+    # `exp`, `nbf` and `iat`. Zero looks stricter but is not safer: the identity
+    # provider is a different host, so a second of NTP drift makes every freshly
+    # minted token "not yet valid" and the platform simply stops working. RFC
+    # 7519 §4.1.4 anticipates exactly this. Measured on the dev stack: the
+    # Keycloak container ran ~2s ahead of the host.
+    oidc_clock_skew_seconds: int = Field(
         default=60,
+        ge=0,
+        le=300,
+        validation_alias="AEGIS_OIDC_CLOCK_SKEW_SECONDS",
+    )
+
+    # Per authenticated caller, applied to every route (specs/06 §1 default 6).
+    # Replaces the per-IP cap T16a put on the anonymous /api/* routes, which
+    # T22 deleted with the routes themselves.
+    api_rate_limit_per_minute: int = Field(
+        default=600,
         ge=1,
-        validation_alias="AEGIS_LEGACY_API_RATE_LIMIT_PER_MINUTE",
+        validation_alias="AEGIS_API_RATE_LIMIT_PER_MINUTE",
     )
 
     minio_endpoint: str = Field(default="127.0.0.1:9000", validation_alias="MINIO_ENDPOINT")

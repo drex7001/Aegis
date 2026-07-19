@@ -1,5 +1,5 @@
 # Aegis dev workflow (speckit T1/T2). Run from repo root.
-.PHONY: up down nuke bootstrap ps logs install test test-fast test-integration test-system test-coverage lint-ontology
+.PHONY: up down nuke bootstrap ps logs install test test-fast test-integration test-system test-coverage lint-ontology ui-install ui-build ui-test openapi
 
 ENVFILE := $(wildcard .env)
 COMPOSE = docker compose $(if $(ENVFILE),--env-file $(ENVFILE)) -f infra/docker-compose.yml
@@ -52,3 +52,18 @@ test-coverage:
 
 lint-ontology:
 	.venv/bin/aegis ontology validate
+
+# ── workspace (ui/, T22) ────────────────────────────────────────────────────
+
+openapi:       ## re-export the OpenAPI document + regenerate the typed client
+	uv run aegis api export-openapi
+	cd ui && npm run generate:api
+
+ui-install:
+	cd ui && npm ci
+
+ui-build:      ## type-check + production build into ui/dist (served by `aegis serve`)
+	cd ui && npm run build
+
+ui-test:       ## hermetic browser smoke journey (stubs Keycloak and the API)
+	cd ui && npm run test:e2e

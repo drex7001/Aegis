@@ -15,7 +15,9 @@ from aegis.store import Source, SourceRecord
 router = APIRouter(tags=["sources"])
 
 
-@router.post("/sources", response_model=SourceOut, status_code=201)
+@router.post(
+    "/sources", response_model=SourceOut, status_code=201, operation_id="createSource"
+)
 def create_source(
     body: SourceIn,
     session: DbSession,
@@ -40,7 +42,9 @@ def create_source(
     return row
 
 
-@router.get("/sources", response_model=list[SourceOut])
+@router.get(
+    "/sources", response_model=list[SourceOut], operation_id="listSources"
+)
 def list_sources(
     session: DbSession,
     auth: AuthContext = Depends(authorize("analyst")),
@@ -48,7 +52,11 @@ def list_sources(
     return list(session.scalars(select(Source).order_by(Source.created_at)))
 
 
-@router.get("/source-records/{record_id}", response_model=SourceRecordOut)
+@router.get(
+    "/source-records/{record_id}",
+    response_model=SourceRecordOut,
+    operation_id="getSourceRecord",
+)
 def get_source_record(
     record_id: str,
     session: DbSession,
@@ -64,7 +72,11 @@ def get_source_record(
     return record
 
 
-@router.post("/source-records/{record_id}/release", response_model=SourceRecordOut)
+@router.post(
+    "/source-records/{record_id}/release",
+    response_model=SourceRecordOut,
+    operation_id="releaseSourceRecord",
+)
 def release_record(
     record_id: str,
     session: DbSession,

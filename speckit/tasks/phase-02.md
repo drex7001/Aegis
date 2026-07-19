@@ -10,8 +10,8 @@ lettered subtasks keep the global T-numbering stable for pre-authored P3+ files.
 > non-deferrable (ADR-025). The Phase 1 closure addendum (T16a–T16d), which
 > gated Milestones B–D, closed 2026-07-18 (PRs #11–#14). **Milestones A and
 > B are complete** (T17a–T17d, PRs #17–#20; T17–T20, PRs #22–#26).
-> **Milestone C is in progress**: T21 is complete (PRs #27, #29); T22 (React
-> workspace shell + legacy retirement) is next.
+> **Milestone C is in progress**: T21 (PRs #27, #29) and T22 are complete;
+> T23a (source landing & extraction UI) is next.
 
 ## Milestone A — Design pack (⛓ blocks B–D; specs rewritten before code) — **COMPLETE 2026-07-18**
 
@@ -306,6 +306,80 @@ type-check + build + one smoke e2e. **Same change:** legacy explorer,
 AC: unauthenticated visit → login redirect → authenticated shell; graph
 renders from governed routes; repo grep finds no `public_route` marker and no
 `legacy/app` serving path; UI CI job green.
+
+**COMPLETE.** All four AC clauses verified against the live stack, not only
+against stubs: a real browser reached Keycloak, signed in as `dev-analyst`, and
+returned to a shell that drew the graph from `POST /v1/graph/expand` with a real
+bearer token, no CSP violations, and nothing in web storage.
+
+*Governed graph routes* (`aegis/queries/graph.py`, `aegis/api/routes/graph.py`).
+`expand` and `paths` replace the anonymous bulk dump. Decisions:
+
+- **Authorization is a correlated `EXISTS` over `claim_filters`, not a filter on
+  `edge_projection.handling_rank`.** The stored rank is the *maximum* over
+  supporting claims, so filtering on it would hide an edge whose open claim the
+  caller is entitled to see. The support summary is then rebuilt from the
+  visible claims only — via the builder's own `support_summary`, so the graph
+  view and the provenance panel cannot drift apart — and the corroboration and
+  contradiction counts are recomputed over visible relations. That last part has
+  a cost worth naming: a contradiction the caller may not read is invisible, so
+  an edge can look less contested than it is. specs/03 §4 and specs/07 §5
+  already chose absence over teasing, and P7's marked-redaction mode (H-25) is
+  where it gets revisited.
+- **Empty seeds are a distinct mode, not an error**: the *bounded overview*,
+  capped by the same element budget as any expansion. The canvas needs a way to
+  open before entity search exists (T23c), and a bound is what separates an
+  overview from the surface ADR-026 retired.
+- **`paths` returns shortest routes only.** "Every route under five hops"
+  between two well-connected people is a combinatorial answer no reader can
+  audit, and an unauditable path is machine-produced insinuation (Article IX).
+
+Two defects were caught by their own tests rather than by review. The element
+budget was applied to *edge rows* in the overview and to *nodes + edges* in the
+walk, so `max_elements=2` returned six elements from the one mode that exists to
+be bounded — both now share a `_Budget`. And the SPA fallback answered every
+unmatched path with `index.html`, turning a call to a retired `/api/*` route
+into HTML with status 200; API prefixes now never fall back, and `/api` stays
+reserved so it keeps 404-ing forever.
+
+*Legacy retirement.* `legacy/app/` deleted, `/api/*` deleted, `public_route` and
+its lint branch deleted — `find_ungated_routes` now has no exemption to grant,
+and `test_route_gating.py` fails if the symbol returns. The one thing served
+without a token is the workspace *bundle*: a static mount with no dependency
+graph and no database access, which the lint structurally cannot inspect, so the
+same test pins it as the only mount the app may carry. T16a's per-IP rate limit
+died with the routes it contained and was replaced by a **per-caller default on
+every route**, keyed on a digest of the bearer token — the `sub` inside it is
+attacker-chosen until the gate validates it, and the limiter runs first.
+
+*Workspace* (`ui/`). Vite + React 18 + TS, `openapi-typescript` + `openapi-fetch`
+against a committed `ui/openapi.json`, so the UI build needs no running API and
+`tests/contract/test_openapi.py` can fail on drift. Every route gained an
+explicit camelCase `operation_id`: FastAPI's default embeds the Python function
+name, so an ordinary refactor would silently rename a client method.
+
+Three things the live-stack verification found that no stub could:
+
+- **Keycloak realm scopes.** This realm's `clientScopes` list *replaces*
+  Keycloak's built-ins, so `profile` and `email` do not exist in it and the
+  conventional `scope: "openid profile email"` failed the entire authorize
+  request with `invalid_scope`. The workspace asks for `openid` alone; every
+  claim it reads is minted by the `aegis` scope's mappers.
+- **Token clock skew.** The dev stack's Keycloak container runs ~2s ahead of the
+  host, and `jwt.decode` allowed zero leeway, so freshly minted tokens were
+  rejected as "not yet valid". Zero leeway looks stricter but only means the
+  platform stops working whenever the IdP is a different host (RFC 7519
+  §4.1.4); validation now allows a configurable 60s.
+- **React effect ordering.** Handing the token down from a provider effect put
+  it in place *after* the first query had already fired, because child effects
+  run before parent effects — every initial request went out unauthenticated.
+  The API client now asks the `UserManager` for the token per request, which
+  also means a silently renewed token is used immediately.
+
+The smoke journey (`ui/e2e/`) runs against the built bundle under a copy of the
+production CSP, stubbing Keycloak and the API at the network boundary so
+`oidc-client-ts` still runs its real PKCE state machine. It is deliberately not
+the demo loop: that is T25/T27's blocking gate against a live stack.
 
 **T23a. Source landing & extraction UI** (B-04; specs/04) — upload/paste with
 required provenance fields, source picker/creation, landing status

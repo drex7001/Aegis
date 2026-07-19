@@ -21,7 +21,12 @@ from aegis.store import CustodyEvent, EvidenceItem
 router = APIRouter(tags=["evidence"])
 
 
-@router.post("/evidence", response_model=EvidenceOut, status_code=201)
+@router.post(
+    "/evidence",
+    response_model=EvidenceOut,
+    status_code=201,
+    operation_id="registerEvidence",
+)
 def register_evidence(
     body: EvidenceIn,
     session: DbSession,
@@ -40,7 +45,9 @@ def register_evidence(
     return row
 
 
-@router.get("/evidence/{evidence_id}", response_model=dict)
+@router.get(
+    "/evidence/{evidence_id}", response_model=dict, operation_id="getEvidence"
+)
 def get_evidence(
     evidence_id: str,
     session: DbSession,
@@ -72,7 +79,11 @@ def get_evidence(
     }
 
 
-@router.post("/evidence/{evidence_id}/custody-events", status_code=201)
+@router.post(
+    "/evidence/{evidence_id}/custody-events",
+    status_code=201,
+    operation_id="addCustodyEvent",
+)
 def add_custody_event(
     evidence_id: str,
     body: CustodyEventIn,

@@ -153,3 +153,64 @@ def test_valid_token_is_200(client: TestClient) -> None:
     )
     assert response.status_code == 200
     assert response.json() == {"sub": "user-123", "roles": ["analyst"]}
+
+
+# ── clock skew between Keycloak and this process (T22) ──────────────────────
+#
+# Found by driving a real browser login against the dev stack: the Keycloak
+# container ran ~2s ahead of the host, and with zero leeway PyJWT rejected every
+# freshly minted token with "not yet valid (iat)". Zero looks stricter than a
+# small tolerance but is not safer — it is the difference between a platform
+# that works and one that refuses every valid token (RFC 7519 §4.1.4).
+
+
+def _authenticator(skew: int) -> OIDCAuthenticator:
+    return OIDCAuthenticator(
+        Settings(
+            AEGIS_DATABASE_URL="postgresql+psycopg://unused:unused@localhost/unused",
+            KEYCLOAK_URL="http://localhost:8180",
+            KEYCLOAK_REALM="aegis",
+            AEGIS_API_AUDIENCE=AUDIENCE,
+            AEGIS_OIDC_CLOCK_SKEW_SECONDS=skew,
+        ),
+        jwks_client=_StubJWKSClient(),
+    )
+
+
+@pytest.mark.requirement("T22")
+def test_token_minted_slightly_ahead_is_accepted() -> None:
+    ahead = datetime.now(timezone.utc) + timedelta(seconds=5)
+    token = make_token(iat=ahead, exp=ahead + timedelta(minutes=5))
+
+    assert _authenticator(60).authenticate(token).sub == "user-123"
+
+
+@pytest.mark.requirement("T22")
+def test_token_minted_far_ahead_is_still_rejected() -> None:
+    """Leeway is a tolerance for drift, not an acceptance of arbitrary futures."""
+    ahead = datetime.now(timezone.utc) + timedelta(minutes=10)
+
+    with pytest.raises(AuthenticationError):
+        _authenticator(60).authenticate(
+            make_token(iat=ahead, exp=ahead + timedelta(minutes=5))
+        )
+
+
+@pytest.mark.requirement("T22")
+def test_expired_token_beyond_the_leeway_is_still_rejected() -> None:
+    past = datetime.now(timezone.utc) - timedelta(minutes=10)
+
+    with pytest.raises(AuthenticationError):
+        _authenticator(60).authenticate(
+            make_token(iat=past, exp=past + timedelta(minutes=1))
+        )
+
+
+@pytest.mark.requirement("T22")
+def test_leeway_does_not_extend_a_token_indefinitely() -> None:
+    """A token 61s expired must fail with 60s of leeway — the window is the
+    tolerance, not a grace period that grows with it."""
+    past = datetime.now(timezone.utc) - timedelta(seconds=61)
+
+    with pytest.raises(AuthenticationError):
+        _authenticator(60).authenticate(make_token(iat=past, exp=past))

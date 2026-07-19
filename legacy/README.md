@@ -13,8 +13,7 @@ each piece:
 | `pipeline/` | Prototype extraction scaffolding still called by the governed wrapper; historical ingestion instructions are unsafe reference only | Phase 2 mention extraction and later extraction v2 |
 | ~~`pipeline/clustering.py`~~ | **Moved into the core at P2 T21** (H-36) — Leiden is a generic algorithm, not domain scaffolding | `aegis/analytics/clustering.py` |
 | ~~`pipeline/neo4j_export.py`~~ | **Moved into the core at P2 T21** (H-36) | `aegis/projections/cypher.py` |
-| `app/static/index.html` | Explorer UI served by `aegis serve` off the rebuildable projection | React + TS workspace (`ui/`, deleted at P2 T22) |
-| `app/server.py` | Deprecated offline-demo server (ADR-019) | Already superseded by `aegis serve` |
+| ~~`app/`~~ | **Deleted at P2 T22** with the anonymous `/api/*` routes it consumed (ADR-026) | React + TS workspace (`ui/`), served by `aegis serve` |
 | `build_real_graph.py`, `demo.py` | Prototype entry points, kept for reference | `aegis` CLI |
 | `cypher/` | Hand-written Neo4j seed | Optional Cypher projection (`aegis projections`) |
 | `real_dataset.py` (in `pipeline/`) | Curated-corpus source consumed once by the T8 migration (`aegis/migration/`) | Nothing — deleted with the migration adapters |
@@ -34,6 +33,9 @@ Rules:
   `tests/component/test_core_independence.py` enumerates the exemptions and
   fails on any other `legacy.*` import under `aegis/`. The arrow points this
   way only — the entry points here import `aegis`, never the reverse.
-- The `/api/*` legacy-shaped projection surface is loopback-contained until it
-  is deleted with the Phase 2 T22 workspace change; this directory is deleted
-  piecewise as the table above completes.
+- The `/api/*` legacy-shaped projection surface is **gone** (T22): the
+  explorer that consumed it and the `public_route` marker that exempted it were
+  deleted in the same change, and `POST /v1/graph/expand` replaced it with a
+  bounded, authorized traversal. This directory is deleted piecewise as the
+  table above completes; `pipeline/` is the last substantial item, and it goes
+  with extraction v2.

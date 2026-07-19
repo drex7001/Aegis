@@ -15,7 +15,11 @@ from aegis.store import ReviewQueue
 router = APIRouter(tags=["review-queue"])
 
 
-@router.get("/review-queue", response_model=list[SuggestionOut])
+@router.get(
+    "/review-queue",
+    response_model=list[SuggestionOut],
+    operation_id="listSuggestions",
+)
 def list_suggestions(
     session: DbSession,
     kind: Annotated[str | None, Query()] = None,
@@ -39,7 +43,11 @@ def list_suggestions(
     return list(session.scalars(query))
 
 
-@router.post("/review-queue/{suggestion_id}/accept", response_model=SuggestionOut)
+@router.post(
+    "/review-queue/{suggestion_id}/accept",
+    response_model=SuggestionOut,
+    operation_id="acceptSuggestion",
+)
 def accept_suggestion(
     suggestion_id: str,
     body: AcceptIn,
@@ -59,7 +67,11 @@ def accept_suggestion(
     return row
 
 
-@router.post("/review-queue/{suggestion_id}/reject", response_model=SuggestionOut)
+@router.post(
+    "/review-queue/{suggestion_id}/reject",
+    response_model=SuggestionOut,
+    operation_id="rejectSuggestion",
+)
 def reject_suggestion(
     suggestion_id: str,
     body: RejectIn,

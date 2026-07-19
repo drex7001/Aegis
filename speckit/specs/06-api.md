@@ -1,12 +1,16 @@
 # Spec 06 — API v1
 
-Status: implemented in Phase 1 (v1 reference) — **rewritten 2026-07-18 by P2
-T17d as the authoritative route-by-route authorization matrix (B-14). Every
-route P2 ships has a row naming its role gate, FGA relation, filters, purpose
-requirement, limits, and the tests that prove it. T24b turns this table into an
-executable suite; T24a implements field-sensitivity filtering; T24c implements
-cursor pagination. Stable operation IDs land in P3 (T36). Where this text
-conflicts with ADR-026/029/030/031, the ADRs win.** · Constitutional basis:
+Status: **rewritten 2026-07-18 by P2 T17d as the authoritative route-by-route
+authorization matrix (B-14).** Every route P2 ships has a row naming its role
+gate, FGA relation, filters, purpose requirement, limits, and the tests that
+prove it. T24b turns this table into an executable suite; T24a implements
+field-sensitivity filtering; T24c implements cursor pagination.
+
+**T22 (2026-07-19)** landed the graph routes, deleted the anonymous `/api/*`
+surface together with the `public_route` exemption, and made stable operation
+IDs, per-caller rate limits and security headers real; the rows and defaults
+below say so where they changed. Where this text conflicts with
+ADR-026/029/030/031, the ADRs win. · Constitutional basis:
 Articles VI, X, XIII · ADR-012, ADR-026, ADR-029, ADR-030, ADR-031
 
 FastAPI, `/v1/*`, OIDC bearer auth. Errors: RFC 7807 problem+json. Writes are
@@ -14,18 +18,21 @@ actions (validate → write → audit in one transaction).
 
 **This file is authoritative for authorization.** A route that ships without a
 row here is a defect, and the deny-by-default lint
-(`find_ungated_routes`, `aegis/api/deps.py:131`) fails CI for a route with no
-gate. After P2 T22 there is **no `public_route` exemption** — the marker and its
-lint branch are deleted (ADR-026).
+(`find_ungated_routes`, `aegis/api/deps.py:127`) fails CI for a route with no
+gate. Since T22 there is **no `public_route` exemption** — the marker and its
+lint branch are deleted (ADR-026), and `test_route_gating.py` asserts the symbol
+has not come back.
 
 ## 1. Defaults that apply to every route
 
 Stated once so the matrix stays readable. A matrix cell says only what *differs*.
 
 1. **Authenticated.** No anonymous route survives P2 (ADR-026, Article VI).
-   The legacy `/api/*` surface is deleted by T22; until then it is
-   loopback-bound with response and rate limits (T16a) — an exposure control,
-   not an authorization decision.
+   **Satisfied at T22**: the legacy `/api/*` surface is deleted, `public_route`
+   and its lint branch are gone, and `find_ungated_routes` now has no exemption
+   to grant. The one thing served without a token is the workspace *bundle* — a
+   static mount with no dependency graph and no database access, pinned by
+   `test_route_gating.py` as the only mount the app may carry.
 2. **Row filters, always appended** (`aegis/authz/filters.py`, specs/03 §4):
    `handling_rank(row) <= user.clearance`; case scoping (member cases ∪
    case-less rows); `retracted_at IS NULL` unless auditor; sealed exclusions
@@ -36,12 +43,18 @@ Stated once so the matrix stays readable. A matrix cell says only what *differs*
    policy.
 4. **No existence leaks.** Unauthorized and nonexistent both return **404** on
    single-resource reads; the pattern is `fga_check_or_404`
-   (`aegis/api/deps.py:160`). Collection routes return the authorized subset
+   (`aegis/api/deps.py:159`). Collection routes return the authorized subset
    with no "n hidden" affordance.
 5. **Audited.** Every decision, allow and deny, writes an audit row with actor,
    purpose, resource, and decision (Article X). Denials record the failed check.
 6. **Limits.** Default body limit 10 MiB (ingest: 100 MiB), default page size
-   50, max 200. Rate limits per authenticated subject, not per IP.
+   50, max 200. Rate limits per authenticated subject, not per IP —
+   implemented at T22 (`aegis/api/ratelimit.py`) as a default limit on every
+   route, keyed by a digest of the bearer token. The `sub` inside the token is
+   deliberately not the key: the limiter runs before the gate validates the
+   token, so an attacker-chosen `sub` could be rotated to escape the limit or
+   pinned to a victim's to exhaust theirs. Configured by
+   `AEGIS_API_RATE_LIMIT_PER_MINUTE` (default 600).
 7. **Purpose.** Required (`?purpose=`) wherever the matrix says **P**: reads of
    `handling >= restricted`, all audit queries, and all exports (GOAL.md §12.4).
 
@@ -109,12 +122,12 @@ one audit shape.
 
 | Route | R | F | Notes / filters | Limits | Tests |
 |---|---|---|---|---|---|
-| `POST /v1/graph/expand` | — | — | seed ids, max hops, categories, time window, max results; edges carry the **support summary and stamps**, never an aggregate weight (ADR-030) | ≤ 3 hops, ≤ 2 000 elements | `test_projections.py`, `test_graph_support` |
-| `POST /v1/graph/paths` | — | — | bounded shortest/all paths | ≤ 5 hops | `test_projections.py` |
+| `POST /v1/graph/expand` | — | — | seed ids, max hops, categories, time window, max results; edges carry the **support summary and stamps**, never an aggregate weight (ADR-030). An edge is visible when ≥ 1 supporting claim passes `claim_filters`, and its summary is rebuilt from **only those** claims (T22) | ≤ 3 hops, ≤ 2 000 elements (nodes + edges), ≤ 100 seeds; over-asking is clamped and disclosed as `truncated` | `test_graph_routes.py` |
+| `POST /v1/graph/paths` | — | — | shortest routes only, not all routes (T22): a path nobody can audit is machine-produced insinuation (Article IX) | ≤ 5 hops, ≤ 25 paths | `test_graph_routes.py` |
 | `POST /v1/analytics/{algo}` | analyst | — | returns `AnalyticFinding` + caveat text (Article IX) — P6 | — | P6 |
 | `POST /v1/findings/{id}/promote` | analyst | — | finding → review queue as an assessed-claim draft — P6 | — | P6 |
 | `POST /v1/projections/rebuild` | admin | — | **controlled job/admin action only** (B-14): full rebuild is a DoS and staleness risk, not general analyst capability | 1 concurrent | `test_projections.py`, matrix suite |
-| ~~`GET /api/graph`, `/api/stats`, `/api/cells`, `/api/query/{name}`~~ | — | — | **deleted at P2 T22** (ADR-026) with the `public_route` marker and the legacy explorer | — | `test_legacy_containment.py` until T22 |
+| ~~`GET /api/graph`, `/api/stats`, `/api/cells`, `/api/query/{name}`~~ | — | — | **deleted at T22** (ADR-026) with the `public_route` marker and the legacy explorer. `/api` stays a reserved path prefix so a caller of a retired route gets 404, not the workspace's HTML | — | `test_route_gating.py`, `test_workspace_serving.py` |
 
 ### 2.7 Audit
 
@@ -164,7 +177,16 @@ not enforce them. No route filters on them in P2, and none may claim to.
 - Exports (any bulk out-format) go through `POST /v1/exports` — P7 packages;
   P2 ships only an audited JSON dump of an authorized projection.
 - Stable operation IDs are an API convention from P2 (ADR-032 §2) because the
-  workspace's TypeScript client is generated from this OpenAPI document; P3
-  (T36) adds the CI drift gate.
+  workspace's TypeScript client is generated from this OpenAPI document.
+  **Implemented at T22**: every route declares an explicit camelCase
+  `operation_id`, and `tests/contract/test_openapi.py` fails on a missing one, a
+  duplicate, or FastAPI's generated default — which embeds the Python function
+  name, so an ordinary refactor would silently rename a client method. The same
+  test fails when the committed `ui/openapi.json` drifts from the live routes.
+  P3 (T36) extends the gate to the ontology-generated SDK.
+- **Security headers** are served with every response (T22,
+  `aegis/api/security.py`): `default-src 'none'` plus `no-store` on API paths,
+  the workspace policy on the bundle, and a CDN exception scoped to `/docs`.
+  HSTS is emitted only over TLS.
 - Error bodies never disclose the existence of a resource the caller may not
   see: 404 and 403 are chosen per default 4, and the problem detail is generic.

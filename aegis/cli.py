@@ -15,6 +15,7 @@ app = typer.Typer(help="Aegis platform CLI (see speckit/)", no_args_is_help=True
 db_app = typer.Typer(help="Database migrations (Alembic)", no_args_is_help=True)
 ontology_app = typer.Typer(help="Ontology artifact tools", no_args_is_help=True)
 audit_app = typer.Typer(help="Audit chain tools", no_args_is_help=True)
+api_app = typer.Typer(help="API document tools", no_args_is_help=True)
 projections_app = typer.Typer(help="Projection builders", no_args_is_help=True)
 ingest_app = typer.Typer(
     help="Raw landing + extraction passes (spec 04)", no_args_is_help=True
@@ -26,6 +27,7 @@ identity_app = typer.Typer(
 app.add_typer(db_app, name="db")
 app.add_typer(ontology_app, name="ontology")
 app.add_typer(audit_app, name="audit")
+app.add_typer(api_app, name="api")
 app.add_typer(projections_app, name="projections")
 app.add_typer(ingest_app, name="ingest")
 app.add_typer(authz_app, name="authz")
@@ -100,6 +102,35 @@ def ontology_validate(
     )
 
 
+@api_app.command("export-openapi")
+def api_export_openapi(
+    out: Path = typer.Option(
+        REPO_ROOT / "ui" / "openapi.json",
+        "--out",
+        help="Where to write the OpenAPI document.",
+    ),
+) -> None:
+    """Write the OpenAPI document the workspace's typed client is built from.
+
+    Committed rather than fetched at build time (ADR-032 §2): the UI build then
+    needs no running API, and ``tests/contract/test_openapi.py`` can fail on
+    drift between the document and the routes — which is the actual risk, since
+    a stale document produces a client that type-checks and 404s.
+    """
+    import json
+
+    from aegis.api import create_app
+
+    document = create_app().openapi()
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(
+        json.dumps(document, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    paths = sum(len(item) for item in document["paths"].values())
+    typer.secho(f"wrote {out} ({paths} operations)", fg=typer.colors.GREEN)
+
+
 @audit_app.command("verify")
 def audit_verify() -> None:
     """Recompute the audit hash chain and fail at the first altered row."""
@@ -132,7 +163,12 @@ def serve(
         help="Explicitly allow a non-loopback bind (unsafe before the pilot gate).",
     ),
 ) -> None:
-    """Run the governed API + mounted legacy UI (T13/T14)."""
+    """Run the governed API and, when built, the workspace bundle (T13/T22).
+
+    The loopback default survives T22 even though no anonymous route does: the
+    remaining reasons to refuse a public bind are TLS, secrets hygiene, and
+    request limits — the pilot gate (ADR-033 §4), not ADR-026.
+    """
     normalized_host = host.strip().lower().strip("[]")
     try:
         loopback = ipaddress.ip_address(normalized_host).is_loopback
@@ -150,11 +186,11 @@ def serve(
         structlog.get_logger(__name__).warning(
             "non_loopback_bind_enabled",
             host=host,
-            warning="legacy /api/* routes remain anonymous until P2 T22",
+            warning="the pilot security gate (TLS, secrets, backups) is not verified here",
         )
         typer.secho(
-            "WARNING: non-loopback bind explicitly enabled while legacy /api/* "
-            "routes remain anonymous (ADR-026).",
+            "WARNING: non-loopback bind explicitly enabled before the pilot "
+            "security gate (ADR-033 §4).",
             fg=typer.colors.YELLOW,
             err=True,
         )

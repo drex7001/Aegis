@@ -1,0 +1,4048 @@
+{
+  "components": {
+    "schemas": {
+      "AcceptIn": {
+        "properties": {
+          "edits": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edits"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "title": "AcceptIn",
+        "type": "object"
+      },
+      "AuditOut": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actor": {
+            "title": "Actor",
+            "type": "string"
+          },
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "case_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Id"
+          },
+          "decision": {
+            "title": "Decision",
+            "type": "string"
+          },
+          "detail": {
+            "additionalProperties": true,
+            "title": "Detail",
+            "type": "object"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "purpose": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purpose"
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id"
+          },
+          "resource_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Type"
+          }
+        },
+        "required": [
+          "id",
+          "at",
+          "actor",
+          "purpose",
+          "case_id",
+          "action",
+          "resource_type",
+          "resource_id",
+          "decision",
+          "detail"
+        ],
+        "title": "AuditOut",
+        "type": "object"
+      },
+      "CaseIn": {
+        "properties": {
+          "handling_code": {
+            "default": "open",
+            "title": "Handling Code",
+            "type": "string"
+          },
+          "purpose": {
+            "minLength": 1,
+            "title": "Purpose",
+            "type": "string"
+          },
+          "title": {
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "purpose"
+        ],
+        "title": "CaseIn",
+        "type": "object"
+      },
+      "CaseMemberIn": {
+        "properties": {
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "user_id": {
+            "minLength": 1,
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "role"
+        ],
+        "title": "CaseMemberIn",
+        "type": "object"
+      },
+      "CaseOut": {
+        "properties": {
+          "case_id": {
+            "title": "Case Id",
+            "type": "string"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          },
+          "handling_code": {
+            "title": "Handling Code",
+            "type": "string"
+          },
+          "opened_at": {
+            "format": "date-time",
+            "title": "Opened At",
+            "type": "string"
+          },
+          "opened_by": {
+            "title": "Opened By",
+            "type": "string"
+          },
+          "purpose": {
+            "title": "Purpose",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_id",
+          "title",
+          "status",
+          "purpose",
+          "handling_code",
+          "opened_by",
+          "opened_at",
+          "closed_at"
+        ],
+        "title": "CaseOut",
+        "type": "object"
+      },
+      "ClaimIn": {
+        "properties": {
+          "analytic_confidence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analytic Confidence"
+          },
+          "assertion_type": {
+            "default": "reported",
+            "title": "Assertion Type",
+            "type": "string"
+          },
+          "case_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Id"
+          },
+          "collection_method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Collection Method"
+          },
+          "credibility_normalized": {
+            "default": "cannot_judge",
+            "title": "Credibility Normalized",
+            "type": "string"
+          },
+          "credibility_original": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credibility Original"
+          },
+          "credibility_scheme": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credibility Scheme"
+          },
+          "excerpt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Excerpt"
+          },
+          "handling_code": {
+            "default": "open",
+            "title": "Handling Code",
+            "type": "string"
+          },
+          "jurisdiction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jurisdiction"
+          },
+          "location_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location Text"
+          },
+          "object_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Object Id"
+          },
+          "object_value": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Object Value"
+          },
+          "predicate": {
+            "title": "Predicate",
+            "type": "string"
+          },
+          "record_id": {
+            "title": "Record Id",
+            "type": "string"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "string"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          },
+          "verification_status": {
+            "default": "unverified",
+            "title": "Verification Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject_id",
+          "predicate",
+          "record_id"
+        ],
+        "title": "ClaimIn",
+        "type": "object"
+      },
+      "ClaimOut": {
+        "properties": {
+          "analytic_confidence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analytic Confidence"
+          },
+          "assertion_type": {
+            "title": "Assertion Type",
+            "type": "string"
+          },
+          "case_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Id"
+          },
+          "claim_id": {
+            "title": "Claim Id",
+            "type": "string"
+          },
+          "collection_method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Collection Method"
+          },
+          "credibility_normalized": {
+            "title": "Credibility Normalized",
+            "type": "string"
+          },
+          "credibility_original": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credibility Original"
+          },
+          "credibility_scheme": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credibility Scheme"
+          },
+          "excerpt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Excerpt"
+          },
+          "handling_code": {
+            "title": "Handling Code",
+            "type": "string"
+          },
+          "location_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location Text"
+          },
+          "object_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Object Id"
+          },
+          "object_value": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Object Value"
+          },
+          "ontology_version": {
+            "title": "Ontology Version",
+            "type": "string"
+          },
+          "predicate": {
+            "title": "Predicate",
+            "type": "string"
+          },
+          "record_id": {
+            "title": "Record Id",
+            "type": "string"
+          },
+          "recorded_at": {
+            "format": "date-time",
+            "title": "Recorded At",
+            "type": "string"
+          },
+          "retracted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retracted At"
+          },
+          "retraction_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retraction Reason"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "string"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          },
+          "verification_status": {
+            "title": "Verification Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "claim_id",
+          "subject_id",
+          "predicate",
+          "object_id",
+          "object_value",
+          "assertion_type",
+          "record_id",
+          "excerpt",
+          "collection_method",
+          "credibility_scheme",
+          "credibility_original",
+          "credibility_normalized",
+          "verification_status",
+          "analytic_confidence",
+          "valid_from",
+          "valid_to",
+          "recorded_at",
+          "retracted_at",
+          "retraction_reason",
+          "handling_code",
+          "case_id",
+          "location_text",
+          "ontology_version"
+        ],
+        "title": "ClaimOut",
+        "type": "object"
+      },
+      "ClaimProvenanceOut": {
+        "description": "One claim with its evidence — the unit the provenance panel renders.",
+        "properties": {
+          "claim": {
+            "$ref": "#/components/schemas/ClaimOut"
+          },
+          "contradicted_by": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Contradicted By",
+            "type": "array"
+          },
+          "corroborated_by": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Corroborated By",
+            "type": "array"
+          },
+          "grading": {
+            "$ref": "#/components/schemas/GradingOut"
+          },
+          "object_mention": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MentionOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "record": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceRecordOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "subject_mention": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MentionOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "claim",
+          "grading",
+          "source",
+          "record",
+          "corroborated_by",
+          "contradicted_by",
+          "subject_mention",
+          "object_mention"
+        ],
+        "title": "ClaimProvenanceOut",
+        "type": "object"
+      },
+      "CustodyEventIn": {
+        "properties": {
+          "from_actor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Actor"
+          },
+          "hash_checked": {
+            "default": false,
+            "title": "Hash Checked",
+            "type": "boolean"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "purpose": {
+            "minLength": 1,
+            "title": "Purpose",
+            "type": "string"
+          },
+          "to_actor": {
+            "minLength": 1,
+            "title": "To Actor",
+            "type": "string"
+          }
+        },
+        "required": [
+          "to_actor",
+          "occurred_at",
+          "purpose"
+        ],
+        "title": "CustodyEventIn",
+        "type": "object"
+      },
+      "EntityDetail": {
+        "properties": {
+          "claims_by_predicate": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/ClaimOut"
+              },
+              "type": "array"
+            },
+            "title": "Claims By Predicate",
+            "type": "object"
+          },
+          "entity": {
+            "$ref": "#/components/schemas/EntityOut"
+          }
+        },
+        "required": [
+          "entity",
+          "claims_by_predicate"
+        ],
+        "title": "EntityDetail",
+        "type": "object"
+      },
+      "EntityOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "entity_id": {
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "entity_type": {
+            "title": "Entity Type",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "entity_id",
+          "entity_type",
+          "label",
+          "created_at"
+        ],
+        "title": "EntityOut",
+        "type": "object"
+      },
+      "EvidenceIn": {
+        "properties": {
+          "case_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Id"
+          },
+          "content_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Hash"
+          },
+          "description": {
+            "minLength": 1,
+            "title": "Description",
+            "type": "string"
+          },
+          "handling_code": {
+            "default": "restricted",
+            "title": "Handling Code",
+            "type": "string"
+          },
+          "legal_basis": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legal Basis"
+          },
+          "record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Id"
+          },
+          "storage_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Uri"
+          }
+        },
+        "required": [
+          "description"
+        ],
+        "title": "EvidenceIn",
+        "type": "object"
+      },
+      "EvidenceOut": {
+        "properties": {
+          "acquired_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acquired By"
+          },
+          "case_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Id"
+          },
+          "content_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Hash"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "evidence_id": {
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "handling_code": {
+            "title": "Handling Code",
+            "type": "string"
+          },
+          "record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Id"
+          }
+        },
+        "required": [
+          "evidence_id",
+          "case_id",
+          "record_id",
+          "description",
+          "content_hash",
+          "handling_code",
+          "acquired_by",
+          "created_at"
+        ],
+        "title": "EvidenceOut",
+        "type": "object"
+      },
+      "GradingOut": {
+        "description": "The three dimensions, kept apart (Article III).\n\nThere is deliberately no combined score here. A single number would be the\none thing every caller reached for, and it cannot be reconstructed back\ninto the judgements that produced it.",
+        "properties": {
+          "analytic_confidence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analytic Confidence"
+          },
+          "credibility": {
+            "title": "Credibility",
+            "type": "string"
+          },
+          "reliability": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reliability"
+          },
+          "verification": {
+            "title": "Verification",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reliability",
+          "credibility",
+          "verification",
+          "analytic_confidence"
+        ],
+        "title": "GradingOut",
+        "type": "object"
+      },
+      "GraphEdgeOut": {
+        "description": "One time segment of one predicate — never a collapsed span (ADR-030).\n\nThere is no ``weight``. ``support`` carries each visible claim's three\ngrading dimensions and the corroboration/contradiction counts around them,\nso a reader can reach the evidence instead of trusting a scalar.",
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "edge_id": {
+            "title": "Edge Id",
+            "type": "string"
+          },
+          "object_id": {
+            "title": "Object Id",
+            "type": "string"
+          },
+          "predicate": {
+            "title": "Predicate",
+            "type": "string"
+          },
+          "record_count": {
+            "title": "Record Count",
+            "type": "integer"
+          },
+          "segment_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Segment From"
+          },
+          "segment_to": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Segment To"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "string"
+          },
+          "support": {
+            "additionalProperties": true,
+            "title": "Support",
+            "type": "object"
+          }
+        },
+        "required": [
+          "edge_id",
+          "subject_id",
+          "object_id",
+          "predicate",
+          "category",
+          "segment_from",
+          "segment_to",
+          "record_count",
+          "support"
+        ],
+        "title": "GraphEdgeOut",
+        "type": "object"
+      },
+      "GraphExpandIn": {
+        "description": "A bounded traversal request (specs/06 §2.6).\n\nEvery bound is clamped rather than rejected (specs/06 §4): a client asking\nfor six hops gets three and is told the result was truncated, which is more\nuseful than a 422 that teaches nothing about the limit.",
+        "properties": {
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Categories",
+            "type": "array"
+          },
+          "max_elements": {
+            "default": 2000,
+            "minimum": 1.0,
+            "title": "Max Elements",
+            "type": "integer"
+          },
+          "max_hops": {
+            "default": 1,
+            "minimum": 0.0,
+            "title": "Max Hops",
+            "type": "integer"
+          },
+          "seed_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Seed Ids",
+            "type": "array"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          }
+        },
+        "title": "GraphExpandIn",
+        "type": "object"
+      },
+      "GraphNodeOut": {
+        "properties": {
+          "entity_id": {
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "entity_type": {
+            "title": "Entity Type",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "entity_id",
+          "label",
+          "entity_type"
+        ],
+        "title": "GraphNodeOut",
+        "type": "object"
+      },
+      "GraphPathOut": {
+        "properties": {
+          "edge_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Edge Ids",
+            "type": "array"
+          },
+          "entity_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Entity Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "entity_ids",
+          "edge_ids"
+        ],
+        "title": "GraphPathOut",
+        "type": "object"
+      },
+      "GraphPathsIn": {
+        "properties": {
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Categories",
+            "type": "array"
+          },
+          "from_id": {
+            "title": "From Id",
+            "type": "string"
+          },
+          "max_hops": {
+            "default": 5,
+            "minimum": 1.0,
+            "title": "Max Hops",
+            "type": "integer"
+          },
+          "max_paths": {
+            "default": 25,
+            "minimum": 1.0,
+            "title": "Max Paths",
+            "type": "integer"
+          },
+          "to_id": {
+            "title": "To Id",
+            "type": "string"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          }
+        },
+        "required": [
+          "from_id",
+          "to_id"
+        ],
+        "title": "GraphPathsIn",
+        "type": "object"
+      },
+      "GraphPathsOut": {
+        "properties": {
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/GraphEdgeOut"
+            },
+            "title": "Edges",
+            "type": "array"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/GraphNodeOut"
+            },
+            "title": "Nodes",
+            "type": "array"
+          },
+          "paths": {
+            "items": {
+              "$ref": "#/components/schemas/GraphPathOut"
+            },
+            "title": "Paths",
+            "type": "array"
+          },
+          "resolved_seed_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Resolved Seed Ids",
+            "type": "array"
+          },
+          "seed_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Seed Ids",
+            "type": "array"
+          },
+          "stamps": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProjectionStampsOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "nodes",
+          "edges",
+          "seed_ids",
+          "resolved_seed_ids",
+          "truncated",
+          "stamps",
+          "paths"
+        ],
+        "title": "GraphPathsOut",
+        "type": "object"
+      },
+      "GraphViewOut": {
+        "properties": {
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/GraphEdgeOut"
+            },
+            "title": "Edges",
+            "type": "array"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/GraphNodeOut"
+            },
+            "title": "Nodes",
+            "type": "array"
+          },
+          "resolved_seed_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Resolved Seed Ids",
+            "type": "array"
+          },
+          "seed_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Seed Ids",
+            "type": "array"
+          },
+          "stamps": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProjectionStampsOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "nodes",
+          "edges",
+          "seed_ids",
+          "resolved_seed_ids",
+          "truncated",
+          "stamps"
+        ],
+        "title": "GraphViewOut",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "IdentityDecisionOut": {
+        "description": "A human's identity decision: who, when, why, and which revision.",
+        "properties": {
+          "decided_at": {
+            "format": "date-time",
+            "title": "Decided At",
+            "type": "string"
+          },
+          "decided_by": {
+            "title": "Decided By",
+            "type": "string"
+          },
+          "decision_id": {
+            "title": "Decision Id",
+            "type": "string"
+          },
+          "decision_note": {
+            "title": "Decision Note",
+            "type": "string"
+          },
+          "entity_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Id"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "parent_revision_id": {
+            "title": "Parent Revision Id",
+            "type": "integer"
+          },
+          "result_revision_id": {
+            "title": "Result Revision Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "decision_id",
+          "kind",
+          "decided_by",
+          "decision_note",
+          "parent_revision_id",
+          "result_revision_id",
+          "decided_at"
+        ],
+        "title": "IdentityDecisionOut",
+        "type": "object"
+      },
+      "MentionOut": {
+        "description": "The words a claim's argument came from (ADR-029).",
+        "properties": {
+          "char_end": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Char End"
+          },
+          "char_start": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Char Start"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "mention_id": {
+            "title": "Mention Id",
+            "type": "string"
+          },
+          "norm_key": {
+            "title": "Norm Key",
+            "type": "string"
+          },
+          "raw_text": {
+            "title": "Raw Text",
+            "type": "string"
+          },
+          "record_id": {
+            "title": "Record Id",
+            "type": "string"
+          },
+          "script": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Script"
+          }
+        },
+        "required": [
+          "mention_id",
+          "record_id",
+          "raw_text",
+          "norm_key",
+          "char_start",
+          "char_end",
+          "script",
+          "language"
+        ],
+        "title": "MentionOut",
+        "type": "object"
+      },
+      "ProjectionStampsOut": {
+        "description": "Which build produced these rows, and whether it is behind (specs/06 §3).",
+        "properties": {
+          "active_revision_id": {
+            "title": "Active Revision Id",
+            "type": "integer"
+          },
+          "builder_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Builder Version"
+          },
+          "built_at_revision_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Built At Revision Id"
+          },
+          "ontology_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ontology Version"
+          },
+          "stale": {
+            "title": "Stale",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "built_at_revision_id",
+          "active_revision_id",
+          "ontology_version",
+          "builder_version",
+          "stale"
+        ],
+        "title": "ProjectionStampsOut",
+        "type": "object"
+      },
+      "RejectIn": {
+        "properties": {
+          "reason": {
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "RejectIn",
+        "type": "object"
+      },
+      "RelationIn": {
+        "properties": {
+          "relation": {
+            "title": "Relation",
+            "type": "string"
+          },
+          "to_claim": {
+            "title": "To Claim",
+            "type": "string"
+          }
+        },
+        "required": [
+          "to_claim",
+          "relation"
+        ],
+        "title": "RelationIn",
+        "type": "object"
+      },
+      "RetractIn": {
+        "properties": {
+          "reason": {
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "RetractIn",
+        "type": "object"
+      },
+      "SourceIn": {
+        "properties": {
+          "name": {
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "reliability_normalized": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reliability Normalized"
+          },
+          "reliability_original": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reliability Original"
+          },
+          "reliability_scheme": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reliability Scheme"
+          },
+          "source_type": {
+            "title": "Source Type",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "source_type",
+          "name"
+        ],
+        "title": "SourceIn",
+        "type": "object"
+      },
+      "SourceOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "reliability_normalized": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reliability Normalized"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_type": {
+            "title": "Source Type",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "source_id",
+          "source_type",
+          "name",
+          "url",
+          "reliability_normalized",
+          "created_at"
+        ],
+        "title": "SourceOut",
+        "type": "object"
+      },
+      "SourceRecordOut": {
+        "properties": {
+          "content_hash": {
+            "title": "Content Hash",
+            "type": "string"
+          },
+          "handling_code": {
+            "title": "Handling Code",
+            "type": "string"
+          },
+          "media_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Type"
+          },
+          "provenance": {
+            "additionalProperties": true,
+            "title": "Provenance",
+            "type": "object"
+          },
+          "quarantine_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quarantine Reason"
+          },
+          "received_at": {
+            "format": "date-time",
+            "title": "Received At",
+            "type": "string"
+          },
+          "record_id": {
+            "title": "Record Id",
+            "type": "string"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "record_id",
+          "source_id",
+          "content_hash",
+          "media_type",
+          "status",
+          "quarantine_reason",
+          "handling_code",
+          "received_at",
+          "provenance"
+        ],
+        "title": "SourceRecordOut",
+        "type": "object"
+      },
+      "SuggestionOut": {
+        "properties": {
+          "case_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "decided_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided At"
+          },
+          "decided_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided By"
+          },
+          "decision_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Note"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "title": "Payload",
+            "type": "object"
+          },
+          "producer": {
+            "title": "Producer",
+            "type": "string"
+          },
+          "producer_meta": {
+            "additionalProperties": true,
+            "title": "Producer Meta",
+            "type": "object"
+          },
+          "producer_version": {
+            "title": "Producer Version",
+            "type": "string"
+          },
+          "record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Id"
+          },
+          "result_claim_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Claim Id"
+          },
+          "result_decision_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Decision Id"
+          },
+          "result_relation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Relation"
+          },
+          "schema_version": {
+            "title": "Schema Version",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "suggestion_id": {
+            "title": "Suggestion Id",
+            "type": "string"
+          },
+          "suggestion_kind": {
+            "title": "Suggestion Kind",
+            "type": "string"
+          },
+          "target_action": {
+            "title": "Target Action",
+            "type": "string"
+          }
+        },
+        "required": [
+          "suggestion_id",
+          "suggestion_kind",
+          "schema_version",
+          "payload",
+          "target_action",
+          "producer",
+          "producer_version",
+          "producer_meta",
+          "record_id",
+          "case_id",
+          "status",
+          "decided_by",
+          "decided_at",
+          "decision_note",
+          "result_claim_id",
+          "result_decision_id",
+          "result_relation",
+          "created_at"
+        ],
+        "title": "SuggestionOut",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WhyConnectedOut": {
+        "description": "The answer to GOAL.md §18 for one pair of entities.",
+        "properties": {
+          "claims": {
+            "items": {
+              "$ref": "#/components/schemas/ClaimProvenanceOut"
+            },
+            "title": "Claims",
+            "type": "array"
+          },
+          "contradiction_count": {
+            "title": "Contradiction Count",
+            "type": "integer"
+          },
+          "corroboration_count": {
+            "title": "Corroboration Count",
+            "type": "integer"
+          },
+          "identity_line": {
+            "items": {
+              "$ref": "#/components/schemas/IdentityDecisionOut"
+            },
+            "title": "Identity Line",
+            "type": "array"
+          },
+          "object_id": {
+            "title": "Object Id",
+            "type": "string"
+          },
+          "record_count": {
+            "title": "Record Count",
+            "type": "integer"
+          },
+          "resolved_object_id": {
+            "title": "Resolved Object Id",
+            "type": "string"
+          },
+          "resolved_subject_id": {
+            "title": "Resolved Subject Id",
+            "type": "string"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "string"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "subject_id",
+          "object_id",
+          "resolved_subject_id",
+          "resolved_object_id",
+          "claims",
+          "record_count",
+          "contradiction_count",
+          "corroboration_count",
+          "identity_line",
+          "truncated"
+        ],
+        "title": "WhyConnectedOut",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "Governed claims-based intelligence platform (speckit Phase 2).",
+    "title": "Aegis API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/v1/audit": {
+      "get": {
+        "operationId": "queryAudit",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "actor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Actor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "case",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Case"
+            }
+          },
+          {
+            "in": "query",
+            "name": "action",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Action"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "maximum": 1000,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AuditOut"
+                  },
+                  "title": "Response Queryaudit",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Query Audit",
+        "tags": [
+          "audit"
+        ]
+      }
+    },
+    "/v1/audit/verify": {
+      "post": {
+        "operationId": "verifyAudit",
+        "parameters": [
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Verifyaudit",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Verify Audit",
+        "tags": [
+          "audit"
+        ]
+      }
+    },
+    "/v1/cases": {
+      "post": {
+        "operationId": "openCase",
+        "parameters": [
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaseIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Open Case",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
+    "/v1/cases/{case_id}": {
+      "get": {
+        "operationId": "getCase",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "title": "Case Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Case",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
+    "/v1/cases/{case_id}/members": {
+      "post": {
+        "operationId": "addCaseMember",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "title": "Case Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaseMemberIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Addcasemember",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Add Member",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
+    "/v1/cases/{case_id}/members/{user_id}": {
+      "delete": {
+        "operationId": "removeCaseMember",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "title": "Case Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Remove Member",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
+    "/v1/claims": {
+      "post": {
+        "operationId": "createClaim",
+        "parameters": [
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Claim",
+        "tags": [
+          "claims"
+        ]
+      }
+    },
+    "/v1/claims/{claim_id}": {
+      "get": {
+        "operationId": "getClaim",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "claim_id",
+            "required": true,
+            "schema": {
+              "title": "Claim Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asOf",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Asof"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Claim",
+        "tags": [
+          "claims"
+        ]
+      }
+    },
+    "/v1/claims/{claim_id}/provenance": {
+      "get": {
+        "description": "Generic provenance for any claim-derived value (B-14).\n\nProperty values, aliases and edge labels all resolve to a claim, so one\nroute serves every \"where did this come from?\" in the UI.",
+        "operationId": "claimProvenance",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "claim_id",
+            "required": true,
+            "schema": {
+              "title": "Claim Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimProvenanceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Claim Provenance",
+        "tags": [
+          "provenance"
+        ]
+      }
+    },
+    "/v1/claims/{claim_id}/relations": {
+      "post": {
+        "operationId": "linkClaim",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "claim_id",
+            "required": true,
+            "schema": {
+              "title": "Claim Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RelationIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Linkclaim",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Link Claim",
+        "tags": [
+          "claims"
+        ]
+      }
+    },
+    "/v1/claims/{claim_id}/retract": {
+      "post": {
+        "operationId": "retractClaim",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "claim_id",
+            "required": true,
+            "schema": {
+              "title": "Claim Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetractIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Retract Claim",
+        "tags": [
+          "claims"
+        ]
+      }
+    },
+    "/v1/entities/{entity_id}": {
+      "get": {
+        "operationId": "getEntity",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asOf",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Asof"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntityDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Entity",
+        "tags": [
+          "entities"
+        ]
+      }
+    },
+    "/v1/entities/{entity_id}/identity-history": {
+      "get": {
+        "description": "The decision line behind an entity: who merged or split it, when, why.\n\nNot gated on claim visibility: a decision records an adjudication, not the\ncontent of any source. Its note is written by the reviewer for exactly this\naudience (Article V, specs/06 §2.2).",
+        "operationId": "identityHistory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IdentityDecisionOut"
+                  },
+                  "title": "Response Identityhistory",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Identity History",
+        "tags": [
+          "provenance"
+        ]
+      }
+    },
+    "/v1/entities/{entity_id}/why-connected/{other_id}": {
+      "get": {
+        "description": "Every claim this caller may see connecting two entities, with evidence.",
+        "operationId": "whyConnected",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "other_id",
+            "required": true,
+            "schema": {
+              "title": "Other Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhyConnectedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Why Connected",
+        "tags": [
+          "provenance"
+        ]
+      }
+    },
+    "/v1/evidence": {
+      "post": {
+        "operationId": "registerEvidence",
+        "parameters": [
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvidenceIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Register Evidence",
+        "tags": [
+          "evidence"
+        ]
+      }
+    },
+    "/v1/evidence/{evidence_id}": {
+      "get": {
+        "operationId": "getEvidence",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evidence_id",
+            "required": true,
+            "schema": {
+              "title": "Evidence Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Getevidence",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Evidence",
+        "tags": [
+          "evidence"
+        ]
+      }
+    },
+    "/v1/evidence/{evidence_id}/custody-events": {
+      "post": {
+        "operationId": "addCustodyEvent",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evidence_id",
+            "required": true,
+            "schema": {
+              "title": "Evidence Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustodyEventIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Addcustodyevent",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Add Custody Event",
+        "tags": [
+          "evidence"
+        ]
+      }
+    },
+    "/v1/graph/expand": {
+      "post": {
+        "description": "Breadth-first expansion from seeds, or the bounded overview without them.\n\nPOST rather than GET because the request is a query object — seed sets,\ncategory filters and time windows — not a resource address, and putting a\nhundred entity ids in a query string is how URL-length limits become silent\ntruncation of an authorization-relevant input.",
+        "operationId": "expandGraph",
+        "parameters": [
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GraphExpandIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphViewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Expand Graph",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/v1/graph/paths": {
+      "post": {
+        "description": "Shortest routes between two entities, bounded by hops and count.\n\nA path here is a claim about *what the evidence connects*, not about what\nanyone did: every edge on it opens onto its claims, and none of them is\ngraded by its position on the path (Article IX).",
+        "operationId": "graphPaths",
+        "parameters": [
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GraphPathsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphPathsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Graph Paths",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/v1/review-queue": {
+      "get": {
+        "operationId": "listSuggestions",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "producer",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Producer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "record",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Record"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SuggestionOut"
+                  },
+                  "title": "Response Listsuggestions",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Suggestions",
+        "tags": [
+          "review-queue"
+        ]
+      }
+    },
+    "/v1/review-queue/{suggestion_id}/accept": {
+      "post": {
+        "operationId": "acceptSuggestion",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "suggestion_id",
+            "required": true,
+            "schema": {
+              "title": "Suggestion Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuggestionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Accept Suggestion",
+        "tags": [
+          "review-queue"
+        ]
+      }
+    },
+    "/v1/review-queue/{suggestion_id}/reject": {
+      "post": {
+        "operationId": "rejectSuggestion",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "suggestion_id",
+            "required": true,
+            "schema": {
+              "title": "Suggestion Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuggestionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reject Suggestion",
+        "tags": [
+          "review-queue"
+        ]
+      }
+    },
+    "/v1/source-records/{record_id}": {
+      "get": {
+        "operationId": "getSourceRecord",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "record_id",
+            "required": true,
+            "schema": {
+              "title": "Record Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceRecordOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Source Record",
+        "tags": [
+          "sources"
+        ]
+      }
+    },
+    "/v1/source-records/{record_id}/release": {
+      "post": {
+        "operationId": "releaseSourceRecord",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "record_id",
+            "required": true,
+            "schema": {
+              "title": "Record Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "note",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Note",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceRecordOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Release Record",
+        "tags": [
+          "sources"
+        ]
+      }
+    },
+    "/v1/sources": {
+      "get": {
+        "operationId": "listSources",
+        "parameters": [
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SourceOut"
+                  },
+                  "title": "Response Listsources",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Sources",
+        "tags": [
+          "sources"
+        ]
+      },
+      "post": {
+        "operationId": "createSource",
+        "parameters": [
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Source",
+        "tags": [
+          "sources"
+        ]
+      }
+    }
+  }
+}

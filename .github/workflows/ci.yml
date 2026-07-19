@@ -98,6 +98,42 @@ jobs:
       - if: always()
         run: make down
 
+  # Node-only and hermetic: the smoke journey stubs Keycloak and the API at the
+  # network boundary (ui/e2e/oidc-stub.ts), so a UI change gets its answer in
+  # seconds. The full loop against a live stack is T25/T27's blocking demo.
+  workspace:
+    name: Workspace type-check, build and smoke
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - run: npm ci
+      - name: Type-check
+        run: npm run typecheck
+      - name: Fail if the generated API client is stale
+        # The committed client must match the committed OpenAPI document. The
+        # document itself is checked against the live routes by
+        # tests/contract/test_openapi.py in the fast-tests job.
+        run: |
+          npm run generate:api
+          git diff --exit-code src/api/schema.d.ts
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: ui/test-results/
+          retention-days: 7
+
   test:
     name: test
     if: always()
@@ -106,6 +142,7 @@ jobs:
       - integration-tests
       - system-tests
       - coverage-and-governance
+      - workspace
     runs-on: ubuntu-latest
     steps:
       - name: Enforce all blocking test stages
@@ -114,3 +151,4 @@ jobs:
           test "${{ needs.integration-tests.result }}" = "success"
           test "${{ needs.system-tests.result }}" = "success"
           test "${{ needs.coverage-and-governance.result }}" = "success"
+          test "${{ needs.workspace.result }}" = "success"

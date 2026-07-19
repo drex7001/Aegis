@@ -3,6 +3,11 @@
 Deny-by-default is enforced structurally: every route must carry a dependency
 produced by :func:`authorize` (or ``current_user`` directly); a CI lint test
 walks the route table and fails on any ungated route (spec 03 §4 rule 1).
+
+**There is no exemption.** The ``public_route`` marker ADR-019 introduced, and
+the branch of :func:`find_ungated_routes` that honored it, were deleted by T22
+along with the anonymous ``/api/*`` routes they existed for (ADR-026). An
+unauthenticated route is now unrepresentable rather than merely discouraged.
 """
 
 from __future__ import annotations
@@ -19,15 +24,6 @@ from aegis.authz.fga import FGAClient, FGAError
 from aegis.ontology import Ontology
 
 GATE_MARKER = "_aegis_gate"
-PUBLIC_MARKER = "_aegis_public"
-
-
-def public_route(func):
-    """Mark a handler as intentionally unauthenticated (the legacy open-only
-    projection surface, spec 06).  The deny-by-default lint allows only routes
-    that are gated *or* explicitly marked here."""
-    setattr(func, PUBLIC_MARKER, True)
-    return func
 
 
 def get_session(request: Request) -> Iterator[Session]:
@@ -129,8 +125,13 @@ def _dependency_calls(dependant) -> Iterator[object]:
 
 
 def find_ungated_routes(app) -> list[str]:
-    """Every route must be gated (an ``authorize``/``current_user`` dependency)
-    or explicitly ``public_route`` — otherwise it fails CI (spec 03 §4 rule 1)."""
+    """Every route must carry an ``authorize``/``current_user`` dependency —
+    otherwise it fails CI (spec 03 §4 rule 1). No exemptions exist (ADR-026).
+
+    Mounts and static files are skipped because they have no dependency graph to
+    inspect, not because they are trusted: what may be mounted is constrained
+    separately by ``tests/component/test_route_gating.py``, which asserts the
+    workspace bundle is the only one."""
     from aegis.api.auth import current_user
 
     ungated: list[str] = []
@@ -139,8 +140,6 @@ def find_ungated_routes(app) -> list[str]:
         dependant = getattr(route, "dependant", None)
         if endpoint is None or dependant is None:
             continue  # mounts, static files, docs — not API endpoints
-        if getattr(endpoint, PUBLIC_MARKER, False):
-            continue
         gated = any(
             call is current_user or getattr(call, GATE_MARKER, False)
             for call in _dependency_calls(dependant)

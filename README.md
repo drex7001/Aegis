@@ -36,18 +36,20 @@ Milestone B is the active work. The governed foundation:
   claim with source, grading, time window, and handling code — never a bare fact.
 - **Evidence vault** (MinIO): content-addressed originals, hash ledger,
   derivative tracking (Article IV).
-- **AuthN/AuthZ**: Keycloak OIDC + OpenFGA ReBAC + handling-code row filters;
-  every `/v1/*` route carries an authorization dependency (Article VI). This
-  does **not** yet cover every HTTP route: the legacy explorer's read-only
-  `/api/*` projection surface remains anonymous, contained by T16a and
-  **deleted at Phase 2 T22** (ADR-026).
+- **AuthN/AuthZ**: Keycloak OIDC + OpenFGA ReBAC + handling-code row filters.
+  **Every route carries an authorization dependency, with no exemptions**
+  (Article VI): the anonymous `/api/*` projection surface and the
+  `public_route` marker that excused it were deleted at Phase 2 T22
+  (ADR-026).
 - **Audit**: append-only, hash-chained event log with chain verification
   (Article X).
 - **Governed extraction**: the LLM/structural extraction passes emit *suggested
   claims* into a review queue — humans adjudicate; nothing algorithmic writes
   to canon (Article VII).
-- **Projections**: rebuildable caches (Article XIII) that currently also feed
-  the legacy explorer UI.
+- **Projections**: rebuildable caches (Article XIII) — time-segmented edges
+  carrying a support summary, never an aggregate weight (ADR-030).
+- **Workspace** (`ui/`): React + TypeScript, Keycloak OIDC with PKCE, served by
+  `aegis serve` on the same origin as the API.
 - **API v1 + `aegis` CLI**, migrations, backup/restore runbook.
 
 **Active phase: Phase 2 — the ★ MVP gate** (identity decision ledger, durable
@@ -69,7 +71,14 @@ make install                     # locked aegis package + dev environment
 .venv/bin/aegis db upgrade       # alembic migrations
 .venv/bin/aegis migrate-legacy   # one-time: import the curated OSINT corpus as claims
 .venv/bin/aegis projections rebuild
-.venv/bin/aegis serve            # API (+ legacy explorer) at http://127.0.0.1:8000 — /docs for OpenAPI
+.venv/bin/aegis serve            # API at http://127.0.0.1:8000 — /docs for OpenAPI
+```
+
+The investigation workspace is a separate build; `aegis serve` mounts it once
+it exists (see [`ui/README.md`](ui/README.md)):
+
+```bash
+cd ui && npm ci && npm run build  # → ui/dist, served at / by `aegis serve`
 ```
 
 Verify the build the way CI does:
@@ -119,7 +128,7 @@ commands and results in the pull request.
 | `ontology/` | **The domain artifact** (`aegis.yaml`) everything derives from (Article XI), plus change proposals and version history (Phase 3) |
 | `aegis/` | Platform core package — domain-neutral (Article XIV): ontology loader/codegen, actions, queries, authz, audit, store, evidence, ingestion, ER, projections, API, plus scaffolded homes for functions (P3), search/analytics (P6), sharing (P7), and controlled AI (P8) |
 | `sdk/` | Generated Python + TypeScript clients (Phase 3, spec 08) — committed codegen output, never hand-edited |
-| `ui/` | React + TypeScript investigation workspace (Phase 2, ADR-032) — the single durable UI; replaces the legacy explorer at T22 |
+| `ui/` | React + TypeScript investigation workspace (ADR-032) — the single durable UI, landed at Phase 2 T22 and grown in place from there |
 | `migrations/` | Alembic schema migrations |
 | `infra/` | Compose stack + bootstrap (PostgreSQL/PostGIS, MinIO, Keycloak, OpenFGA) |
 | `tests/` | Layered unit, component, contract, integration, system, and future E2E suites; see [`docs/testing/`](docs/testing/README.md) |
@@ -145,9 +154,9 @@ Aegis grew out of a prototype — *"Sri Lanka Illicit Networks — Temporal
 Multiplex Graph"*: a regex + LLM extraction pipeline and a Cytoscape.js
 explorer over a static graph JSON. Per **ADR-023 it is replaced, never
 extended**: it is quarantined under [`legacy/`](legacy/README.md) and runs
-only as scaffolding (the explorer is served by `aegis serve` from a
-rebuildable projection, loopback-bound per T16a) until the Phase 2 workspace
-deletes it at T22 (ADR-026/ADR-032). Its
+only as scaffolding. **Its explorer and the anonymous `/api/*` surface were
+deleted at Phase 2 T22** (ADR-026/ADR-032), replaced by `ui/`; the extraction
+pipeline is the last substantial piece and goes with extraction v2. Its
 documentation is kept for reference:
 [`legacy/ARCHITECTURE.md`](legacy/ARCHITECTURE.md) (component tour) ·
 [`legacy/RUNNING.md`](legacy/RUNNING.md) (commands) ·
@@ -155,4 +164,8 @@ documentation is kept for reference:
 [`legacy/INGESTION.md`](legacy/INGESTION.md) (historical raw-file ingestion).
 For new governed sources, use [`docs/INGESTION.md`](docs/INGESTION.md).
 
-![Legacy explorer screenshot](legacy/explorer-screenshot.png)
+![The retired prototype explorer](legacy/explorer-screenshot.png)
+
+*The prototype explorer, kept as a picture of where this started. It served an
+open graph to anyone who could reach the port; the workspace that replaced it
+authenticates every caller and bounds every query.*

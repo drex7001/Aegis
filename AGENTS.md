@@ -57,8 +57,16 @@ aegis identity run-rules         # deterministic ER → candidates (never merges
 aegis identity run-splink        # probabilistic ER → candidates (never merges)
 aegis identity backfill-anchors  # heuristic mention anchors for pre-T17 claims
 aegis projections rebuild        # regenerate all projections (Article XIII)
-aegis serve                      # FastAPI dev server
+aegis serve                      # FastAPI dev server (+ ui/dist when built)
+make openapi                     # re-export ui/openapi.json + regenerate the TS client
+make ui-install && make ui-build # workspace deps + production bundle
+make ui-test                     # hermetic browser smoke journey (ui/e2e)
 ```
+
+The workspace (`ui/`) is React + TypeScript; read `ui/README.md` before
+touching auth or the generated API client. Any route change needs
+`make openapi` in the same commit — `tests/contract/test_openapi.py` fails on
+drift between the committed document and the live routes.
 
 CI (`.github/workflows/ci.yml`) runs pytest + ontology validation
 automatically on every push/PR — do not merge on red.

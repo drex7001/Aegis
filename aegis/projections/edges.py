@@ -195,30 +195,49 @@ def _to_bound(value: date, *, upper: bool) -> date | None:
     return None if value == _NEG_INF else value
 
 
-def _relation_index(session: Session) -> dict[str, list[tuple[str, str]]]:
+def relation_index(
+    session: Session, *, visible_to: set[str] | None = None
+) -> dict[str, list[tuple[str, str]]]:
     """claim → the relations touching it, as ``(other_claim, relation)``.
 
     ``claim_relation`` is stored directionally, but "this claim is contradicted"
     is true of both ends: a claim nobody pointed *at* is not thereby
     uncontested (Article VIII).  So each relation is indexed under both.
+
+    ``visible_to`` restricts both ends to a set of claim ids.  The build path
+    passes nothing (it summarizes for no particular reader); a read path passes
+    the caller's visible claims, because a relation to a claim they may not see
+    would otherwise report that claim's existence as a count (specs/03 §4 —
+    absent, not counted).
     """
-    index: dict[str, list[tuple[str, str]]] = defaultdict(list)
-    for from_claim, to_claim, relation in session.execute(
-        select(
-            ClaimRelation.from_claim, ClaimRelation.to_claim, ClaimRelation.relation
+    query = select(
+        ClaimRelation.from_claim, ClaimRelation.to_claim, ClaimRelation.relation
+    )
+    if visible_to is not None:
+        if not visible_to:
+            return {}
+        query = query.where(
+            ClaimRelation.from_claim.in_(visible_to),
+            ClaimRelation.to_claim.in_(visible_to),
         )
-    ):
+    index: dict[str, list[tuple[str, str]]] = defaultdict(list)
+    for from_claim, to_claim, relation in session.execute(query):
         index[from_claim].append((to_claim, relation))
         index[to_claim].append((from_claim, relation))
     return index
 
 
-def _support(
+def support_summary(
     claims: list[Claim],
     reliability: dict[str, str | None],
     relations: dict[str, list[tuple[str, str]]],
 ) -> dict[str, Any]:
     """The inspectable summary that replaces the aggregate weight.
+
+    Public because the read path calls it too (T22): a caller who may not see
+    every supporting claim must get a summary over the claims they *can* see,
+    and computing that with a second, similar-looking function is how the graph
+    view and the provenance panel would quietly start disagreeing.
 
     Reliability is read from the *source*, not the claim, because that is where
     the ontology grades it — a claim does not get more reliable by being
@@ -327,7 +346,7 @@ def rebuild_edge_projection(
             )
         ).all()
     )
-    relations = _relation_index(session)
+    relations = relation_index(session)
 
     groups: dict[tuple[str, str, str], _Group] = defaultdict(_Group)
     claims = session.scalars(
@@ -376,7 +395,9 @@ def rebuild_edge_projection(
                     "segment_to": segment_to,
                     "claim_ids": list(claim_ids),
                     "record_count": len({c.record_id for c in segment_claims}),
-                    "support": _support(segment_claims, reliability, relations),
+                    "support": support_summary(
+                        segment_claims, reliability, relations
+                    ),
                     "handling_rank": max(
                         _handling_rank(c.handling_code) for c in segment_claims
                     ),
@@ -403,6 +424,56 @@ def rebuild_edge_projection(
     return report
 
 
+@dataclass(frozen=True)
+class ProjectionStamps:
+    """What built the rows a response is made of (spec 02 §7, specs/06 §3).
+
+    Carried on every projection-backed response so a stale read is *detectable*
+    rather than silently wrong.  An empty projection reports ``None`` versions
+    rather than the current ones: claiming a build that never happened is the
+    precise failure the stamps exist to prevent.
+    """
+
+    built_at_revision_id: int | None
+    active_revision_id: int
+    ontology_version: str | None
+    builder_version: str | None
+    stale: bool
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "built_at_revision_id": self.built_at_revision_id,
+            "active_revision_id": self.active_revision_id,
+            "ontology_version": self.ontology_version,
+            "builder_version": self.builder_version,
+            "stale": self.stale,
+        }
+
+
+def projection_stamps(session: Session) -> ProjectionStamps:
+    """The stamps of the *oldest* row in the projection, plus staleness.
+
+    Oldest, not newest: a rebuild is all-or-nothing, so the two agree in normal
+    operation — and if they ever disagree, the honest thing to report is the
+    weakest guarantee in the table, not the strongest.
+    """
+    oldest, ontology_version, builder_version = session.execute(
+        select(
+            func.min(EdgeProjection.built_at_revision_id),
+            func.min(EdgeProjection.ontology_version),
+            func.min(EdgeProjection.builder_version),
+        )
+    ).one()
+    active = active_revision_id(session)
+    return ProjectionStamps(
+        built_at_revision_id=oldest,
+        active_revision_id=active,
+        ontology_version=ontology_version,
+        builder_version=builder_version,
+        stale=oldest is not None and oldest < active,
+    )
+
+
 def is_stale(session: Session) -> bool:
     """Was any row built at an older identity revision than the active one?
 
@@ -421,5 +492,8 @@ __all__ = [
     "BUILDER_VERSION",
     "EdgeProjectionReport",
     "is_stale",
+    "projection_stamps",
     "rebuild_edge_projection",
+    "relation_index",
+    "support_summary",
 ]

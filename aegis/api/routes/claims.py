@@ -41,7 +41,9 @@ def _visible_claim(session, user: UserContext, ontology, claim_id: str, *, as_of
     return row
 
 
-@router.post("/claims", response_model=ClaimOut, status_code=201)
+@router.post(
+    "/claims", response_model=ClaimOut, status_code=201, operation_id="createClaim"
+)
 def create_claim(
     body: ClaimIn,
     session: DbSession,
@@ -57,7 +59,11 @@ def create_claim(
     return row
 
 
-@router.post("/claims/{claim_id}/retract", response_model=ClaimOut)
+@router.post(
+    "/claims/{claim_id}/retract",
+    response_model=ClaimOut,
+    operation_id="retractClaim",
+)
 def retract_claim(
     claim_id: str,
     body: RetractIn,
@@ -71,7 +77,9 @@ def retract_claim(
     return row
 
 
-@router.post("/claims/{claim_id}/relations", status_code=201)
+@router.post(
+    "/claims/{claim_id}/relations", status_code=201, operation_id="linkClaim"
+)
 def link_claim(
     claim_id: str,
     body: RelationIn,
@@ -87,7 +95,7 @@ def link_claim(
     return {"from_claim": row.from_claim, "to_claim": row.to_claim, "relation": row.relation}
 
 
-@router.get("/claims/{claim_id}", response_model=ClaimOut)
+@router.get("/claims/{claim_id}", response_model=ClaimOut, operation_id="getClaim")
 def get_claim(
     claim_id: str,
     session: DbSession,

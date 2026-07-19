@@ -7,6 +7,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from aegis.queries.graph import MAX_ELEMENTS, MAX_PATH_HOPS, MAX_PATHS, MAX_SEEDS
+
 
 class ClaimIn(BaseModel):
     subject_id: str
@@ -297,3 +299,101 @@ class WhyConnectedOut(BaseModel):
     #: True when the claim cap was reached, so a thin panel is never mistaken
     #: for thin evidence.
     truncated: bool
+
+
+class GraphExpandIn(BaseModel):
+    """A bounded traversal request (specs/06 §2.6).
+
+    Every bound is clamped rather than rejected (specs/06 §4): a client asking
+    for six hops gets three and is told the result was truncated, which is more
+    useful than a 422 that teaches nothing about the limit.
+    """
+
+    #: Empty means the bounded overview — an authorized, capped slice used to
+    #: open the canvas before entity search lands (T23c).
+    seed_ids: list[str] = Field(default_factory=list, max_length=MAX_SEEDS)
+    max_hops: int = Field(default=1, ge=0)
+    max_elements: int = Field(default=MAX_ELEMENTS, ge=1)
+    #: Ontology predicate categories; unknown names simply match nothing.
+    categories: list[str] = Field(default_factory=list)
+    valid_from: date | None = None
+    valid_to: date | None = None
+
+
+class GraphPathsIn(BaseModel):
+    from_id: str
+    to_id: str
+    max_hops: int = Field(default=MAX_PATH_HOPS, ge=1)
+    max_paths: int = Field(default=MAX_PATHS, ge=1)
+    categories: list[str] = Field(default_factory=list)
+    valid_from: date | None = None
+    valid_to: date | None = None
+
+
+class GraphNodeOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_id: str
+    label: str
+    entity_type: str
+
+
+class GraphEdgeOut(BaseModel):
+    """One time segment of one predicate — never a collapsed span (ADR-030).
+
+    There is no ``weight``. ``support`` carries each visible claim's three
+    grading dimensions and the corroboration/contradiction counts around them,
+    so a reader can reach the evidence instead of trusting a scalar.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    edge_id: str
+    subject_id: str
+    object_id: str
+    predicate: str
+    category: str | None
+    segment_from: date | None
+    segment_to: date | None
+    #: DISTINCT records among the claims *this caller* may read.
+    record_count: int
+    support: dict[str, Any]
+
+
+class ProjectionStampsOut(BaseModel):
+    """Which build produced these rows, and whether it is behind (specs/06 §3)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    built_at_revision_id: int | None
+    active_revision_id: int
+    ontology_version: str | None
+    builder_version: str | None
+    #: An identity decision landed after this build: the shape is still usable,
+    #: but it is not current, and saying so beats looking authoritative.
+    stale: bool
+
+
+class GraphViewOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    nodes: list[GraphNodeOut]
+    edges: list[GraphEdgeOut]
+    seed_ids: list[str]
+    #: Seeds after resolution through the canonical map, so a caller following a
+    #: pre-merge link learns why the answer is about a different id.
+    resolved_seed_ids: list[str]
+    #: True when a bound was hit — the graph is larger than what came back.
+    truncated: bool
+    stamps: ProjectionStampsOut | None
+
+
+class GraphPathOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_ids: list[str]
+    edge_ids: list[str]
+
+
+class GraphPathsOut(GraphViewOut):
+    paths: list[GraphPathOut]

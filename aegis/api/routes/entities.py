@@ -17,7 +17,9 @@ from aegis.store import Claim, Entity
 router = APIRouter(tags=["entities"])
 
 
-@router.get("/entities/{entity_id}", response_model=EntityDetail)
+@router.get(
+    "/entities/{entity_id}", response_model=EntityDetail, operation_id="getEntity"
+)
 def get_entity(
     entity_id: str,
     session: DbSession,

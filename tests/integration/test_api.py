@@ -2,8 +2,8 @@
 
 The app is built against the test database with its OIDC authenticator swapped
 for a locally-signed one (same validation path as production, no live
-Keycloak).  The legacy ``/api/graph`` surface is exercised without a token to
-prove the UI keeps working unchanged (T13/T14 AC).
+Keycloak).  Since T22 there is no unauthenticated route to exercise: the former
+``/api/*`` surface is asserted *absent* instead (ADR-026).
 """
 
 from __future__ import annotations
@@ -26,7 +26,6 @@ from aegis.actions import new_id
 from aegis.api import create_app
 from aegis.api.auth import OIDCAuthenticator
 from aegis.api.deps import find_ungated_routes
-from aegis.api.routes import graph
 from aegis.store import AuthzOutbox, Entity, Source, SourceRecord
 from tests.support.database import configured_test_database, truncate_domain_data
 
@@ -443,31 +442,16 @@ def test_role_and_custody_changes_delete_old_grants_inline(
     assert old_custodian_tuple in fake_fga.deleted
 
 
-# ── legacy projection surface: public, unchanged shape (T13/T14) ────────────
+# ── the retired anonymous projection surface (T22, ADR-026) ─────────────────
 
 
-def test_legacy_graph_is_public_and_shaped(
-    client: TestClient, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setattr(
-        graph,
-        "_load_graph",
-        lambda: {
-            "nodes": [{"node_id": "fictional-person", "name": "Fictional Person"}],
-            "edges": [],
-            "cells": [],
-            "meta": {"fixture": True},
-        },
-    )
-    resp = client.get("/api/graph")  # no Authorization header
-    assert resp.status_code == 200
-    body = resp.json()
-    assert {"nodes", "edges", "cells", "meta"} <= set(body)
-    stats = client.get("/api/stats")
-    assert stats.status_code == 200
-    assert stats.json()["nodes"] == len(body["nodes"])
-    assert client.get("/api/cells").status_code == 200
-    assert client.get("/api/query/brokers").status_code == 200
+@pytest.mark.requirement("ADR-026", "T22")
+@pytest.mark.parametrize(
+    "path", ["/api/graph", "/api/stats", "/api/cells", "/api/query/brokers"]
+)
+def test_legacy_projection_routes_are_gone(client: TestClient, path: str) -> None:
+    """Gone, not gated: a 401 here would mean the handler still exists."""
+    assert client.get(path).status_code == 404
 
 
 def test_openapi_renders(client: TestClient) -> None:

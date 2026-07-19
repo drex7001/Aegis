@@ -1,8 +1,15 @@
-"""API application factory (T13/T14, spec 06).
+"""API application factory (T13/T14/T22, spec 06).
 
 Wires OIDC auth, the DB sessionmaker, the ontology registry, the FGA client,
-RFC 7807 errors, the v1 routers, the legacy ``/api/*`` projection surface, and
-the mounted legacy UI (T14) into one app.
+RFC 7807 errors, security headers, per-caller rate limiting, the v1 routers, and
+the built workspace bundle into one app.
+
+T22 removed two things from this file and they are worth naming, because their
+absence is the point: the anonymous ``/api/*`` projection router, and the mount
+that served the legacy explorer out of ``legacy/app/static``. With them went the
+``public_route`` marker and the escape hatch it kept open in the deny-by-default
+lint (ADR-026). Every route this factory installs is gated; the only mount left
+is the workspace bundle, which is application code, not corpus data.
 """
 
 from __future__ import annotations
@@ -12,15 +19,13 @@ from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
 from aegis.api.auth import OIDCAuthenticator
-from aegis.api.deps import public_route
 from aegis.api.errors import install_error_handlers
+from aegis.api.ratelimit import build_limiter
 from aegis.api.routes import (
     audit,
     cases,
@@ -32,6 +37,8 @@ from aegis.api.routes import (
     sources,
 )
 from aegis.api.routes import claims as claims_routes
+from aegis.api.security import SecurityHeadersMiddleware
+from aegis.api.workspace import WORKSPACE_DIR, workspace_files
 from aegis.authz.fga import FGAClient, FGAError
 from aegis.authz.outbox import dispatch_forever
 from aegis.config import get_settings
@@ -39,7 +46,6 @@ from aegis.ontology import load
 from aegis.store import get_sessionmaker
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-_STATIC_DIR = _REPO_ROOT / "legacy" / "app" / "static"
 
 
 def create_app() -> FastAPI:
@@ -70,7 +76,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Aegis API",
         version="1.0.0",
-        description="Governed claims-based intelligence platform (speckit Phase 1).",
+        description="Governed claims-based intelligence platform (speckit Phase 2).",
         lifespan=lifespan,
     )
 
@@ -87,9 +93,13 @@ def create_app() -> FastAPI:
             app.state.fga = FGAClient()
 
     install_error_handlers(app)
-    app.state.limiter = graph.limiter
+    app.state.limiter = build_limiter()
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
     app.add_middleware(SlowAPIMiddleware)
+    app.add_middleware(
+        SecurityHeadersMiddleware,
+        issuer_url=settings.keycloak_url,
+    )
 
     for router in (
         claims_routes.router,
@@ -100,19 +110,14 @@ def create_app() -> FastAPI:
         cases.router,
         audit.router,
         provenance.router,
+        graph.router,
     ):
         app.include_router(router, prefix="/v1")
-    # legacy-compatible projection surface (unversioned, spec 06)
-    app.include_router(graph.router)
 
-    if _STATIC_DIR.is_dir():
-        @app.get("/", include_in_schema=False)
-        @public_route
-        def index() -> FileResponse:
-            return FileResponse(_STATIC_DIR / "index.html")
-
-        app.mount(
-            "/static", StaticFiles(directory=_STATIC_DIR), name="static"
-        )
+    # The workspace bundle, when it has been built. Mounted last so it cannot
+    # shadow an API path, and only when present so a Python-only checkout runs
+    # the API without a Node toolchain.
+    if WORKSPACE_DIR.is_dir():
+        app.mount("/", workspace_files(), name="workspace")
 
     return app

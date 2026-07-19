@@ -53,6 +53,7 @@ class OIDCAuthenticator:
         settings = settings or get_settings()
         self.issuer = f"{settings.keycloak_url}/realms/{settings.keycloak_realm}"
         self.audience = settings.api_audience
+        self.leeway = settings.oidc_clock_skew_seconds
         self._jwks = jwks_client or jwt.PyJWKClient(
             f"{self.issuer}/protocol/openid-connect/certs", cache_keys=True
         )
@@ -71,6 +72,10 @@ class OIDCAuthenticator:
                 algorithms=["RS256"],
                 audience=self.audience,
                 issuer=self.issuer,
+                # Applies to exp, nbf and iat alike (spec 03 §1, config.py).
+                # Without it a token minted a second ahead of this host's clock
+                # is rejected as "not yet valid" and nothing works at all.
+                leeway=self.leeway,
                 options={"require": ["exp", "iat", "sub"]},
             )
         except jwt.InvalidAudienceError as exc:

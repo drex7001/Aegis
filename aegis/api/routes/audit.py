@@ -16,7 +16,7 @@ from aegis.store import AuditLog
 router = APIRouter(tags=["audit"])
 
 
-@router.get("/audit", response_model=list[AuditOut])
+@router.get("/audit", response_model=list[AuditOut], operation_id="queryAudit")
 def query_audit(
     session: DbSession,
     actor: Annotated[str | None, Query()] = None,
@@ -43,7 +43,7 @@ def query_audit(
     return rows
 
 
-@router.post("/audit/verify")
+@router.post("/audit/verify", operation_id="verifyAudit")
 def verify_audit(
     session: DbSession,
     auth: AuthContext = Depends(authorize("auditor", "admin")),

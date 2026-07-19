@@ -1,0 +1,187 @@
+/*
+ * Function over polish (spec 07 §2, ADR-032 §3). Enough structure to use the
+ * product and to read a provenance summary; the visual system is P4's.
+ *
+ * The palette is deliberately neutral: no red-means-criminal styling anywhere
+ * (spec 07 §5). Categories get colour from the ontology when categorical
+ * colouring lands, not from a designer's instinct about what looks dangerous.
+ */
+
+:root {
+  --ink: #1c2733;
+  --muted: #5c6b7a;
+  --line: #d7dde3;
+  --surface: #ffffff;
+  --canvas: #f5f7f9;
+  --accent: #2f5169;
+  --caution: #8a6d3b;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--canvas);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--accent);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.shell__bar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.shell__brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.shell__nav {
+  display: flex;
+  gap: 12px;
+  flex: 1;
+}
+
+.shell__link {
+  color: var(--muted);
+  text-decoration: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.shell__link--active {
+  color: var(--ink);
+  background: var(--canvas);
+}
+
+.shell__user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.shell__main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.graph {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.graph__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.graph__toolbar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.graph__body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.notice {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1;
+  margin: 0;
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--caution);
+  border-radius: 4px;
+}
+
+.notice--error {
+  border-left-color: var(--accent);
+}
+
+.panel {
+  width: 380px;
+  padding: 16px;
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  overflow-y: auto;
+}
+
+.panel--centered {
+  width: auto;
+  margin: 15vh auto;
+  max-width: 460px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.claims {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+}
+
+.claims li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+}

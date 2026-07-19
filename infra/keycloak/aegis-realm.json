@@ -105,6 +105,42 @@
       "fullScopeAllowed": true,
       "defaultClientScopes": ["aegis"],
       "optionalClientScopes": []
+    },
+    {
+      "clientId": "aegis-ui",
+      "name": "Aegis workspace (browser: authorization code + PKCE, T22/ADR-032)",
+      "description": "This realm replaces the built-in clientScopes, so profile/email do not exist and requesting them fails with invalid_scope. The workspace asks for openid only; its claims come from the aegis scope. See ui/README.md.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": true,
+      "rootUrl": "http://127.0.0.1:8000",
+      "redirectUris": [
+        "http://127.0.0.1:8000/auth/callback",
+        "http://localhost:8000/auth/callback",
+        "http://127.0.0.1:5173/auth/callback",
+        "http://localhost:5173/auth/callback",
+        "http://127.0.0.1:4173/auth/callback",
+        "http://localhost:4173/auth/callback"
+      ],
+      "webOrigins": [
+        "http://127.0.0.1:8000",
+        "http://localhost:8000",
+        "http://127.0.0.1:5173",
+        "http://localhost:5173",
+        "http://127.0.0.1:4173",
+        "http://localhost:4173"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "+"
+      },
+      "defaultClientScopes": ["aegis"],
+      "optionalClientScopes": []
     }
   ],
   "users": [
