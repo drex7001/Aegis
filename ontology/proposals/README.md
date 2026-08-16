@@ -6,4 +6,7 @@ motivation, the YAML diff, the **competency questions** the change answers
 the PR; approval merges the proposal and the version bump together, and CI
 verifies the bump commit references a proposal file.
 
-Directory is seeded in Phase 3 (T29+); empty until then.
+CI verifies that `ontology/release.json` references an existing proposal file
+for the version it records — the check is a filesystem lookup, not commit
+archaeology (spec 08 §7.3). Proposal `001` backfills the modularization bump
+itself and lands with **T35**; the directory stays empty until then.

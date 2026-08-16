@@ -1,10 +1,11 @@
 # Phase 3 Charter — Ontology modules & contracts
 
-Status: **READY FOR T29 RE-VALIDATION, NOT ACTIVE** (Phase 2 complete
-2026-07-20; narrowed 2026-07-18, ADR-033 — was "ontology v2: semantic &
-kinetic completion") · tasks: `../tasks/phase-03.md` (T29–T40; re-validated by
-T29 at phase start) · Constitutional basis: Articles XI, XIV ·
-GOAL.md §7.8–7.10 · ADR-021, ADR-033 · Spec: `../specs/08-ontology-v2.md`
+Status: **ACTIVE** (opened 2026-08-17 with T29's re-validation; Phase 2
+complete 2026-07-20; narrowed 2026-07-18, ADR-033 — was "ontology v2: semantic
+& kinetic completion") · tasks: `../tasks/phase-03.md` (T29–T40; re-validated
+by T29, which is complete) · Constitutional basis: Articles XI, XIV ·
+GOAL.md §7.8–7.10 · ADR-021, ADR-033, ADR-037, ADR-038, ADR-039, ADR-040 ·
+Spec: `../specs/08-ontology-v2.md` (final)
 
 ## Objective
 
@@ -38,29 +39,38 @@ schemas; the side-effect execution engine does not.
 
 1. **Module composition (headline — B-07).** The ontology becomes a
    composition: a small **platform module** (governance vocabulary: handling
-   codes, grading, platform actions) plus **domain modules** (first:
-   `criminal-network`), each with a manifest (name, namespace, version,
-   imports/dependency constraints, type ownership). Loader resolves modules
-   into one registry; conflicts (name collisions, cross-module references
-   without import) are validation errors. Enable/disable semantics defined.
+   codes, grading, source types, platform actions) plus **domain modules**
+   (first: `criminal-network`), each with a manifest (name, namespace, version,
+   imports with PEP 440 constraints); **type ownership is derived from
+   declaration** and recorded per name on the composed registry rather than
+   maintained as a second list (ADR-037). Loader resolves modules into one
+   registry; conflicts (name collisions, cross-module references without
+   import) are validation errors. Enable/disable semantics defined, including
+   the startup refusal when disabled vocabulary appears in recorded claims.
 2. **Second-domain proof.** A tiny fictional domain module (e.g. border-cargo:
    2 object types, 3 predicates) lives in CI and loads against the same core
    with **zero core-code change** — the Article XIV test becomes executable.
 3. **Interfaces + shared property types** (spec 08 §3–4): `party`,
    `identifiable` starter set; predicates may target interfaces; validator
    rules §9.
-4. **Actions v2 schema**: `parameters` (typed, closed list) and
-   `submission_criteria` declared and validated; enforcement of criteria in
-   the actions layer; **no side-effect engine** (declarations parse, execution
-   stays the existing hardcoded refresh paths until a consumer phase).
-5. **Ontology change management** (spec 08 §7): proposals, history on major
-   bumps, CI gates — release metadata carries proposal id + previous content
-   hash (not commit archaeology — H-16).
-6. **TypeScript client from OpenAPI**: stable operation IDs + error envelope
-   in specs/06; client generated from the FastAPI OpenAPI document
-   (adopt-before-build — H-11), typed with ontology-derived
-   constants/schemas; `ui/` migrates from its P2 generated client with no
-   screen rewrites; drift gate in CI.
+4. **Actions v2 schema**: `parameters` (typed, closed list — spec 08 §6.2) and
+   `submission_criteria` (three registered predicates — §6.3) declared and
+   validated; enforcement in the actions layer, which per **ADR-040** also
+   closes the two gaps T29 found: ontology `roles` currently gate only
+   `adjudicate_identity`, and the layer has no `decision="deny"` audit path.
+   **No side-effect engine** (declarations parse, execution stays the existing
+   hardcoded refresh paths until a consumer phase).
+5. **Ontology change management** (spec 08 §7): proposals, a composed release
+   artifact written on **every** bump, CI gates — release metadata carries
+   proposal id + previous content hash, compared against the committed
+   artifact (not commit archaeology — H-16).
+6. **Contracts and generation** (**ADR-038, ADR-039**): the error envelope
+   joins the OpenAPI document (specs/06 §7) and a contract-diff gate lands;
+   `aegis ontology generate` is built with exactly the three targets that have
+   P3 consumers — spec 01 §5's "existing" targets never existed — and the
+   generated TypeScript surface stays in `ui/`, gaining ontology-derived
+   constants. `sdk/ts/` as a package waits for a consumer outside this repo.
+   No screen rewrites; drift gates in CI.
 
 ## Dependencies
 
@@ -94,11 +104,14 @@ schemas; the side-effect execution engine does not.
 
 ## Specs to author or update
 
-- `specs/08-ontology-v2.md` — finalize with the narrowed scope + module
-  manifest format (T29).
-- `specs/06-api.md` — stable operation IDs, error envelope, client-generation
-  conventions.
-- `specs/01-ontology.md` — v1 reference; add module-composition pointer.
+- [x] `specs/08-ontology-v2.md` — finalized with the narrowed scope + module
+      manifest format (T29, 2026-08-17); §0 records the six divergences found
+      against the as-built system.
+- [x] `specs/06-api.md` — §7 added: operation-id rules, the error envelope as a
+      documented component schema, and the contract-diff gate.
+- [x] `specs/01-ontology.md` — module-composition pointer added; §5's never-built
+      codegen targets corrected (ADR-038) and §4 extended to two-level
+      versioning.
 
 ## Explicit non-goals
 

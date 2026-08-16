@@ -10,8 +10,13 @@ field-sensitivity filtering; T24c implements cursor pagination.
 surface together with the `public_route` exemption, and made stable operation
 IDs, per-caller rate limits and security headers real; the rows and defaults
 below say so where they changed. Where this text conflicts with
-ADR-026/029/030/031, the ADRs win. · Constitutional basis:
-Articles VI, X, XIII · ADR-012, ADR-026, ADR-029, ADR-030, ADR-031
+ADR-026/029/030/031, the ADRs win.
+
+**T29 (2026-08-17)** added §7 — the contract conventions Phase 3 builds the
+generated client on: operation-id rules, the error envelope as a documented
+component schema (P2 ships it at runtime but not in the contract), and the
+contract-diff gate T36 enforces. · Constitutional basis:
+Articles VI, X, XIII · ADR-012, ADR-026, ADR-029, ADR-030, ADR-031, ADR-039
 
 FastAPI, `/v1/*`, OIDC bearer auth. Errors: RFC 7807 problem+json. Writes are
 actions (validate → write → audit in one transaction).
@@ -193,10 +198,81 @@ not enforce them. No route filters on them in P2, and none may claim to.
   duplicate, or FastAPI's generated default — which embeds the Python function
   name, so an ordinary refactor would silently rename a client method. The same
   test fails when the committed `ui/openapi.json` drifts from the live routes.
-  P3 (T36) extends the gate to the ontology-generated SDK.
+  The naming rules are §7.1; P3 (T36) adds the contract-diff gate (§7.3) and
+  the ontology-constants drift gate (spec 08 §8).
 - **Security headers** are served with every response (T22,
   `aegis/api/security.py`): `default-src 'none'` plus `no-store` on API paths,
   the workspace policy on the bundle, and a CDN exception scoped to `/docs`.
   HSTS is emitted only over TLS.
 - Error bodies never disclose the existence of a resource the caller may not
   see: 404 and 403 are chosen per default 4, and the problem detail is generic.
+
+## 7. Contract conventions (P3 — T29 specifies, T36 enforces)
+
+The OpenAPI document is the contract the workspace client is generated from
+(ADR-032 §2, ADR-039). §6 records what P2 made true; this section states the
+rules a P3 route must follow and the one gap P3 closes.
+
+### 7.1 Operation IDs
+
+Every operation declares an explicit `operation_id`. The rules, in force since
+T22 and now written down:
+
+1. **`lowerCamelCase`, no underscores.** `tests/contract/test_openapi.py`
+   rejects any id containing `_`, which is exactly the shape of FastAPI's
+   generated default — so a default can never survive review.
+2. **`<verb><Noun>`**, where the verb is the domain action and not the HTTP
+   method: `recordIdentityDecision`, not `postIdentityDecision`. Reads that
+   return a collection use `list`, single-resource reads use `get`.
+3. **Globally unique** across the document (tested).
+4. **Stable across refactors.** An operation id is the generated client's
+   method name, so renaming one is a breaking API change and follows §7.3 —
+   renaming the Python function behind it is not.
+5. Ids are **not versioned** in their name. The `/v1` prefix carries the
+   version; `getEntityV2` would put it in two places.
+
+### 7.2 The error envelope
+
+Errors are RFC 7807 `application/problem+json` and always have been at runtime
+(`aegis/api/errors.py`). What P2 shipped is **absent from the contract**: every
+operation documents only its success codes plus FastAPI's default `422`, so no
+error shape reaches the generated client and `ui/src/api/client.ts` hand-writes
+`ProblemDetail` and `StaleRevisionProblem`. T36 closes this.
+
+The base envelope, as a named component schema:
+
+| Field | Meaning |
+|---|---|
+| `type` | `about:blank` — Aegis does not publish per-error URIs, because a stable error taxonomy is a disclosure surface (default 4) |
+| `title` | short, generic, caller-safe |
+| `status` | the HTTP status, repeated in the body |
+| `detail` | human-readable prose. **Opaque to clients**: written so that asking cannot confirm a resource exists, and never parsed for meaning |
+
+Two documented extensions, and no others may be added without a row here:
+
+- **422 validation** — `path` (a stable ontology/data path such as
+  `predicates.member_of`, from `ActionValidationError`) or `errors[]`
+  (`{loc, msg, type}`, from request-model validation).
+- **409 stale revision** — `parent_revision_id` and `intervening[]`
+  (`{decision_id, kind, decided_by, note, result_revision_id}`). This is the
+  one error body a client reads for meaning, because specs/05 §2 requires the
+  analyst to be **re-presented** with what changed rather than told to retry.
+  It is a discriminated extension, not an optional field on the base envelope.
+
+Each operation documents the error responses it can actually return — `401`
+(unauthenticated), `403`/`404` per default 4, `409` where a concurrency or
+lock conflict is reachable, `413` on the ingest routes, `422` on any route with
+a body or typed parameters, `429` under the rate limiter. Documenting a status
+a route cannot return is as much a contract defect as omitting one it can.
+
+### 7.3 Contract diff
+
+The committed `ui/openapi.json` is the versioned artifact. On top of the P2
+drift test, T36 adds a **contract-diff check** against the previously committed
+document: a removed path or operation, a renamed operation id, a removed
+response code, or a parameter becoming required is a breaking change and fails
+CI unless the change explicitly declares itself breaking. Additive changes pass.
+
+This is the API-side analogue of the ontology compatibility diff (spec 08 §7.3)
+and works the same way — comparison against a committed artifact, not git
+archaeology.

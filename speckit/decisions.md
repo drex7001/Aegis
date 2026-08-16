@@ -1104,3 +1104,221 @@ shared `ClaimProvenance → ClaimProvenanceOut` mapper moves to
 claim *fields* rather than whole claims may make the grouped shape the wrong
 place to apply the mask, and the panel would need to say which fields were
 withheld rather than silently rendering a thinner card.
+
+---
+
+## ADR-037: The ontology is a composition — platform module + domain modules, unprefixed names, composition version on claims
+
+**Context.** Article XIV says the core is domain-neutral and domains arrive as
+ontology modules. Through Phase 2 that had no mechanism behind it (B-07):
+`ontology/aegis.yaml` is one flat file mixing governance vocabulary (handling
+codes, grading, source types, platform actions) with criminal-network
+vocabulary (person, organization, 30-odd predicates). "Domains are modules" was
+a claim no test could fail.
+
+Three as-built constraints bound any design. `claim.predicate` and
+`claim.ontology_version` are TEXT columns on immutable rows (ADR-013), so
+neither names nor version semantics may be rewritten. Twelve modules under
+`aegis/` consume the loader's registry surface, so the composed result must be
+substitutable for today's `Ontology`. And `aegis ontology validate` runs
+offline in CI with no database.
+
+**Decision.** `ontology/aegis.yaml` becomes a **composition manifest** over
+module files, and stays the single artifact Article XI names. Spec 08 §2 is the
+format.
+
+1. **Two modules to start.** `platform` owns handling codes, grading (scales
+   and external schemes), source types, and all platform actions with their
+   parameters. `criminal_network` owns the object types, predicates, and
+   categories. Their union is today's file section-for-section, so T30 is a
+   pure reorganization whose proof is that the normalized composed registry is
+   unchanged.
+2. **Names stay globally unique and unprefixed** in the registry, on the wire,
+   and in `claim.predicate`. `namespace` is metadata for errors, release
+   records, and client grouping. A cross-module collision is a validation
+   error, never silent shadowing.
+3. **Imports carry PEP 440 version specifiers**, parsed with
+   `packaging.specifiers` (Article XII). A module may reference only names it
+   owns or imports; a reference without a declared import is a validation error
+   naming both modules and the path.
+4. **Type ownership is derived from declaration**, not listed in the manifest.
+   The composed registry records `owner_module` per name.
+5. **`ontology_version` is the composition version.** Per-module versions live
+   in the release metadata (spec 08 §7.2). Existing stamped values keep their
+   meaning; the modularization bump is minor (1.2.0 to 1.3.0).
+6. **`enabled: false`** omits a module's vocabulary from the registry. It is an
+   authoring-time control: it deletes and hides nothing, and the API refuses to
+   start when a disabled module's vocabulary appears in recorded claims.
+
+**Alternative rejected — lexical namespacing** (`criminal_network:member_of`).
+It is the textbook answer and it is wrong here: every recorded claim stores a
+bare predicate string, so prefixing would either rewrite immutable rows or add
+a translation layer to every read and write path. Article XI's guarantee is
+that exactly one artifact declares a name; global uniqueness delivers that
+directly, and collision-as-error delivers it loudly.
+
+**Consequences.** The Article XIV test becomes executable: T31's `border-cargo`
+fixture loads against the same core and round-trips claims, and the test fails
+if any file under `aegis/` needs a domain edit. Two domains that genuinely want
+the same word must resolve it through a proposal rather than a prefix — a real
+constraint, accepted because the alternative costs immutability. The loader
+gains module resolution, but the registry its twelve consumers see does not
+change shape.
+
+**Revisit when.** A third domain wants a name a shipped domain already owns, or
+a module must be distributed separately from this repository (spec 08 §11.4's
+trigger).
+
+---
+
+## ADR-038: Ontology codegen is built per consumer — spec 01 §5's three targets never existed
+
+**Context.** Spec 01 §5 and the spec 08 draft both list three committed codegen
+targets — `aegis/ontology/_generated/models.py`, `infra/fga/_generated.fga`,
+`aegis/api/_generated/ui_meta.json` — produced by `aegis ontology generate` and
+"used by" Phase 1 code. T29's walk of the as-built system found that **none of
+them exists**. The CLI exposes `aegis ontology validate` and nothing else;
+`infra/fga/model.fga` is hand-written and its only types are `user`, `case`,
+`compartment`, and `evidence_item` — no domain object type appears in the
+authorization model at all; the workspace gets its vocabulary from
+`GET /v1/ontology/vocabulary`, a route added at T23b precisely because no
+generated descriptor existed.
+
+This mattered for planning, not just honesty: T33 was chartered as "codegen v2
+for existing targets", which would in fact have been building three generators
+from scratch — one of which (FGA stubs) would emit an empty file.
+
+**Decision.** Do not restore the three targets wholesale. Each codegen target is
+built by the phase whose first consumer needs it, and spec 08 §8 becomes the
+authoritative table; spec 01 §5 keeps the original table marked as intent, with
+this correction.
+
+Phase 3 builds three: the composed registry + release metadata (consumer: the
+change-management gates), ontology constants for the workspace client
+(consumer: the workspace, replacing ad-hoc vocabulary reads), and Pydantic
+action request models (consumer: actions v2 parameter enforcement). UI
+descriptors move to P4 with the generic screens that read them, FGA stubs to P7
+when a domain type first acquires an FGA relation, and the Python SDK stays at
+P8 per ADR-033.
+
+**Consequences.** T33 is rewritten from "extend existing generators" to "build
+`aegis ontology generate` with exactly the P3 targets"; the honest scope is
+larger per generator and smaller in count. The commit-and-check-for-drift
+discipline in spec 01 §5 is unchanged and now applies to generators that exist.
+Documentation that asserted P1 deliverables which were never built is corrected
+in both specs rather than quietly dropped — the same treatment T16d gave the
+Phase 1 runbooks.
+
+**Revisit when.** A phase finds it needs a deferred target earlier than its
+listed consumer, or a generator's output stops having exactly one consumer.
+
+---
+
+## ADR-039: The generated TypeScript client stays in `ui/`; the error envelope joins the contract
+
+**Context.** Phase 3 was chartered to generate a TypeScript client into
+`sdk/ts/` and migrate `ui/` off its "P2-era generated client" (T37/T38). The
+as-built system already does most of this: `ui/src/api/schema.d.ts` is generated
+by `openapi-typescript` from the committed `ui/openapi.json`, consumed through
+`openapi-fetch`, with a workspace CI job that regenerates and fails on diff and
+a contract test that fails when the document drifts from the live routes. There
+is no hand-rolled client to migrate away from. `sdk/ts/` contains a README.
+
+What is genuinely missing is smaller and sharper. The client has no
+ontology-derived constants, so predicates and handling codes reach the UI only
+as opaque strings or through a runtime fetch. And the RFC 7807 error envelope,
+though real at runtime since P1, is **absent from the OpenAPI document**: all 37
+operations declare only their success codes plus FastAPI's default 422. That
+absence is why `ui/src/api/client.ts` hand-writes `ProblemDetail` and
+`StaleRevisionProblem` — the two hand-written response types whose removal is
+T38's acceptance criterion.
+
+**Decision.** Generation stays where its consumer is.
+
+1. The generated surface remains under `ui/src/api/`. T37 adds a generated
+   `ontology.ts` (predicates, object types, interfaces, categories, handling
+   codes, source types, owner module per name) beside the existing
+   `schema.d.ts`, under the same drift gate.
+2. `sdk/ts/` as a versioned, published package waits for its first consumer
+   outside this repository (spec 08 §11.4). Packaging with one in-repo consumer
+   is cost without benefit and adds a build boundary the workspace must cross.
+3. T36 adds the error envelope to the OpenAPI document as a component schema
+   with its two documented extensions — the 422 validation path and the typed
+   409 stale-revision body — and documents per-route error responses. Spec 06
+   §7 is the specification.
+4. T38 becomes "consume the generated constants and generated error types",
+   which is what makes its "no hand-written request/response types remain"
+   criterion achievable at all.
+
+**Consequences.** T37/T38 shrink and become real; the charter's exit criterion
+("a new predicate reaches the TS client with zero hand-written domain code") is
+met through `ontology.ts` rather than a package move. The `openapi-fetch`
+runtime is retained rather than swapped for a class-based generator — it is
+already adopted, already gated, and already type-checks the whole workspace
+(Article XII). The typed 409 stops being a shape the UI knows by convention.
+
+**Revisit when.** A consumer outside this repository needs the client (the P8
+producer tooling is the likely first), or the OpenAPI generator stops being
+able to express a response the workspace must type.
+
+---
+
+## ADR-040: Action declarations become the write-side gate — parameters, criteria, and audited denials
+
+**Context.** Spec 08's draft said `submission_criteria` failures are "audited
+denials, not silent 403s", and the Phase 3 charter makes a criterion denial an
+exit criterion. Reading `aegis/actions/service.py` shows two gaps that make
+that unachievable as written.
+
+First, the ontology's `roles` list is not enforced at the write for almost any
+action. `_require_action(name)` is called without an `ActionContext` by every
+action except `adjudicate_identity`, and `ActionContext.roles` defaults to
+empty, which the method treats as "not supplied" and skips. Role enforcement is
+real, but it lives at the API layer; the ontology declaration is documentation
+for twelve of thirteen actions.
+
+Second, the actions layer **cannot record a denial**. `ActionService._audit`
+passes `decision="allow"` unconditionally, and `_require_action` raises
+`ActionValidationError` before any audit row is written. The API layer does
+write `authz.deny` rows (`aegis/api/deps.py`), so the shape exists — it is not
+reachable from where criteria are evaluated.
+
+**Decision.** T34 makes the declarations load-bearing rather than descriptive.
+
+1. **`parameters` are the action's public request contract** — what an API or
+   SDK caller may send — generated into a request model that rejects undeclared
+   parameters. They are not the service function's Python keyword surface:
+   mention anchors and resolution hints that acceptance dispatch supplies
+   internally are not caller input. Platform actions declare their parameters
+   in the platform module, so a domain module can never widen the claim
+   envelope.
+2. **The closed parameter type list** (spec 08 §6.2) is sized against the real
+   Phase 2 request bodies — `record_claim` alone has 19 fields — not the
+   draft's four-line illustration. `json` is admitted only with a registered
+   code-side schema id, so it cannot become an escape hatch around ADR-031's
+   closed suggestion-kind list.
+3. **`submission_criteria` are named registry predicates**, and the validator
+   rejects a name with no registered implementation — a criterion can never be
+   declared before it can be enforced. P3 registers exactly three, each making
+   an existing policy declarative: `actor_holds_action_role`,
+   `actor_is_case_member`, `second_approver_present`. P7's `target_not_sealed`
+   and `within_legal_authority` are named in the spec but declared by the phase
+   that implements them.
+4. **Every action call passes its `ActionContext`**, closing the roles gap, and
+   **the actions layer writes `decision="deny"` audit rows** naming the actor,
+   action, failed criterion, and target.
+
+**Consequences.** Enforcement moves from one layer to two, deliberately: the
+API gate stays (it must, for routes that never reach an action), and the write
+gains its own. Any caller of the action functions — CLI, migration, tests,
+future SDK — is now subject to the ontology's declaration rather than only HTTP
+callers. Migrating thirteen actions to declared parameters is real work T34
+owns, and the Phase 1 call sites that pass no context must be updated in the
+same change or they will start failing the role check; that is the point.
+Denial auditing changes the audit volume under normal use, since a rejected
+write now appends a row where it previously only raised.
+
+**Revisit when.** A criterion needs state the actions layer cannot see inside
+its transaction (P7 sealing and legal authority are the candidates), or the
+generated request models and the hand-written API schemas disagree about a
+field's optionality often enough to argue for generating the route bodies too.
