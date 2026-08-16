@@ -5,6 +5,7 @@ from aegis.ontology.loader import (
     ActionSpec,
     CategorySpec,
     GradingSpec,
+    ModuleInfo,
     ObjectTypeSpec,
     Ontology,
     OntologyError,
@@ -14,18 +15,31 @@ from aegis.ontology.loader import (
     load,
     load_dict,
 )
+from aegis.ontology.modules import (
+    Composition,
+    compose,
+    disabled_vocabulary_in_use,
+    is_composition,
+    load_composition,
+)
 
 __all__ = [
     "KNOWN_ROLES",
     "ActionSpec",
     "CategorySpec",
+    "Composition",
     "GradingSpec",
+    "ModuleInfo",
     "ObjectTypeSpec",
     "Ontology",
     "OntologyError",
     "OntologyValidationError",
     "PredicateSpec",
     "PropertySpec",
+    "compose",
+    "disabled_vocabulary_in_use",
+    "is_composition",
     "load",
+    "load_composition",
     "load_dict",
 ]

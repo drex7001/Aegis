@@ -29,6 +29,7 @@ from aegis.ontology import load
 from aegis.projections import (
     AGGREGATION_METHOD,
     BUILDER_VERSION,
+    build_full_graph,
     is_stale,
     rebuild_edge_projection,
 )
@@ -36,6 +37,7 @@ from aegis.store import (
     Claim,
     EdgeProjection,
     Entity,
+    IdentityMembership,
     Mention,
     ReviewQueue,
     Source,
@@ -648,3 +650,52 @@ def test_handling_rank_is_the_maximum_over_supporting_claims(world, ontology) ->
     _rebuild(world, ontology)
 
     assert _segments(session)[0].handling_rank == 1
+
+
+@pytest.mark.integration
+@pytest.mark.requirement("Article-XIII", "T31")
+def test_a_stale_segment_pointing_at_a_tombstoned_entity_is_dropped_not_crashed(
+    world, ontology
+) -> None:
+    """A projection built before a tombstone must still render (T31 regression).
+
+    The canonical map tombstones an entity that loses its last membership, and
+    the graph builder excludes tombstoned entities from its nodes. Between that
+    rebuild and the next projection rebuild the segment still names the
+    tombstoned endpoint — the ordinary stale window `is_stale` exists to
+    describe. The builder used to emit that segment with the raw entity id as
+    its endpoint, which `detect_cells` then failed on with an opaque KeyError
+    rather than producing a graph at all.
+
+    The segment is dropped instead: an edge to a node this graph does not draw
+    is not renderable, and the projection stamps still say the build is stale.
+    """
+    session: Session = world["session"]
+    _claim(world, subject="a", obj="b")
+    session.commit()
+    _rebuild(world, ontology)
+    assert len(_segments(session)) == 1
+
+    # Close b's only membership and re-derive canon *without* rebuilding the
+    # projection: exactly the window a rebuild-ordering mistake leaves open.
+    session.execute(
+        sa.update(IdentityMembership)
+        .where(IdentityMembership.mention_id == world["mention_b"])
+        .values(closed_revision_id=active_revision_id(session))
+    )
+    rebuild_canonical_map(session)
+    session.commit()
+
+    assert session.get(Entity, world["entity_b"]).tombstoned_at is not None
+    assert len(_segments(session)) == 1, "the stale segment is still there"
+
+    graph = build_full_graph(session, ontology)
+
+    assert world["entity_b"] not in {node["node_id"] for node in graph["nodes"]}
+    assert graph["edges"] == []
+    # Every remaining edge names a node the graph actually draws — the
+    # invariant `detect_cells` depends on and used to have violated for it.
+    drawn = {node["node_id"] for node in graph["nodes"]}
+    assert all(
+        edge["source"] in drawn and edge["target"] in drawn for edge in graph["edges"]
+    )

@@ -23,15 +23,23 @@ subsystems.
 
 | Path | What |
 |---|---|
-| `aegis.yaml` | The versioned ontology (semver — rules in `speckit/specs/01-ontology.md` §4) |
-| `proposals/` | Change proposals (`NNN-short-title.md`) — motivation, YAML diff, competency questions (Phase 3, spec 08 §7) |
-| `history/` | Prior versions, copied here on every **major** bump so historical claims stay interpretable (Phase 3, spec 08 §7) |
+| `aegis.yaml` | The **composition manifest** (T30, ADR-037): which modules compose this ontology, at which versions, enabled or not. Its `version` is the composition version — the one `claim.ontology_version` stores. |
+| `modules/platform.yaml` | Governance and epistemic vocabulary: handling codes, grading, source types, actions. Declares no object type and no predicate, which is what makes Article XIV checkable. |
+| `modules/criminal-network.yaml` | The first domain module: object types, predicates, categories. A second domain is a sibling file plus a manifest entry — no code changes (proved by `tests/fixtures/ontology/border-cargo.yaml`). |
+| `proposals/` | Change proposals (`NNN-short-title.md`) — motivation, YAML diff, competency questions (spec 08 §7) |
+| `history/` | Prior versions: the composed artifact on every bump, plus the module sources on a **major** bump, so historical claims stay interpretable (spec 08 §7.2) |
+
+Names are **global and unprefixed** across modules — `claim.predicate` stores
+them bare and claims are immutable — so a collision between two modules is a
+validation error, not a shadowing rule (ADR-037). A module may reference only
+names it owns or names from a module it declares in `imports:`.
 
 ## Changing the ontology
 
 1. Write a proposal in `proposals/` (motivation, diff, competency questions,
    migration plan if major).
-2. Edit `aegis.yaml`, bump the version (minor/patch: additive only; major:
+2. Edit the **module** that owns the vocabulary, bump that module's version and
+   the composition version in `aegis.yaml` (minor/patch: additive only; major:
    copy the prior version to `history/` and ship the migration in the same
    change).
 3. `aegis ontology validate` must pass (also the CI gate), then regenerate

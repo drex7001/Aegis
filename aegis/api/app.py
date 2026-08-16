@@ -22,6 +22,8 @@ from fastapi import FastAPI
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 
 from aegis.api.auth import OIDCAuthenticator
 from aegis.api.errors import install_error_handlers
@@ -49,9 +51,49 @@ from aegis.authz.outbox import dispatch_forever
 from aegis.config import get_settings
 from aegis.evidence import get_vault
 from aegis.ontology import load
-from aegis.store import get_sessionmaker
+from aegis.ontology.modules import disabled_vocabulary_in_use
+from aegis.store import Claim, Entity, get_sessionmaker
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+class DisabledVocabularyInUseError(RuntimeError):
+    """A disabled module's vocabulary is still recorded in the claim store."""
+
+
+def _refuse_disabled_vocabulary_in_use(app: FastAPI) -> None:
+    """Refuse to serve a store the registry can no longer explain (spec 08 §2.6).
+
+    Disabling a module removes vocabulary from validation and deletes nothing —
+    claims are immutable (ADR-013). Serving anyway would render rows whose
+    predicate the API cannot describe, cannot filter by category, and cannot
+    validate an edit against. Failing at startup makes that a deployment
+    mistake rather than a silent data-quality one.
+
+    Skipped when no module is disabled, so the common path costs no query, and
+    tolerant of an unreachable database: a missing store is the DB layer's error
+    to report, not this check's.
+    """
+    ontology = app.state.ontology
+    if not any(not info.enabled for info in ontology.modules.values()):
+        return
+    with suppress(SQLAlchemyError):
+        with app.state.sessionmaker() as session:
+            in_use = disabled_vocabulary_in_use(
+                ontology,
+                predicates=session.scalars(select(Claim.predicate).distinct()),
+                entity_types=session.scalars(select(Entity.entity_type).distinct()),
+            )
+        if in_use:
+            detail = "; ".join(
+                f"{module}: {', '.join(names)}" for module, names in sorted(in_use.items())
+            )
+            raise DisabledVocabularyInUseError(
+                "refusing to serve — recorded claims still use vocabulary from "
+                f"disabled ontology modules ({detail}). Re-enable the module or "
+                "migrate the rows; disabling is an authoring control, not a way "
+                "to hide data (spec 08 §2.6)."
+            )
 
 
 def create_app() -> FastAPI:
@@ -59,6 +101,7 @@ def create_app() -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        _refuse_disabled_vocabulary_in_use(app)
         dispatcher = None
         if app.state.fga is not None:
             dispatcher = asyncio.create_task(

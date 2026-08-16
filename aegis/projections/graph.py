@@ -206,6 +206,15 @@ def build_graph(
     for row in segments:
         if row.predicate in NODE_PROPERTY_PREDICATES:
             continue
+        # An edge to an endpoint this graph does not render is not renderable.
+        # It happens legitimately whenever the canonical map has tombstoned an
+        # entity and the edge projection has not been rebuilt yet — the stale
+        # state the UI already warns about. Emitting the raw entity id as a
+        # fallback node reference made that state crash `detect_cells` with an
+        # opaque KeyError instead; dropping the segment leaves an honest graph
+        # and the projection stamps still say it is stale (ADR-030).
+        if row.subject_id not in slug_by_id or row.object_id not in slug_by_id:
+            continue
         claims = session.scalars(
             select(Claim).where(Claim.claim_id.in_(row.claim_ids))
         ).all()
@@ -223,8 +232,8 @@ def build_graph(
         category = spec.category if spec is not None and spec.category else "uncategorized"
         edges.append(
             {
-                "source": slug_by_id.get(row.subject_id, row.subject_id),
-                "target": slug_by_id.get(row.object_id, row.object_id),
+                "source": slug_by_id[row.subject_id],
+                "target": slug_by_id[row.object_id],
                 "relation": row.predicate,
                 "layer": category.upper(),
                 "confidence": CONFIDENCE_TAGS.get(best.credibility_normalized, "AMBIGUOUS"),

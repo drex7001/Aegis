@@ -1,0 +1,20 @@
+# A composition of the real platform module plus the fictional border-cargo
+# domain (T31). The criminal-network module is absent entirely — not disabled —
+# because the point is that the core runs on a domain it has never seen, not
+# that it tolerates a second one alongside the first.
+#
+# The platform path reaches back into the committed artifact on purpose: this
+# fixture must break if the real platform module changes incompatibly, which is
+# the whole value of keeping a second domain in CI.
+
+version: 1.0.0
+namespace: test.border-cargo
+
+composition:
+  - module: platform
+    path: ../../../ontology/modules/platform.yaml
+    version: "1.0.0"
+
+  - module: border_cargo
+    path: border-cargo.yaml
+    version: "1.0.0"
