@@ -13,14 +13,16 @@
 module:
   name: border_cargo
   namespace: test/border-cargo
-  version: 1.0.0
+  version: 1.1.0
   label: Border cargo (fixture domain)
   imports:
     # Load-bearing, not decorative: `port_of_entry.code` declares a
-    # sensitivity, and handling codes are owned by platform. Delete this import
-    # and the composition fails with a precise error (spec 08 §2.3).
+    # sensitivity, `consignment` implements a platform interface and
+    # references a platform shared property, and all three are owned by
+    # platform. Delete this import and the composition fails with a precise
+    # error (spec 08 §2.3).
     - module: platform
-      version: ">=1.0.0,<2.0.0"
+      version: ">=1.1.0,<2.0.0"
 
 categories:
   customs: {label: Customs, color: "#00695c"}
@@ -28,9 +30,13 @@ categories:
 object_types:
   consignment:
     label: Consignment
+    # A domain module implementing an interface it does not own — the whole
+    # point of ADR-041. Under the `members:` design this line would have been
+    # impossible without editing the platform module.
+    implements: [identifiable]
     properties:
-      reference:   {type: identifier, required: true}
-      description: {type: text}
+      reference:   {shared: registered_identifier, required: true}
+      description: {shared: notes}
     display: {title: reference, subtitle: description}
 
   port_of_entry:

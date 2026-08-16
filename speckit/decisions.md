@@ -1322,3 +1322,89 @@ write now appends a row where it previously only raised.
 its transaction (P7 sealing and legal authority are the candidates), or the
 generated request models and the hand-written API schemas disagree about a
 field's optionality often enough to argue for generating the route bodies too.
+
+---
+
+## ADR-041: Interfaces are implemented by the object type, not listed on the interface
+
+**Context.** Spec 08 §4, as finalized by T29, gave each interface an explicit
+`members:` list — `party: {members: [person, organization]}`. That reads well
+in a single file and it is what the Foundry-informed draft described.
+
+Implementing it against the module composition (ADR-037) made it unworkable in
+the first case that matters. `party`'s members are `person` and `organization`,
+which the **criminal-network** module declares. Its properties (`alias`) and
+its role as governance vocabulary put the interface in the **platform** module.
+A `members:` list therefore requires platform to name domain types, so platform
+would have to import criminal_network — inverting the dependency the whole
+composition rests on, and making the platform module unloadable without that
+one domain.
+
+Every workaround was worse. Putting `party` in the domain module means the next
+domain redeclares it, and two `party` interfaces collide by ADR-037's global
+uniqueness rule. Exempting interfaces from import validation means a module can
+silently name types it does not depend on. Splitting into `party` (platform,
+abstract) and `criminal_network_party` (domain, concrete) doubles the vocabulary
+to describe one idea.
+
+**Decision.** Flip the direction. An interface declares only what it
+**requires**:
+
+```yaml
+# platform module
+interfaces:
+  party:
+    properties: [alias]        # every implementor carries this shared property
+```
+
+and the object type declares what it **implements**:
+
+```yaml
+# criminal-network module
+object_types:
+  person:
+    implements: [party, identifiable]
+```
+
+`Ontology.implementors(name)` derives the member list. Spec 08 §4's
+"`members` is explicit (no structural inference)" survives unchanged in spirit
+— membership is still declared, never inferred from shape — but it is declared
+by the type that has to satisfy it.
+
+Consequences of the flip, all deliberate:
+
+- A domain module can implement a platform interface with no platform edit.
+  `tests/fixtures/ontology/border-cargo.yaml` does exactly this, and that
+  assertion is the executable form of this ADR.
+- An interface with no implementor is a valid state (a platform interface no
+  enabled domain implements). A **predicate targeting** an unimplemented
+  interface is not: it could never be satisfied, so it is a validation error.
+- Interfaces do not extend interfaces in P3, so spec 08 §9 rule 14's "no
+  cycles" clause is vacuous. It stays as a guard for the phase that adds
+  inheritance, if one ever does.
+- Adding a member is still a minor bump; it is now a minor bump of the
+  *domain* module rather than the platform module, which is the more accurate
+  attribution.
+
+**Consequences.** Both v2 semantic features resolve **in place at load time**:
+a `shared:` reference becomes the full property (type, cardinality,
+sensitivity) with `shared` retained for codegen, and a predicate's interface
+endpoints expand to concrete implementors with `subject_interfaces` /
+`object_interfaces` retained. No consumer learns the v2 syntax exists —
+`aegis/authz/filters.py` still reads `properties['nic'].sensitivity` and gets
+`restricted`; `aegis/actions/service.py` still tests `entity_type in
+predicate.subject` and gets concrete types. That is what kept all 258
+integration tests green through the change, and it is the same substitutability
+rule ADR-037 imposed on the composed registry.
+
+One boundary was deliberately not moved: `vehicle.registration` is a registry
+identifier that does **not** adopt the shared `registered_identifier`, because
+the shared property is `restricted` and the inline one has been `open` since
+v0.1.0. Adopting it would raise the clearance needed to read rows already
+recorded. That is a handling-policy change and belongs in a proposal, not in a
+refactor that claims to be additive.
+
+**Revisit when.** Interfaces need to extend other interfaces, or a domain needs
+to declare that a type it does not own implements an interface (an "external
+implementation" — which this design deliberately makes impossible, since the
+implements list lives with the type).

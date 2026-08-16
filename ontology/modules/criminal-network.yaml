@@ -15,14 +15,19 @@
 module:
   name: criminal_network
   namespace: aegis.lk/criminal-network
-  version: 1.0.0
+  version: 1.1.0
   label: Criminal-network analysis
   imports:
-    # Handling codes (property sensitivity) and the grading model come from
-    # platform. Declaring the import is what makes referencing them legal —
-    # spec 08 §2.3 rejects a cross-module reference without one.
+    # Handling codes (property sensitivity), the grading model, and the shared
+    # properties and interfaces this module implements all come from platform.
+    # Declaring the import is what makes referencing them legal — spec 08 §2.3
+    # rejects a cross-module reference without one.
     - module: platform
-      version: ">=1.0.0,<2.0.0"
+      version: ">=1.1.0,<2.0.0"
+  #
+  # 1.1.0 (T32): additive — object types implement platform interfaces and
+  # reference platform shared properties. No predicate or type was added,
+  # removed or retyped.
 
 # Predicate categories — UI grouping/color hints; extensible without code.
 categories:
@@ -35,20 +40,25 @@ categories:
 object_types:
   person:
     label: Person
+    implements: [party, identifiable]
     properties:
       name:          {type: text, required: true}
-      aliases:       {type: text, many: true}
-      nic:           {type: identifier, sensitivity: restricted}   # omitted for real people (ethics rubric)
+      aliases:       {shared: alias}
+      # `nic` keeps its name — the predicate `has_nic` and every recorded claim
+      # depend on it — while its type and clearance now come from one place.
+      # Omitted for real people by the ethics rubric.
+      nic:           {shared: registered_identifier}
       date_of_birth: {type: date, conflicts: preserve}             # two DOBs may coexist (Rule 5)
-      notes:         {type: text}
+      notes:         {shared: notes}
     display: {title: name, subtitle: aliases}
 
   organization:
     label: Organization
+    implements: [party]
     properties:
       name:    {type: text, required: true}
-      aliases: {type: text, many: true}
-      notes:   {type: text}
+      aliases: {shared: alias}
+      notes:   {shared: notes}
     display: {title: name, subtitle: aliases}
     # "criminal organization" is never a subtype — it is an assessment claim
     # (GOAL.md §7.1); use predicate `assessed_as_criminal_organization` when needed,
@@ -63,6 +73,12 @@ object_types:
 
   vehicle:
     label: Vehicle
+    # Deliberately does *not* implement `identifiable`, even though a plate is
+    # obviously a registry identifier. The shared `registered_identifier` is
+    # `restricted`, and `vehicle.registration` has been `open` since v0.1.0 —
+    # adopting it here would silently raise the clearance needed to read
+    # existing rows. That is a handling-policy change and belongs in a
+    # proposal, not in a refactor that claims to be additive.
     properties:
       registration: {type: identifier}
       description:  {type: text, required: true}
@@ -70,8 +86,11 @@ object_types:
 
   phone_number:        # identifiers are entities: ownership/assignment history (GOAL.md §7.2)
     label: Phone number
+    implements: [identifiable]
+    # `required` belongs to the reference, not the shared definition: whether a
+    # phone number must have a number is a fact about phone numbers.
     properties:
-      number: {type: identifier, required: true, sensitivity: restricted}
+      number: {shared: registered_identifier, required: true}
     display: {title: number}
 
 predicates:

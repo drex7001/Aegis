@@ -12,10 +12,42 @@
 module:
   name: platform
   namespace: aegis.lk/platform
-  version: 1.0.0
+  version: 1.1.0
   label: Platform governance vocabulary
   # No imports: platform is the root of the composition. Everything else
   # imports it, which is why a cycle here would be a contradiction.
+  #
+  # 1.1.0 (T32): additive — shared properties and interfaces.
+
+# Properties defined once and referenced by many object types (spec 08 §3).
+# They live here rather than in a domain module because what they fix is
+# *governance*: `registered_identifier` is restricted everywhere it appears,
+# and a domain must not be able to declare its own copy at a lower clearance.
+shared_properties:
+  alias:
+    type: text
+    many: true
+    label: Alias
+  registered_identifier:
+    type: identifier
+    sensitivity: restricted      # a state-issued number is never `open`
+    label: Registered identifier
+  notes:
+    type: text
+    label: Notes
+
+# Named shapes over object types (spec 08 §4). Membership is declared by the
+# implementor (`object_types.*.implements`), not listed here — that is what
+# lets a domain module implement a platform interface without editing this
+# file (ADR-041). An interface with no implementor in a given composition is
+# fine; a predicate *targeting* one is not.
+interfaces:
+  party:
+    label: Party
+    properties: [alias]                    # every party can be called something else
+  identifiable:
+    label: Identifiable
+    properties: [registered_identifier]    # every implementor carries a registry id
 
 # Ordered low → high; index = clearance level required (spec 03).
 handling_codes: [open, restricted, sensitive]

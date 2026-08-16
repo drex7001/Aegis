@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any, Literal, Union
+from typing import Any, Literal, Sequence, Union
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -55,13 +55,54 @@ class DisplaySpec(BaseModel):
     subtitle: str | None = None
 
 
+PropertyType = Literal[
+    "text", "identifier", "date", "timestamp", "int", "decimal", "geo", "ref"
+]
+
+
+class SharedPropertySpec(BaseModel):
+    """A property defined once and referenced by many object types (spec 08 §3).
+
+    Carries everything that must be identical wherever it appears — type,
+    cardinality, sensitivity, conflict policy. ``required`` is deliberately
+    absent: whether a person must have a name is a fact about persons, not
+    about names.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+    type: PropertyType
+    many: bool = False
+    sensitivity: str | None = None
+    conflicts: Literal["preserve"] | None = None
+    label: str | None = None
+
+
 class PropertySpec(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    type: Literal["text", "identifier", "date", "timestamp", "int", "decimal", "geo", "ref"]
+    #: Optional only because a `shared:` reference supplies it. After loading,
+    #: every property in the registry has a resolved type — the reference form
+    #: is expanded in place so consumers never learn the difference (spec 08 §3).
+    type: PropertyType | None = None
     required: bool = False
     many: bool = False
     sensitivity: str | None = None
     conflicts: Literal["preserve"] | None = None
+    #: The shared property this was declared from, retained after resolution so
+    #: codegen and object views can render one definition rather than a copy.
+    shared: str | None = None
+
+
+class InterfaceSpec(BaseModel):
+    """A named shape over object types (spec 08 §4).
+
+    Membership is declared by the implementor (`object_types.*.implements`),
+    not listed here — see ADR-041. An interface therefore carries only what it
+    *requires*: the shared properties every implementor must present.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+    label: str | None = None
+    properties: list[str] = Field(default_factory=list)
 
 
 class ObjectTypeSpec(BaseModel):
@@ -69,6 +110,10 @@ class ObjectTypeSpec(BaseModel):
     label: str
     properties: dict[str, PropertySpec] = Field(default_factory=dict)
     display: DisplaySpec | None = None
+    #: Interfaces this type implements. Declared here rather than as a member
+    #: list on the interface so a domain module can implement a platform
+    #: interface without editing the platform module (ADR-041).
+    implements: list[str] = Field(default_factory=list)
 
 
 class PredicateSpec(BaseModel):
@@ -88,6 +133,12 @@ class PredicateSpec(BaseModel):
     #: domain-neutral (Article XIV) — a new domain adds identifiers by
     #: declaring them, not by editing the rule engine.
     identifier: bool = False
+    #: Interfaces named in the declaration, retained after `subject`/`object`
+    #: are expanded to concrete implementors. The expansion is what the store
+    #: sees — a claim records concrete types, never an interface — so keeping
+    #: the declared form here is the only way codegen can render it (spec 08 §4).
+    subject_interfaces: tuple[str, ...] = ()
+    object_interfaces: tuple[str, ...] = ()
 
     @property
     def is_literal(self) -> bool:
@@ -178,6 +229,8 @@ class Ontology(BaseModel):
     source_types: list[str] = Field(min_length=1)
     grading: GradingSpec
     categories: dict[str, CategorySpec]
+    shared_properties: dict[str, SharedPropertySpec] = Field(default_factory=dict)
+    interfaces: dict[str, InterfaceSpec] = Field(default_factory=dict)
     object_types: dict[str, ObjectTypeSpec]
     predicates: dict[str, PredicateSpec]
     event_types: dict[str, Any] = Field(default_factory=dict)  # Phase 4 (spec 01 §2)
@@ -194,6 +247,30 @@ class Ontology(BaseModel):
     def owner_module(self, name: str) -> str | None:
         """The module that declares ``name``, or None for a flat document."""
         return self.owners.get(name)
+
+    def implementors(self, interface: str) -> list[str]:
+        """Object types implementing ``interface``, in declaration order.
+
+        Derived from ``object_types.*.implements`` rather than stored on the
+        interface, which is what lets a domain module implement a platform
+        interface without editing it (ADR-041).
+        """
+        if interface not in self.interfaces:
+            raise OntologyError(
+                f"unknown interface {interface!r} (declared: {sorted(self.interfaces)})"
+            )
+        return [
+            name for name, spec in self.object_types.items() if interface in spec.implements
+        ]
+
+    def expand_types(self, names: Sequence[str]) -> list[str]:
+        """Replace any interface name with its implementors, preserving order."""
+        expanded: list[str] = []
+        for name in names:
+            for value in self.implementors(name) if name in self.interfaces else [name]:
+                if value not in expanded:
+                    expanded.append(value)
+        return expanded
 
     def handling_rank(self, code: str) -> int:
         """Clearance level required for a handling code (index in the ordered list)."""
@@ -252,7 +329,95 @@ class Ontology(BaseModel):
         return dict(schemes[scheme][original])
 
 
-# ── semantic validation (spec 01 §6) ────────────────────────────────────────
+# ── semantic validation (spec 01 §6, spec 08 §9) ────────────────────────────
+
+
+def _shared_property_errors(ont: Ontology) -> list[str]:
+    """Spec 08 §9 rule 13 — `shared:` references resolve and override nothing."""
+    errors: list[str] = []
+    for tname, otype in ont.object_types.items():
+        for pname, prop in otype.properties.items():
+            where = f"object_types.{tname}.properties.{pname}"
+            if prop.shared is None:
+                if prop.type is None:
+                    errors.append(
+                        f"{where}: declare either a `type` or a `shared` reference"
+                    )
+                continue
+            if prop.shared not in ont.shared_properties:
+                errors.append(
+                    f"{where}.shared: unknown shared property {prop.shared!r} "
+                    f"(declared: {sorted(ont.shared_properties)})"
+                )
+                continue
+            # A shared property exists so that one answer is given everywhere.
+            # Letting a reference restate `type` or `sensitivity` would make it
+            # a default rather than a definition — and a *quieter* one than an
+            # inline property, because the reader would have to check both.
+            for field in ("type", "sensitivity"):
+                if getattr(prop, field) is not None:
+                    errors.append(
+                        f"{where}.{field}: a `shared:` reference may not override "
+                        f"{field!r} — change shared_properties.{prop.shared} or "
+                        "declare an inline property instead"
+                    )
+            if prop.many:
+                errors.append(
+                    f"{where}.many: cardinality comes from "
+                    f"shared_properties.{prop.shared}"
+                )
+    return errors
+
+
+def _interface_errors(ont: Ontology) -> list[str]:
+    """Spec 08 §9 rule 14 — interfaces, their requirements, and their implementors."""
+    errors: list[str] = []
+    for iname, interface in ont.interfaces.items():
+        for required in interface.properties:
+            if required not in ont.shared_properties:
+                errors.append(
+                    f"interfaces.{iname}.properties: unknown shared property "
+                    f"{required!r} (declared: {sorted(ont.shared_properties)})"
+                )
+
+    for tname, otype in ont.object_types.items():
+        for iname in otype.implements:
+            if iname not in ont.interfaces:
+                errors.append(
+                    f"object_types.{tname}.implements: unknown interface {iname!r} "
+                    f"(declared: {sorted(ont.interfaces)})"
+                )
+                continue
+            # The point of an interface is that a reader of `subject: [party]`
+            # knows what every match carries. A member missing a required
+            # property makes that false for one type and silently wrong for the
+            # caller who trusted it.
+            carried = {
+                prop.shared for prop in otype.properties.values() if prop.shared is not None
+            }
+            for required in ont.interfaces[iname].properties:
+                if required in ont.shared_properties and required not in carried:
+                    errors.append(
+                        f"object_types.{tname}.implements: {iname!r} requires shared "
+                        f"property {required!r}, which {tname!r} does not declare"
+                    )
+
+    # A predicate targeting an interface nothing implements matches no entity
+    # and can never be recorded. That is a modelling mistake, not a valid
+    # empty state — unlike an interface nobody references, which is fine.
+    for pname, pred in ont.predicates.items():
+        endpoints = [("subject", pred.subject)]
+        if not pred.is_literal:
+            endpoints.append(("object", pred.object))
+        for role, names in endpoints:
+            for name in names:
+                if name in ont.interfaces and not ont.implementors(name):
+                    errors.append(
+                        f"predicates.{pname}.{role}: interface {name!r} has no "
+                        "implementing object type, so the predicate can never "
+                        "be satisfied"
+                    )
+    return errors
 
 
 def _semantic_errors(ont: Ontology) -> list[str]:
@@ -275,17 +440,22 @@ def _semantic_errors(ont: Ontology) -> list[str]:
         ("predicates", ont.predicates),
         ("actions", ont.actions),
         ("categories", ont.categories),
+        ("interfaces", ont.interfaces),
+        ("shared_properties", ont.shared_properties),
     ):
         for name in names:
             if not _NAME_RE.match(name):
                 errors.append(f"{section}.{name}: name must be snake_case ([a-z][a-z0-9_]*)")
 
-    # rule 1: unique names ACROSS sections (they share the claim/DDL namespace)
+    # rule 1: unique names ACROSS sections (they share the claim/DDL namespace).
+    # Interfaces join the same namespace: a predicate's `subject:` cannot tell
+    # an interface from an object type by shape, so one name must mean one thing.
     seen: dict[str, str] = {}
     for section, names in (
         ("object_types", ont.object_types),
         ("predicates", ont.predicates),
         ("actions", ont.actions),
+        ("interfaces", ont.interfaces),
     ):
         for name in names:
             if name in seen:
@@ -295,9 +465,14 @@ def _semantic_errors(ont: Ontology) -> list[str]:
             else:
                 seen[name] = section
 
+    errors += _shared_property_errors(ont)
+    errors += _interface_errors(ont)
+
     # rule 2: predicate endpoint types exist (object may be the string 'literal',
-    # or a list of object types optionally including 'literal' for mixed objects)
-    declared = set(ont.object_types)
+    # or a list of object types optionally including 'literal' for mixed objects).
+    # An interface name is accepted here and expanded to its implementors after
+    # validation, so a predicate may target `party` (spec 08 §4).
+    declared = set(ont.object_types) | set(ont.interfaces)
     for pname, pred in ont.predicates.items():
         for stype in pred.subject:
             if stype not in declared:
@@ -325,6 +500,12 @@ def _semantic_errors(ont: Ontology) -> list[str]:
             )
 
     # rule 3: property sensitivity is a declared handling code
+    for shared_name, shared in ont.shared_properties.items():
+        if shared.sensitivity is not None and shared.sensitivity not in ont.handling_codes:
+            errors.append(
+                f"shared_properties.{shared_name}.sensitivity: unknown handling code "
+                f"{shared.sensitivity!r} (declared: {ont.handling_codes})"
+            )
     for tname, otype_spec in ont.object_types.items():
         for prop_name, prop in otype_spec.properties.items():
             if prop.sensitivity is not None and prop.sensitivity not in ont.handling_codes:
@@ -372,6 +553,76 @@ def _semantic_errors(ont: Ontology) -> list[str]:
     return errors
 
 
+# ── resolution (spec 08 §3–4) ───────────────────────────────────────────────
+
+
+def _resolved(ont: Ontology) -> Ontology:
+    """Expand `shared:` references and interface endpoints, in place.
+
+    Both expansions happen once, at load, so that **no consumer has to know
+    the v2 syntax exists**. ``authz.filters`` still reads
+    ``object_type.properties['nic'].sensitivity`` and gets the shared value;
+    ``actions.service`` still checks ``entity_type in predicate.subject`` and
+    gets concrete types. The declared form survives on ``PropertySpec.shared``
+    and ``PredicateSpec.*_interfaces`` for codegen, which is the one consumer
+    that does need to know.
+
+    Runs only after validation passes, so every reference here resolves.
+    """
+    if not ont.shared_properties and not ont.interfaces:
+        return ont
+
+    object_types = {
+        name: spec.model_copy(
+            update={
+                "properties": {
+                    prop_name: _resolve_property(prop, ont)
+                    for prop_name, prop in spec.properties.items()
+                }
+            }
+        )
+        for name, spec in ont.object_types.items()
+    }
+    predicates = {
+        name: _resolve_predicate(spec, ont) for name, spec in ont.predicates.items()
+    }
+    return ont.model_copy(update={"object_types": object_types, "predicates": predicates})
+
+
+def _resolve_property(prop: PropertySpec, ont: Ontology) -> PropertySpec:
+    if prop.shared is None:
+        return prop
+    shared = ont.shared_properties[prop.shared]
+    return prop.model_copy(
+        update={
+            "type": shared.type,
+            "many": shared.many,
+            "sensitivity": shared.sensitivity,
+            # `conflicts` is part of the shared definition, but an inline
+            # `conflicts` on the reference is not an override of a stated value
+            # — the shared property may simply not have declared one.
+            "conflicts": prop.conflicts if shared.conflicts is None else shared.conflicts,
+        }
+    )
+
+
+def _resolve_predicate(pred: PredicateSpec, ont: Ontology) -> PredicateSpec:
+    update: dict[str, Any] = {}
+    subject_interfaces = tuple(name for name in pred.subject if name in ont.interfaces)
+    if subject_interfaces:
+        update["subject"] = ont.expand_types(pred.subject)
+        update["subject_interfaces"] = subject_interfaces
+    if not pred.is_literal:
+        object_interfaces = tuple(name for name in pred.object if name in ont.interfaces)
+        if object_interfaces:
+            # 'literal' passes through expand_types untouched: it is not an
+            # object type and not an interface, so a mixed entity-or-literal
+            # object keeps its literal branch.
+            update["object"] = ont.expand_types(pred.object)
+            update["object_interfaces"] = object_interfaces
+    return pred.model_copy(update=update) if update else pred
+
+
 def _format_pydantic_errors(exc: ValidationError) -> list[str]:
     formatted = []
     for err in exc.errors():
@@ -408,7 +659,7 @@ def load_dict(data: dict[str, Any], source: str = "<dict>") -> Ontology:
     errors = _semantic_errors(ont)
     if errors:
         raise OntologyValidationError(errors, source)
-    return ont
+    return _resolved(ont)
 
 
 def load(path: str | Path) -> Ontology:

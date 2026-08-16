@@ -74,17 +74,31 @@ without the fix.
 
 ## Milestone B — Semantic layer v2 & generation
 
-**T32. ⛓ Shared properties + interfaces** (spec 08 §3–4, §9 rules 13–14; needs
-T30) — extend loader/validator/registry: `shared_properties:` and
-`interfaces:`; predicates may target interfaces (expanded at validation, and
-the **expansion** is what claims record); starter set: shared `alias`,
-`registered_identifier`, `notes`; interfaces `party`, `identifiable`, declared
-in the platform module. Sequence the ontology minor bump after T35 so it
-carries a proposal.
+**T32. ⛓ Shared properties + interfaces — DONE (2026-08-17)** (spec 08 §3–4,
+§9 rules 13–14; needs T30) — extend loader/validator/registry:
+`shared_properties:` and `interfaces:`; predicates may target interfaces
+(expanded at load, and the **expansion** is what claims record); starter set:
+shared `alias`, `registered_identifier`, `notes`; interfaces `party`,
+`identifiable`, declared in the platform module.
 AC: a predicate with `subject: [party]` validates for member types and rejects
 non-members; a `shared:` reference overriding type or sensitivity fails; an
 interface member missing a required shared property fails; all prior tests
 green.
+
+AC met by `tests/contract/test_ontology_semantics.py` (22 cases). **Spec
+divergence, now ADR-041**: interfaces cannot carry a `members:` list under
+module composition — `party` is platform vocabulary whose members are domain
+types, so the list would force platform to import the domain and invert the
+dependency. Membership is declared by the implementor (`implements:`) instead,
+which is also what lets the `border-cargo` fixture implement `identifiable`
+with no platform edit. Spec 08 §3–4 and §9 rules 13–14 amended. Both
+expansions resolve **in place at load**, so no consumer learned the v2 syntax
+exists and all 258 integration tests stayed green. `vehicle.registration`
+deliberately did **not** adopt the shared `registered_identifier`: the shared
+property is `restricted` and the inline one is `open`, so adopting it would
+raise the clearance on rows already recorded — a policy change needing a
+proposal, not a refactor. Ontology 1.3.0 → 1.4.0 (additive); the proposal that
+should accompany it is backfilled by T35, which owns the workflow.
 
 **T33. `aegis ontology generate` — the P3 codegen targets** (spec 08 §8,
 ADR-038; needs T32) — **rewritten by T29**: the three targets spec 01 §5 called

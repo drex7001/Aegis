@@ -36,7 +36,7 @@ def test_the_committed_artifact_is_a_composition() -> None:
     assert set(ont.modules) == {"platform", "criminal_network"}
     assert all(info.enabled for info in ont.modules.values())
     assert ont.modules["platform"].namespace == "aegis.lk/platform"
-    assert ont.modules["criminal_network"].imports == {"platform": ">=1.0.0,<2.0.0"}
+    assert ont.modules["criminal_network"].imports == {"platform": ">=1.1.0,<2.0.0"}
 
 
 def test_the_platform_domain_split_holds() -> None:
@@ -50,7 +50,9 @@ def test_the_platform_domain_split_holds() -> None:
     owned_by_platform = {
         name for name, module in ont.owners.items() if module == "platform"
     }
-    assert owned_by_platform == set(ont.actions)
+    assert owned_by_platform == (
+        set(ont.actions) | set(ont.interfaces) | set(ont.shared_properties)
+    )
     assert not owned_by_platform & set(ont.object_types)
     assert not owned_by_platform & set(ont.predicates)
 

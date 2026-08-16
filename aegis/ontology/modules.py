@@ -46,7 +46,15 @@ _NAMESPACE_RE = re.compile(r"^[a-z][a-z0-9._/-]*$")
 SINGLE_OWNER_SECTIONS = ("handling_codes", "source_types", "grading")
 
 #: Sections merged by name, with every key attributed to its declaring module.
-NAME_KEYED_SECTIONS = ("categories", "object_types", "predicates", "event_types", "actions")
+NAME_KEYED_SECTIONS = (
+    "categories",
+    "shared_properties",
+    "interfaces",
+    "object_types",
+    "predicates",
+    "event_types",
+    "actions",
+)
 
 
 class ModuleHeader(BaseModel):
@@ -340,6 +348,25 @@ def _references(module: _ParsedModule) -> list[tuple[str, str]]:
         category = predicate.get("category")
         if isinstance(category, str):
             found.append((category, f"predicates.{name}.category"))
+
+    for name, spec in (module.sections.get("object_types") or {}).items():
+        if not isinstance(spec, dict):
+            continue
+        for interface in spec.get("implements") or ():
+            if isinstance(interface, str):
+                found.append((interface, f"object_types.{name}.implements"))
+        for prop_name, prop in (spec.get("properties") or {}).items():
+            if isinstance(prop, dict) and isinstance(prop.get("shared"), str):
+                found.append(
+                    (prop["shared"], f"object_types.{name}.properties.{prop_name}.shared")
+                )
+
+    for name, spec in (module.sections.get("interfaces") or {}).items():
+        if not isinstance(spec, dict):
+            continue
+        for required in spec.get("properties") or ():
+            if isinstance(required, str):
+                found.append((required, f"interfaces.{name}.properties"))
     return found
 
 
