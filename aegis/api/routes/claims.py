@@ -26,7 +26,7 @@ router = APIRouter(tags=["claims"])
 
 
 def _context(auth: AuthContext) -> ActionContext:
-    return ActionContext(actor=auth.user.sub, purpose=auth.purpose)
+    return ActionContext(actor=auth.user.sub, purpose=auth.purpose, roles=auth.user.roles)
 
 
 def _visible_claim(session, user: UserContext, ontology, claim_id: str, *, as_of=None) -> Claim:

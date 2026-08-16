@@ -15,9 +15,12 @@ import json
 from pathlib import Path
 from typing import Any, Iterator, Literal, Sequence
 
+from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from aegis.actions._generated.requests import REQUEST_MODELS
+from aegis.actions.criteria import CriterionInput, evaluate as evaluate_criteria
 from aegis.ids import new_id
 from aegis.audit import append as append_audit
 from aegis.config import get_settings
@@ -37,7 +40,7 @@ from aegis.er.ledger import (
     active_revision_id,
     open_membership,
 )
-from aegis.ontology import KNOWN_ROLES, Ontology, OntologyError, load
+from aegis.ontology import ActionSpec, KNOWN_ROLES, Ontology, OntologyError, load
 from aegis.store import (
     AuthzOutbox,
     CaseFile,
@@ -114,9 +117,12 @@ class ActionContext:
     purpose: str | None = None
     session_id: str | None = None
     case_id: str | None = None
-    #: Roles the actor holds, for the ontology's per-action `roles` gate.
-    #: Empty means "not supplied" and skips the check — the Phase-1 actions
-    #: are gated at the API layer and pass no roles here.
+    #: Roles the actor holds. Empty means **no authenticated person is asking**
+    #: — the migration adapter, the CLI, the fixture loader and the projection
+    #: rebuilder hold none — and the human-facing submission criteria skip
+    #: (spec 08 §6.3). Every API route supplies them since T34, so the
+    #: ontology's `roles` declaration is load-bearing for all thirteen actions
+    #: rather than for `adjudicate_identity` alone (ADR-040).
     roles: frozenset[str] = frozenset()
     #: The second approver, where the ontology declares `dual_control_for`.
     second_actor: str | None = None
@@ -154,17 +160,31 @@ class ActionService:
     def _require_action(
         self,
         name: str,
-        context: ActionContext | None = None,
+        context: ActionContext,
         *,
         dual_control_flags: Sequence[str] = (),
-    ) -> None:
+        parameters: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Gate a write on what the ontology declares about the action.
 
-        ``context`` is optional only because the Phase-1 actions predate role
-        enforcement here; the API layer gates them by role independently
-        (spec 03 §3). Passing it enforces the ontology's own `roles` list at
-        the write, which is what makes the declaration load-bearing rather
-        than documentation (spec 05 §3.4).
+        Two checks, both from the declaration (spec 08 §6, ADR-040):
+
+        1. **Parameters** — the caller's keywords are validated against the
+           generated request model, so an undeclared parameter is rejected
+           before anything reads it.
+        2. **Submission criteria** — the named predicates in
+           ``aegis/actions/criteria.py``, evaluated against the actor, the
+           supplied parameters, and this transaction's state. A failure writes
+           a ``decision="deny"`` audit row and raises; it is never a silent 403.
+
+        ``context`` is now required. Until T34 it was optional, which meant the
+        ontology's ``roles`` list was enforced for ``adjudicate_identity`` and
+        nothing else (ADR-040).
+
+        Returns the **validated** parameters, with declared defaults applied.
+        A caller that forwards them (rather than its own kwargs) gets the
+        ontology's defaults for free, which is the only way
+        ``{type: assertion_type, default: reported}`` can mean anything.
         """
         try:
             action = self.ontology.action(name)
@@ -172,23 +192,70 @@ class ActionService:
             raise ActionValidationError(f"actions.{name}", "not declared in ontology") from exc
         if not action.audit:  # loader already rejects this; retain the write-side guard.
             raise ActionValidationError(f"actions.{name}.audit", "must be true")
-        if context is not None and action.roles and not (set(action.roles) & context.roles):
-            raise ActionValidationError(
-                f"actions.{name}.roles",
-                f"requires one of {sorted(action.roles)}; actor holds "
-                f"{sorted(context.roles) or 'none'}",
+
+        supplied = self._validate_parameters(name, action, parameters)
+        failure = evaluate_criteria(
+            CriterionInput(
+                action=name,
+                spec=action,
+                context=context,
+                session=self.session,
+                parameters=supplied,
+                dual_control_flags=frozenset(dual_control_flags),
             )
-        required = set(action.dual_control_for or ()) & set(dual_control_flags)
-        if required and context is not None and context.second_actor is None:
+        )
+        if failure is not None:
+            criterion, detail = failure
+            self._audit_denial(context, action=name, criterion=criterion, detail=detail)
             raise ActionValidationError(
-                f"actions.{name}.dual_control_for",
-                f"{sorted(required)} requires a second approver; the decision was "
-                "not written",
+                f"actions.{name}.submission_criteria.{criterion}", detail
             )
-        if required and context is not None and context.second_actor == context.actor:
+        return supplied
+
+    def _validate_parameters(
+        self, name: str, action: ActionSpec, parameters: dict[str, Any] | None
+    ) -> dict[str, Any]:
+        """Check the caller's keywords against the action's generated model.
+
+        ``None`` means the call site supplies no parameters worth declaring
+        (nothing does today, but a future maintenance action might); an empty
+        dict is a real, empty request and is validated as one.
+        """
+        if parameters is None:
+            return {}
+        model = REQUEST_MODELS.get(name)
+        if model is None:  # an action with no declared parameters yet
+            return dict(parameters)
+        try:
+            return model(**parameters).model_dump()
+        except PydanticValidationError as exc:
+            first = exc.errors()[0]
+            path = ".".join(str(part) for part in first["loc"]) or "<request>"
             raise ActionValidationError(
-                f"actions.{name}.dual_control_for",
-                "the second approver must be a different person",
+                f"actions.{name}.parameters.{path}", first["msg"]
+            ) from exc
+
+    def _audit_denial(
+        self, context: ActionContext, *, action: str, criterion: str, detail: str
+    ) -> None:
+        """Record a refused write (Article X, spec 08 §6.4).
+
+        Written in its own transaction: the denial must survive whether or not
+        the caller's surrounding transaction is rolled back, which is the same
+        reason ``aegis/api/deps.py`` opens a session for ``authz.deny``.
+        """
+        with Session(self.session.get_bind()) as session, session.begin():
+            append_audit(
+                session,
+                actor=context.actor,
+                session_id=context.session_id,
+                purpose=context.purpose,
+                case_id=context.case_id,
+                action=action,
+                resource_type="action",
+                resource_id=action,
+                decision="deny",
+                detail={"criterion": criterion, "reason": detail},
             )
 
     def _handling(self, value: str, path: str = "handling_codes") -> None:
@@ -563,9 +630,13 @@ class ActionService:
             )
 
     def record_claim(self, context: ActionContext, **claim: Any) -> Claim:
-        self._require_action("record_claim")
+        # The validated form, not the caller's: it carries the ontology's
+        # declared defaults, so `assertion_type` and the grading floors come
+        # from `platform.yaml` rather than from a Python signature that could
+        # drift from it (spec 08 §6.1).
+        validated = self._require_action("record_claim", context, parameters=claim)
         with self._transaction():
-            row = self._create_claim(**claim)
+            row = self._create_claim(**validated)
             self._audit(
                 context,
                 action="record_claim",
@@ -602,6 +673,13 @@ class ActionService:
             "adjudicate_identity",
             context,
             dual_control_flags=("protected_person",) if protected_person else (),
+            parameters={
+                "mode": mode,
+                "parent_revision_id": parent_revision_id,
+                "note": note,
+                "protected_person": protected_person,
+                **params,
+            },
         )
         if mode not in ADJUDICATION_MODES:
             raise ActionValidationError(
@@ -733,7 +811,9 @@ class ActionService:
     def retract_claim(
         self, context: ActionContext, *, claim_id: str, reason: str
     ) -> Claim:
-        self._require_action("retract_claim")
+        self._require_action(
+            "retract_claim", context, parameters={"claim_id": claim_id, "reason": reason}
+        )
         if not reason.strip():
             raise ActionValidationError("claim.retraction_reason", "must not be empty")
         with self._transaction():
@@ -763,7 +843,15 @@ class ActionService:
         to_claim: str,
         relation: str,
     ) -> ClaimRelation:
-        self._require_action("link_claims")
+        self._require_action(
+            "link_claims",
+            context,
+            parameters={
+                "from_claim": from_claim,
+                "to_claim": to_claim,
+                "relation": relation,
+            },
+        )
         if relation not in CLAIM_RELATIONS:
             raise ActionValidationError(
                 f"claim_relation.relation.{relation}",
@@ -827,7 +915,23 @@ class ActionService:
         expires_at: datetime | None = None,
         suggestion_id: str | None = None,
     ) -> ReviewQueue:
-        self._require_action("submit_suggestion")
+        self._require_action(
+            "submit_suggestion",
+            context,
+            parameters={
+                "payload": payload,
+                "producer": producer,
+                "producer_version": producer_version,
+                "producer_meta": producer_meta,
+                "suggestion_kind": suggestion_kind,
+                "suggestion_id": suggestion_id,
+                "idempotency_key": idempotency_key,
+                "record_id": record_id,
+                "case_id": case_id,
+                "supersedes": supersedes,
+                "expires_at": expires_at,
+            },
+        )
         if suggestion_kind not in SUGGESTION_KINDS:
             raise ActionValidationError(
                 f"review_queue.suggestion_kind.{suggestion_kind}",
@@ -907,7 +1011,16 @@ class ActionService:
         table itself.  That is what makes Article VII's "only a human-executed
         action writes canon" mechanically checkable per kind.
         """
-        self._require_action("review_suggestion")
+        self._require_action(
+            "review_suggestion",
+            context,
+            parameters={
+                "suggestion_id": suggestion_id,
+                "decision": decision,
+                "note": note,
+                "edits": edits,
+            },
+        )
         if decision not in {"accepted", "rejected"}:
             raise ActionValidationError(
                 f"review_queue.status.{decision}", "must be accepted or rejected"
@@ -1027,7 +1140,22 @@ class ActionService:
         legal_basis: str | None = None,
         handling_code: str = "restricted",
     ) -> EvidenceItem:
-        self._require_action("register_evidence")
+        self._require_action(
+            "register_evidence",
+            context,
+            parameters={
+                "description": description,
+                "evidence_id": evidence_id,
+                "case_id": case_id,
+                "record_id": record_id,
+                "content_hash": content_hash,
+                "storage_uri": storage_uri,
+                "acquired_at": acquired_at,
+                "acquired_by": acquired_by,
+                "legal_basis": legal_basis,
+                "handling_code": handling_code,
+            },
+        )
         self._handling(handling_code)
         if not description.strip():
             raise ActionValidationError("evidence_item.description", "must not be empty")
@@ -1085,7 +1213,19 @@ class ActionService:
         hash_checked: bool = False,
         note: str | None = None,
     ) -> CustodyEvent:
-        self._require_action("transfer_custody")
+        self._require_action(
+            "transfer_custody",
+            context,
+            parameters={
+                "evidence_id": evidence_id,
+                "to_actor": to_actor,
+                "occurred_at": occurred_at,
+                "purpose": purpose,
+                "from_actor": from_actor,
+                "hash_checked": hash_checked,
+                "note": note,
+            },
+        )
         if not to_actor.strip():
             raise ActionValidationError("custody_event.to_actor", "must not be empty")
         if not purpose.strip():
@@ -1177,7 +1317,11 @@ class ActionService:
         note: str,
     ) -> SourceRecord:
         """Release a quarantined source record back to ``landed`` (spec 04 §3)."""
-        self._require_action("release_quarantine")
+        self._require_action(
+            "release_quarantine",
+            context,
+            parameters={"record_id": record_id, "note": note},
+        )
         if not note.strip():
             raise ActionValidationError("source_record.release_note", "must not be empty")
         with self._transaction():
@@ -1212,7 +1356,16 @@ class ActionService:
         handling_code: str = "open",
         case_id: str | None = None,
     ) -> CaseFile:
-        self._require_action("open_case")
+        self._require_action(
+            "open_case",
+            context,
+            parameters={
+                "title": title,
+                "purpose": purpose,
+                "handling_code": handling_code,
+                "case_id": case_id,
+            },
+        )
         self._handling(handling_code)
         if not title.strip():
             raise ActionValidationError("case_file.title", "must not be empty")
@@ -1246,7 +1399,11 @@ class ActionService:
         user_id: str,
         role: str,
     ) -> CaseMember:
-        self._require_action("assign_case_member")
+        self._require_action(
+            "assign_case_member",
+            context,
+            parameters={"case_id": case_id, "user_id": user_id, "role": role},
+        )
         if role not in KNOWN_ROLES:
             raise ActionValidationError(f"roles.{role}", "not a platform role")
         if role not in CASE_MEMBER_RELATIONS:
@@ -1301,7 +1458,9 @@ class ActionService:
         case_id: str,
         user_id: str,
     ) -> CaseMember:
-        self._require_action("remove_case_member")
+        self._require_action(
+            "remove_case_member", context, parameters={"case_id": case_id, "user_id": user_id}
+        )
         if not user_id.strip():
             raise ActionValidationError("case_member.user_id", "must not be empty")
         with self._transaction():

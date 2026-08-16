@@ -36,7 +36,7 @@ def test_the_committed_artifact_is_a_composition() -> None:
     assert set(ont.modules) == {"platform", "criminal_network"}
     assert all(info.enabled for info in ont.modules.values())
     assert ont.modules["platform"].namespace == "aegis.lk/platform"
-    assert ont.modules["criminal_network"].imports == {"platform": ">=1.1.0,<2.0.0"}
+    assert ont.modules["criminal_network"].imports == {"platform": ">=1.2.0,<2.0.0"}
 
 
 def test_the_platform_domain_split_holds() -> None:

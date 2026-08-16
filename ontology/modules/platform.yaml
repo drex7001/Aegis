@@ -12,11 +12,13 @@
 module:
   name: platform
   namespace: aegis.lk/platform
-  version: 1.1.0
+  version: 1.2.0
   label: Platform governance vocabulary
   # No imports: platform is the root of the composition. Everything else
   # imports it, which is why a cycle here would be a contradiction.
   #
+  # 1.2.0 (T34): additive — action parameters, submission criteria, side
+  #               effects. No action, role or dual-control rule changed.
   # 1.1.0 (T32): additive — shared properties and interfaces.
 
 # Properties defined once and referenced by many object types (spec 08 §3).
@@ -78,19 +80,199 @@ grading:
 
 # Actions are platform vocabulary, not domain vocabulary: a domain module that
 # could declare an action could widen the claim envelope or invent a write path
-# around the review queue. T34 adds `parameters` and `submission_criteria` here
-# (spec 08 §6).
+# around the review queue (spec 08 §6.1).
+#
+# `parameters` is the action's **public request contract** — what an API, CLI,
+# SDK or pipeline caller may send. It generates the request model, and an
+# undeclared parameter is rejected by it. `submission_criteria` are named
+# predicates the actions layer evaluates; a failure is an audited denial
+# (spec 08 §6.4). `side_effects` parse and are stored — nothing executes them
+# in Phase 3 (§6.5).
 actions:
-  record_claim:        {roles: [analyst, investigator], audit: true}
-  retract_claim:       {roles: [analyst, supervisor],   audit: true}
-  link_claims:         {roles: [analyst],               audit: true}   # corroborates/contradicts
-  submit_suggestion:   {roles: [analyst, investigator], audit: true}   # also used by pipeline producers
-  review_suggestion:   {roles: [analyst],               audit: true}
-  adjudicate_identity: {roles: [analyst],               audit: true, dual_control_for: [protected_person]}
-  register_evidence:   {roles: [analyst, investigator, evidence_officer], audit: true}
-  transfer_custody:    {roles: [evidence_officer, investigator],          audit: true}
-  open_case:           {roles: [analyst, investigator], audit: true}
-  assign_case_member:  {roles: [supervisor],            audit: true}
-  remove_case_member:  {roles: [supervisor],            audit: true}
-  release_quarantine:  {roles: [supervisor],            audit: true}
-  seal_record:         {roles: [supervisor],            audit: true}   # Phase 7
+  record_claim:
+    roles: [analyst, investigator]
+    audit: true
+    # The claim envelope (spec 02) in full. It lives here, in the platform
+    # module, which is what makes "a domain module cannot widen the claim
+    # envelope" a property of the composition rather than a convention.
+    parameters:
+      subject_id:             {type: ref, to: entity}
+      predicate:              {type: predicate, required: true}
+      object_id:              {type: ref, to: entity}
+      object_value:           {type: literal}
+      record_id:              {type: ref, to: source_record, required: true}
+      assertion_type:         {type: assertion_type, default: reported}
+      claim_id:               {type: identifier}       # caller-supplied for idempotent replay
+      excerpt:                {type: text}
+      collection_method:      {type: enum, values: [extracted, curated, manual, imported]}
+      credibility_scheme:     {type: grading_scheme}
+      credibility_original:   {type: text}
+      credibility_normalized: {type: grade, dimension: credibility, default: cannot_judge}
+      verification_status:    {type: grade, dimension: verification, default: unverified}
+      analytic_confidence:    {type: grade, dimension: analytic_confidence}
+      event_time_earliest:    {type: timestamp}
+      event_time_latest:      {type: timestamp}
+      valid_from:             {type: date}
+      valid_to:               {type: date}
+      handling_code:          {type: handling_code, default: open}
+      case_id:                {type: ref, to: case}
+      jurisdiction:           {type: text}
+      location_text:          {type: text}
+      supersedes:             {type: ref, to: claim}
+      # Mention anchors are caller input, not internals: an extraction producer
+      # supplies them and ADR-029 rule 1 requires them for observed/reported
+      # claims. The entity-type hints resolve a mention whose predicate allows
+      # more than one type (spec 02 §3.2).
+      subject_mention_id:     {type: ref, to: mention}
+      object_mention_id:      {type: ref, to: mention}
+      subject_entity_type:    {type: object_type}
+      object_entity_type:     {type: object_type}
+    submission_criteria: [actor_holds_action_role, actor_is_case_member]
+    side_effects:
+      - refresh_projection: edge_projection
+
+  retract_claim:
+    roles: [analyst, supervisor]
+    audit: true
+    parameters:
+      claim_id: {type: ref, to: claim, required: true}
+      reason:   {type: text, required: true}
+    submission_criteria: [actor_holds_action_role]
+    side_effects:
+      - refresh_projection: edge_projection
+
+  link_claims:                                          # corroborates/contradicts
+    roles: [analyst]
+    audit: true
+    parameters:
+      from_claim: {type: ref, to: claim, required: true}
+      to_claim:   {type: ref, to: claim, required: true}
+      relation:   {type: enum, values: [corroborates, contradicts], required: true}
+    submission_criteria: [actor_holds_action_role]
+
+  submit_suggestion:                                    # also used by pipeline producers
+    roles: [analyst, investigator]
+    audit: true
+    parameters:
+      payload:          {type: json, payload_schema: suggestion_payload, required: true}
+      producer:         {type: text, required: true}
+      producer_version: {type: text, default: unversioned}
+      producer_meta:    {type: json, payload_schema: suggestion_payload}
+      suggestion_kind:  {type: enum, values: [claim_draft, identity_candidate, claim_relation], default: claim_draft}
+      suggestion_id:    {type: identifier}
+      idempotency_key:  {type: text}
+      record_id:        {type: ref, to: source_record}
+      case_id:          {type: ref, to: case}
+      supersedes:       {type: ref, to: suggestion}
+      expires_at:       {type: timestamp}
+    submission_criteria: [actor_holds_action_role]
+
+  review_suggestion:
+    roles: [analyst]
+    audit: true
+    parameters:
+      suggestion_id: {type: ref, to: suggestion, required: true}
+      decision:      {type: enum, values: [accepted, rejected], required: true}
+      note:          {type: text}
+      edits:         {type: json, payload_schema: suggestion_payload}
+    submission_criteria: [actor_holds_action_role]
+    side_effects:
+      - refresh_projection: edge_projection
+
+  adjudicate_identity:
+    roles: [analyst]
+    audit: true
+    dual_control_for: [protected_person]
+    # One action, four modes (spec 05 §2), so the parameter list is the union
+    # and the mode decides which are meaningful. The API body is a
+    # discriminated union on `mode` (spec 06 §2.2) and enforces the per-mode
+    # requirements; this list is what any caller may send at all.
+    parameters:
+      mode:                {type: enum, values: [confirm_match, reject_match, split_entity, mark_unresolved], required: true}
+      parent_revision_id:  {type: int, required: true}
+      note:                {type: text, required: true}
+      protected_person:    {type: bool, default: false}
+      candidate_id:        {type: identifier}
+      mention_a:           {type: ref, to: mention}     # confirm / reject / unresolved
+      mention_b:           {type: ref, to: mention}
+      evidence_basis:      {type: text}                 # reject only
+      entity_id:           {type: ref, to: entity}      # split only
+      mention_ids:         {type: ref, to: mention, many: true}
+      target_entity_id:    {type: ref, to: entity}
+    submission_criteria: [actor_holds_action_role, second_approver_present]
+    side_effects:
+      - refresh_projection: edge_projection
+
+  register_evidence:
+    roles: [analyst, investigator, evidence_officer]
+    audit: true
+    parameters:
+      description:   {type: text, required: true}
+      evidence_id:   {type: identifier}
+      case_id:       {type: ref, to: case}
+      record_id:     {type: ref, to: source_record}
+      content_hash:  {type: text}
+      storage_uri:   {type: text}
+      acquired_at:   {type: timestamp}
+      acquired_by:   {type: text}
+      legal_basis:   {type: text}
+      handling_code: {type: handling_code, default: restricted}
+    submission_criteria: [actor_holds_action_role, actor_is_case_member]
+
+  transfer_custody:
+    roles: [evidence_officer, investigator]
+    audit: true
+    parameters:
+      evidence_id:  {type: ref, to: evidence_item, required: true}
+      to_actor:     {type: text, required: true}
+      occurred_at:  {type: timestamp, required: true}
+      purpose:      {type: text, required: true}
+      from_actor:   {type: text}
+      hash_checked: {type: bool, default: false}
+      note:         {type: text}
+    submission_criteria: [actor_holds_action_role]
+
+  open_case:
+    roles: [analyst, investigator]
+    audit: true
+    parameters:
+      title:         {type: text, required: true}
+      purpose:       {type: text, required: true}
+      handling_code: {type: handling_code, default: open}
+      case_id:       {type: identifier}
+    submission_criteria: [actor_holds_action_role]
+
+  assign_case_member:
+    roles: [supervisor]
+    audit: true
+    parameters:
+      case_id: {type: ref, to: case, required: true}
+      user_id: {type: ref, to: user, required: true}
+      role:    {type: enum, values: [supervisor, investigator, analyst, auditor], required: true}
+    submission_criteria: [actor_holds_action_role]
+    side_effects:
+      - notify: case_supervisors
+
+  remove_case_member:
+    roles: [supervisor]
+    audit: true
+    parameters:
+      case_id: {type: ref, to: case, required: true}
+      user_id: {type: ref, to: user, required: true}
+    submission_criteria: [actor_holds_action_role]
+
+  release_quarantine:
+    roles: [supervisor]
+    audit: true
+    parameters:
+      record_id: {type: ref, to: source_record, required: true}
+      note:      {type: text, required: true}
+    submission_criteria: [actor_holds_action_role]
+
+  seal_record:                                          # Phase 7
+    roles: [supervisor]
+    audit: true
+    parameters:
+      resource_id: {type: identifier, required: true}
+      reason:      {type: text, required: true}
+    submission_criteria: [actor_holds_action_role]

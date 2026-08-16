@@ -321,16 +321,26 @@ actions:
 
 ### 6.1 What `parameters` are
 
-`parameters` declare an action's **public request contract** — what an API or
-SDK caller may send. They are not the service function's Python keyword
-surface: `ActionService._create_claim` also takes mention anchors and
-resolution hints that acceptance dispatch supplies internally, and those are
-not caller input.
+`parameters` declare an action's **public request contract** — what an API,
+CLI, SDK, or pipeline caller may send.
+
+> **Corrected at T34.** This section originally said the declaration is *not*
+> the service function's keyword surface, on the assumption that mention
+> anchors and entity-type hints were internal. Reading them, they are not:
+> `subject_mention_id` is a claim field ADR-029 rule 1 *requires* for
+> observed/reported claims, and an extraction producer is exactly who supplies
+> it. `record_claim` declares all 27, and the two surfaces coincide.
 
 - The declaration generates the action's request model; an **undeclared
-  parameter is rejected** by that model.
+  parameter is rejected** by it. For the twelve actions with typed Python
+  signatures, an unknown keyword is refused earlier still by `TypeError`;
+  `record_claim(**claim)` is the free-form surface where the model is the gate.
 - `required` and `default` mirror what the hand-written `ClaimIn` encodes
   today, so T34 is a migration of an existing contract, not a new one.
+- **Defaults flow through the model to the write.** `_require_action` returns
+  the validated parameters and `record_claim` forwards those, so
+  `{type: assertion_type, default: reported}` is where the default lives —
+  not in a Python signature that could drift from it.
 - Platform actions are declared in the **platform module** (§2.2), which is why
   a domain module can never widen the claim envelope.
 
@@ -373,11 +383,17 @@ enforced.
 P3 registers exactly three, each making an **existing** policy declarative
 rather than inventing a new one:
 
-| Criterion | Meaning | Today |
+| Criterion | Meaning | How T34 implements it |
 |---|---|---|
-| `actor_holds_action_role` | the actor holds one of the action's `roles` | enforced at the API layer for every action, and in `_require_action` only when an `ActionContext` carrying roles is passed — which happens for `adjudicate_identity` alone (D5) |
-| `actor_is_case_member` | when the target is case-scoped, the actor has the case relation the action needs | enforced at the API layer via `fga_check_or_404` |
+| `actor_holds_action_role` | the actor holds one of the action's `roles` | was enforced in `_require_action` only when an `ActionContext` carrying roles was passed — `adjudicate_identity` alone (D5). Every API route now supplies `roles`, so all thirteen are gated |
+| `actor_is_case_member` | a case-scoped write is made by a member of that case | checked against the canonical `case_member` table, not OpenFGA: FGA is a projection of those rows (ADR-014), the row is the fact, and reading it costs no network call inside the write's transaction. The API's `fga_check_or_404` stays where it is — it answers a *read* question that must not become a 403 here |
 | `second_approver_present` | a distinct second actor is present where `dual_control_for` fires | already implemented in `_require_action`; restated as a criterion so all three read the same way |
+
+**Who they apply to.** The first two skip when `context.roles` is empty, which
+is the platform's signal for "no authenticated person is asking" — the
+migration adapter, the CLI, the fixture loader and the projection rebuilder
+hold no roles and are not case members. Gating them on human authorization
+would mean inventing a service account for every maintenance command.
 
 Criteria that future phases need — `target_not_sealed` (P7 sealing),
 `within_legal_authority` (P7 legal-authority objects) — are **not declared

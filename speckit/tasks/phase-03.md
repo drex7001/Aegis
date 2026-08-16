@@ -131,7 +131,7 @@ CI. The history chain starts at 1.4.0; earlier versions predate the tooling.
 
 ## Milestone C — Actions v2 schema
 
-**T34. ⛓ Actions v2 declarations + enforcement** (spec 08 §6, §9 rules 15–17;
+**T34. ⛓ Actions v2 declarations + enforcement — DONE (2026-08-17)** (spec 08 §6, §9 rules 15–17;
 ADR-040; needs T33) — `parameters` (closed type list → generated Pydantic
 request models emitted as a third `aegis ontology generate` target; undeclared
 parameters rejected) and `submission_criteria` (the three registered predicates
@@ -149,6 +149,21 @@ with actor, action, failed criterion and target (charter exit); the validator
 rejects unknown parameter types, missing type modifiers, a `json` parameter
 with no registered schema, and unregistered criterion names; every Phase 1–2
 call site passes context and stays green.
+
+AC met by 23 cases in `tests/contract/test_actions_v2.py` (validator) and 13 in
+`tests/integration/test_actions_v2.py` (enforcement, including the charter's
+audited-denial criterion and that the denial survives a rolled-back caller
+transaction). All thirteen actions declare parameters; `record_claim` declares
+all 27 claim-envelope fields in the **platform** module, which is what makes
+"a domain module cannot widen the claim envelope" a property of the
+composition. Every API route now passes `roles`, closing the ADR-040 gap.
+
+Two findings during implementation, both recorded in spec 08 §6.1: the
+"parameters are not the Python keyword surface" claim was wrong for
+`record_claim` (mention anchors are caller input — ADR-029 rule 1 requires
+them), and a declared `default` only means something if the validated
+parameters are what reach the write, so `_require_action` returns them and
+`record_claim` forwards those rather than its own kwargs.
 
 ## Milestone D — Change management
 

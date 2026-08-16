@@ -247,6 +247,111 @@ def typescript_constants(ontology: Ontology) -> str:
 # ── the entry point ─────────────────────────────────────────────────────────
 
 
+#: Declared parameter type -> the Python annotation the generated model uses.
+#: Deliberately loose where the ontology already validates the value: a
+#: `predicate` is a `str` here because `ActionService` checks it against the
+#: registry with an error naming the YAML path, and a generated `Literal` of 33
+#: predicates would move that error somewhere less useful and churn on every
+#: ontology bump.
+_PARAMETER_ANNOTATIONS: dict[str, str] = {
+    "text": "str",
+    "identifier": "str",
+    "ref": "str",
+    "predicate": "str",
+    "object_type": "str",
+    "literal": "Any",
+    "handling_code": "str",
+    "source_type": "str",
+    "grade": "str",
+    "grading_scheme": "str",
+    "assertion_type": "str",
+    "enum": "str",
+    "bool": "bool",
+    "int": "int",
+    "decimal": "Decimal",
+    "date": "date",
+    "timestamp": "datetime",
+    "json": "dict[str, Any]",
+}
+
+
+def action_request_models(ontology: Ontology) -> str:
+    """Pydantic request models generated from the declared `parameters`.
+
+    One model per action, `extra="forbid"`, so an undeclared parameter is
+    rejected by the model rather than reaching the service as a stray keyword
+    (spec 08 §6.1). Types stay broad where the actions layer already validates
+    the value against the registry — the generated model's job is the *shape*
+    of the request, not a second copy of the vocabulary.
+    """
+    lines: list[str] = [
+        '"""Action request models generated from the ontology (spec 08 §6.1).',
+        "",
+        f"{DO_NOT_EDIT}",
+        "",
+        "One model per declared action. ``extra='forbid'`` is the whole point:",
+        "a parameter the ontology does not declare is rejected here, so no",
+        "caller can reach a field the ontology never described.",
+        '"""',
+        "",
+        "from __future__ import annotations",
+        "",
+        "from datetime import date, datetime",
+        "from decimal import Decimal",
+        "from typing import Any",
+        "",
+        "from pydantic import BaseModel, ConfigDict",
+        "",
+    ]
+    exported: list[str] = []
+    for action_name in sorted(ontology.actions):
+        spec = ontology.actions[action_name]
+        model = "".join(part.title() for part in action_name.split("_")) + "Request"
+        exported.append(model)
+        lines += [
+            "",
+            "",
+            f"class {model}(BaseModel):",
+            f'    """Declared parameters of the `{action_name}` action."""',
+            "",
+            '    model_config = ConfigDict(extra="forbid")',
+            "",
+        ]
+        if not spec.parameters:
+            lines.append("    pass")
+            continue
+        # Required fields first: Python has no such requirement for keyword
+        # models, but reading the required contract at the top is worth the sort.
+        ordered = sorted(
+            spec.parameters.items(), key=lambda item: (not item[1].required, item[0])
+        )
+        for name, parameter in ordered:
+            annotation = _PARAMETER_ANNOTATIONS[parameter.type]
+            if parameter.many:
+                annotation = f"list[{annotation}]"
+            if parameter.required:
+                lines.append(f"    {name}: {annotation}")
+            elif parameter.default is None:
+                lines.append(f"    {name}: {annotation} | None = None")
+            else:
+                # A declared default means the value is never absent, so the
+                # annotation stays non-optional and callers cannot pass None to
+                # "mean the default".
+                lines.append(f"    {name}: {annotation} = {parameter.default!r}")
+
+    lines += [
+        "",
+        "",
+        "#: action name -> generated request model.",
+        "REQUEST_MODELS: dict[str, type[BaseModel]] = {",
+    ]
+    for action_name in sorted(ontology.actions):
+        model = "".join(part.title() for part in action_name.split("_")) + "Request"
+        lines.append(f'    "{action_name}": {model},')
+    lines += ["}", "", f"__all__ = {sorted(exported + ['REQUEST_MODELS'])!r}", ""]
+    return "\n".join(lines)
+
+
 def plan(
     composition: Composition,
     ontology: Ontology,
@@ -274,6 +379,10 @@ def plan(
             GeneratedFile(
                 repo_root / "ui" / "src" / "api" / "ontology.ts",
                 typescript_constants(ontology),
+            ),
+            GeneratedFile(
+                repo_root / "aegis" / "actions" / "_generated" / "requests.py",
+                action_request_models(ontology),
             ),
         ]
     )

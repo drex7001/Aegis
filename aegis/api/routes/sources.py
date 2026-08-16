@@ -118,7 +118,7 @@ def release_record(
 
     service = ActionService(session, ontology)
     row = service.release_quarantine(
-        ActionContext(actor=auth.user.sub, purpose=auth.purpose),
+        ActionContext(actor=auth.user.sub, purpose=auth.purpose, roles=auth.user.roles),
         record_id=record_id,
         note=note or "released via API",
     )

@@ -35,14 +35,14 @@ def open_case(
 ) -> CaseFile:
     service = ActionService(session, ontology)
     row = service.open_case(
-        ActionContext(actor=auth.user.sub, purpose=auth.purpose),
+        ActionContext(actor=auth.user.sub, purpose=auth.purpose, roles=auth.user.roles),
         title=body.title,
         purpose=body.purpose,
         handling_code=body.handling_code,
     )
     # The opener becomes a supervisor of the case so they can view/manage it.
     service.assign_case_member(
-        ActionContext(actor=auth.user.sub, purpose=auth.purpose),
+        ActionContext(actor=auth.user.sub, purpose=auth.purpose, roles=auth.user.roles),
         case_id=row.case_id,
         user_id=auth.user.sub,
         role="supervisor",
@@ -89,7 +89,7 @@ def add_member(
         }
     service = ActionService(session, ontology)
     row = service.assign_case_member(
-        ActionContext(actor=auth.user.sub, purpose=auth.purpose),
+        ActionContext(actor=auth.user.sub, purpose=auth.purpose, roles=auth.user.roles),
         case_id=case_id,
         user_id=body.user_id,
         role=body.role,
@@ -124,7 +124,7 @@ def remove_member(
         "object": f"case:{case_id}",
     }
     ActionService(session, ontology).remove_case_member(
-        ActionContext(actor=auth.user.sub, purpose=auth.purpose),
+        ActionContext(actor=auth.user.sub, purpose=auth.purpose, roles=auth.user.roles),
         case_id=case_id,
         user_id=user_id,
     )

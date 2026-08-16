@@ -38,7 +38,7 @@ def register_evidence(
         fga_check_or_404(fga, auth.user, "can_edit", f"case:{body.case_id}")
     service = ActionService(session, ontology)
     row = service.register_evidence(
-        ActionContext(actor=auth.user.sub, purpose=auth.purpose),
+        ActionContext(actor=auth.user.sub, purpose=auth.purpose, roles=auth.user.roles),
         **body.model_dump(),
     )
     session.commit()
@@ -95,7 +95,7 @@ def add_custody_event(
     fga_check_or_404(fga, auth.user, "can_transfer", f"evidence_item:{evidence_id}")
     service = ActionService(session, ontology)
     row = service.add_custody_event(
-        ActionContext(actor=auth.user.sub, purpose=auth.purpose),
+        ActionContext(actor=auth.user.sub, purpose=auth.purpose, roles=auth.user.roles),
         evidence_id=evidence_id,
         **body.model_dump(),
     )
