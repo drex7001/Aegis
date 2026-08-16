@@ -1,0 +1,12 @@
+{
+  "compatibility": null,
+  "content_hash": "2ed063b3d85ae35b9e3ed036e1fb21272dd91d470cbce200ec138305bec660c8",
+  "modules": {
+    "criminal_network": "1.1.0",
+    "platform": "1.1.0"
+  },
+  "previous_content_hash": null,
+  "previous_version": null,
+  "proposal": null,
+  "version": "1.4.0"
+}

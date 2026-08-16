@@ -23,6 +23,7 @@ from aegis.ontology.modules import (
     disabled_vocabulary_in_use,
     is_composition,
     load_composition,
+    registry,
 )
 
 __all__ = [

@@ -111,6 +111,8 @@ jobs:
         # The core must compose a domain it has never seen. Run as its own step
         # so a failure says which composition broke, rather than "ontology".
         run: uv run aegis ontology validate tests/fixtures/ontology/border-cargo-composition.yaml
+      - name: Fail if generated ontology artifacts are stale (T33)
+        run: uv run aegis ontology generate --check
       - if: always()
         run: make down
 

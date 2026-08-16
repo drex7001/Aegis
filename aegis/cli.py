@@ -118,6 +118,67 @@ def ontology_validate(
         )
 
 
+@ontology_app.command("generate")
+def ontology_generate(
+    path: Path = typer.Argument(
+        None, help="Composition manifest (default: AEGIS_ONTOLOGY_PATH)"
+    ),
+    check: bool = typer.Option(
+        False,
+        "--check",
+        help="Exit 1 if any generated file would change; write nothing (CI drift gate).",
+    ),
+) -> None:
+    """Regenerate the artifacts derived from the ontology (spec 08 §8)."""
+    from aegis.config import get_settings
+    from aegis.ontology import OntologyValidationError, compose, registry
+    from aegis.ontology.generate import plan
+
+    target = path or REPO_ROOT / get_settings().ontology_path
+    try:
+        composition = compose(target)
+        ontology = registry(composition)
+    except OntologyValidationError as exc:
+        typer.secho(f"INVALID: {target}", fg=typer.colors.RED, err=True)
+        for error in exc.errors:
+            typer.secho(f"  - {error}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+
+    release = composition.release
+    report = plan(composition, ontology, repo_root=REPO_ROOT, release=release)
+    drifted = report.drifted
+
+    if check:
+        if drifted:
+            typer.secho(
+                "DRIFT: generated artifacts are stale — run `aegis ontology generate`",
+                fg=typer.colors.RED,
+                err=True,
+            )
+            for generated in drifted:
+                typer.secho(
+                    f"  - {generated.path.relative_to(REPO_ROOT)}",
+                    fg=typer.colors.RED,
+                    err=True,
+                )
+            raise typer.Exit(code=1)
+        typer.secho(
+            f"OK: {len(report.files)} generated artifacts are current",
+            fg=typer.colors.GREEN,
+        )
+        return
+
+    for generated in report.files:
+        generated.write()
+    typer.secho(
+        f"generated {len(report.files)} artifacts from {target} "
+        f"(v{ontology.version}); {len(drifted)} changed",
+        fg=typer.colors.GREEN,
+    )
+    for generated in drifted:
+        typer.secho(f"  · {generated.path.relative_to(REPO_ROOT)}", fg=typer.colors.GREEN)
+
+
 @api_app.command("export-openapi")
 def api_export_openapi(
     out: Path = typer.Option(

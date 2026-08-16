@@ -19,9 +19,9 @@ Two design points are load-bearing and easy to get wrong later:
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Literal
 
 import yaml
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
@@ -93,11 +93,26 @@ class CompositionEntry(BaseModel):
     enabled: bool = True
 
 
+class ReleaseDeclaration(BaseModel):
+    """The authored half of the release metadata (spec 08 §7.2).
+
+    Neither field can be derived: which proposal justified a bump and what
+    compatibility class it claims are statements a person makes. The generator
+    records them; T35's CI gate is what makes them mandatory.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    proposal: str | None = None
+    compatibility: Literal["major", "minor", "patch"] | None = None
+
+
 class CompositionManifest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     version: str
     namespace: str
+    release: ReleaseDeclaration = Field(default_factory=ReleaseDeclaration)
     composition: list[CompositionEntry] = Field(min_length=1)
 
 
@@ -123,6 +138,10 @@ class Composition:
     modules: dict[str, ModuleInfo]
     owners: dict[str, str]
     source: str
+    #: The manifest's authored ``release:`` block, carried through so the
+    #: generator can record what a person claimed about this bump without
+    #: re-reading the manifest (spec 08 §7.2).
+    release: dict[str, Any] = field(default_factory=dict)
 
 
 def compose(path: str | Path, data: dict[str, Any] | None = None) -> Composition:
@@ -168,16 +187,21 @@ def compose(path: str | Path, data: dict[str, Any] | None = None) -> Composition
         modules=_module_infos(manifest, parsed),
         owners=owners,
         source=source,
+        release=manifest.release.model_dump(),
+    )
+
+
+def registry(composed: Composition) -> Ontology:
+    """Validate a composed document and stamp its module metadata onto it."""
+    ontology = load_dict(composed.document, source=composed.source)
+    return ontology.model_copy(
+        update={"modules": composed.modules, "owners": composed.owners}
     )
 
 
 def load_composition(path: str | Path, data: dict[str, Any] | None = None) -> Ontology:
     """Resolve a composition manifest into one validated registry."""
-    composed = compose(path, data)
-    ontology = load_dict(composed.document, source=composed.source)
-    return ontology.model_copy(
-        update={"modules": composed.modules, "owners": composed.owners}
-    )
+    return registry(compose(path, data))
 
 
 class _ParsedModule:
