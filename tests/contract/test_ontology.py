@@ -3,6 +3,11 @@
 Strategy: the committed ontology/aegis.yaml must load cleanly; every validation
 rule from spec 01 §6 is exercised by mutating a deep copy of it and asserting a
 precise, path-bearing error message.
+
+Since T30 the committed artifact is a composition manifest (spec 08 §2), so the
+mutation fixture is the **composed** document rather than the raw file. That is
+the stronger test, not a workaround: it proves each spec 01 rule still fires on
+the merged result, which is what every consumer actually reads.
 """
 
 from __future__ import annotations
@@ -11,9 +16,15 @@ import copy
 from pathlib import Path
 
 import pytest
-import yaml
 
-from aegis.ontology import Ontology, OntologyError, OntologyValidationError, load, load_dict
+from aegis.ontology import (
+    Ontology,
+    OntologyError,
+    OntologyValidationError,
+    compose,
+    load,
+    load_dict,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 pytestmark = pytest.mark.requirement("Article-XI", "T3")
@@ -22,8 +33,7 @@ ONTOLOGY_PATH = REPO_ROOT / "ontology" / "aegis.yaml"
 
 @pytest.fixture(scope="module")
 def ontology_data() -> dict:
-    with ONTOLOGY_PATH.open(encoding="utf-8") as fh:
-        return yaml.safe_load(fh)
+    return compose(ONTOLOGY_PATH).document
 
 
 @pytest.fixture()
@@ -43,7 +53,7 @@ def errors_of(data: dict) -> list[str]:
 def test_committed_ontology_loads() -> None:
     ont = load(ONTOLOGY_PATH)
     assert isinstance(ont, Ontology)
-    assert ont.version == "1.2.0"
+    assert ont.version == "1.3.0"
     assert "person" in ont.object_types
     assert "member_of" in ont.predicates
     assert "record_claim" in ont.actions

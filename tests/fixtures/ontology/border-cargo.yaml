@@ -1,0 +1,50 @@
+# border-cargo — a second, entirely fictional domain module (T31, Article XIV).
+#
+# This module exists to be *proof*, not product. It is the executable form of
+# "domains are ontology modules": the core loads it, validates claims against
+# it, and projects a graph from it without a single file under `aegis/`
+# mentioning a consignment or a port. `test_second_domain.py` fails if one ever
+# does.
+#
+# Deliberately unlike criminal-network — different object types, different
+# predicates, no person — so that passing cannot be an accident of the two
+# domains overlapping.
+
+module:
+  name: border_cargo
+  namespace: test/border-cargo
+  version: 1.0.0
+  label: Border cargo (fixture domain)
+  imports:
+    # Load-bearing, not decorative: `port_of_entry.code` declares a
+    # sensitivity, and handling codes are owned by platform. Delete this import
+    # and the composition fails with a precise error (spec 08 §2.3).
+    - module: platform
+      version: ">=1.0.0,<2.0.0"
+
+categories:
+  customs: {label: Customs, color: "#00695c"}
+
+object_types:
+  consignment:
+    label: Consignment
+    properties:
+      reference:   {type: identifier, required: true}
+      description: {type: text}
+    display: {title: reference, subtitle: description}
+
+  port_of_entry:
+    label: Port of entry
+    properties:
+      name: {type: text, required: true}
+      code: {type: identifier, sensitivity: restricted}
+    display: {title: name, subtitle: code}
+
+predicates:
+  # A literal-object predicate: what the paperwork said the cargo was.
+  declared_as:      {subject: [consignment], object: literal, category: customs}
+  # An entity-object predicate, so the edge projection has something to build.
+  cleared_at:       {subject: [consignment], object: [port_of_entry], category: customs}
+  # An identifier predicate, so the deterministic ER rules pick this domain up
+  # without knowing anything about bills of lading (spec 05 §3.1).
+  manifested_under: {subject: [consignment], object: literal, identifier: true, category: customs}

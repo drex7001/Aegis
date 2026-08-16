@@ -1,0 +1,64 @@
+# Aegis platform module — governance and epistemic vocabulary (spec 08 §2.2).
+#
+# What belongs here is what stays true when the domain changes: how a claim is
+# graded, how sensitive it is, what kind of source it came from, and which
+# actions a human may take. Article XIV's "the core is domain-neutral" is this
+# file's boundary — it declares no object type and no predicate, so a second
+# domain replaces `criminal-network.yaml` and leaves this one alone.
+#
+# Versioning follows spec 01 §4 at the module level; the composition version in
+# ../aegis.yaml is what claims stamp (ADR-037).
+
+module:
+  name: platform
+  namespace: aegis.lk/platform
+  version: 1.0.0
+  label: Platform governance vocabulary
+  # No imports: platform is the root of the composition. Everything else
+  # imports it, which is why a cycle here would be a contradiction.
+
+# Ordered low → high; index = clearance level required (spec 03).
+handling_codes: [open, restricted, sensitive]
+
+source_types:
+  - open_source          # press, Wikipedia, public web
+  - court_record         # judgments, remand lists
+  - commission_report    # PCoI and similar
+  - government_system    # registries, official databases (future, authorized)
+  - human                # human source reporting (future; informant compartment rules apply)
+  - sensor               # camera/technical collection (future, authorized)
+  - investigator         # direct investigator observation / curated entry
+  - algorithmic          # model output — may only source *suggestions* (Article VII)
+
+grading:
+  reliability:            # of the source (graded on the source, not per claim)
+    normalized: [reliable, generally_reliable, unknown, unreliable]
+  credibility:            # of the information (per claim)
+    normalized: [confirmed, probably_true, possibly_true, doubtful, improbable, cannot_judge]
+  verification: [unverified, partially_corroborated, corroborated, record_confirmed, refuted]
+  analytic_confidence: [low, moderate, high]
+  schemes:                # external grading vocabularies normalized on ingest (ADR-011)
+    admiralty:
+      A: {reliability: reliable}
+      B: {reliability: generally_reliable}
+      C: {reliability: generally_reliable}
+      F: {reliability: unknown}
+
+# Actions are platform vocabulary, not domain vocabulary: a domain module that
+# could declare an action could widen the claim envelope or invent a write path
+# around the review queue. T34 adds `parameters` and `submission_criteria` here
+# (spec 08 §6).
+actions:
+  record_claim:        {roles: [analyst, investigator], audit: true}
+  retract_claim:       {roles: [analyst, supervisor],   audit: true}
+  link_claims:         {roles: [analyst],               audit: true}   # corroborates/contradicts
+  submit_suggestion:   {roles: [analyst, investigator], audit: true}   # also used by pipeline producers
+  review_suggestion:   {roles: [analyst],               audit: true}
+  adjudicate_identity: {roles: [analyst],               audit: true, dual_control_for: [protected_person]}
+  register_evidence:   {roles: [analyst, investigator, evidence_officer], audit: true}
+  transfer_custody:    {roles: [evidence_officer, investigator],          audit: true}
+  open_case:           {roles: [analyst, investigator], audit: true}
+  assign_case_member:  {roles: [supervisor],            audit: true}
+  remove_case_member:  {roles: [supervisor],            audit: true}
+  release_quarantine:  {roles: [supervisor],            audit: true}
+  seal_record:         {roles: [supervisor],            audit: true}   # Phase 7

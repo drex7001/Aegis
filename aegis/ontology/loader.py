@@ -3,6 +3,13 @@
 Validation rules are spec 01 §6. Every violation is reported with the YAML path
 that caused it, and all violations are collected before raising — one run tells
 you everything that is wrong.
+
+Since P3 T30 the committed artifact is a *composition* manifest (spec 08 §2), so
+``load`` dispatches: a document with a ``composition:`` key is resolved by
+``aegis.ontology.modules``, and anything else is validated here as a flat v1
+document. The flat path is not legacy — module files, fixtures, and every
+mutation test in ``tests/contract/test_ontology.py`` are flat documents, and
+spec 08 §9 rule 18 keeps them valid on purpose.
 """
 
 from __future__ import annotations
@@ -137,6 +144,28 @@ class GradingSpec(BaseModel):
         return value.normalized if isinstance(value, GradedScale) else value
 
 
+class ModuleInfo(BaseModel):
+    """A resolved module, as the composed registry reports it (spec 08 §2).
+
+    Lives beside the registry rather than with the manifest parser because it is
+    part of what a caller reads off ``Ontology`` — the manifest models in
+    ``aegis.ontology.modules`` are input shapes and stop existing after a load.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    name: str
+    namespace: str
+    version: str
+    label: str | None = None
+    imports: dict[str, str] = Field(default_factory=dict)
+    enabled: bool = True
+    #: Every name this module declares, sorted. Kept for disabled modules too —
+    #: it is the only way to answer "does anything recorded still speak this
+    #: module's vocabulary?" once the module is out of the registry (§2.6).
+    declares: tuple[str, ...] = ()
+
+
 # ── the registry ────────────────────────────────────────────────────────────
 
 
@@ -153,6 +182,18 @@ class Ontology(BaseModel):
     predicates: dict[str, PredicateSpec]
     event_types: dict[str, Any] = Field(default_factory=dict)  # Phase 4 (spec 01 §2)
     actions: dict[str, ActionSpec]
+
+    #: Resolved modules, populated by the composition loader and empty for a
+    #: flat document — which is exactly right: a flat file is one implicit
+    #: module, and nothing may pretend otherwise.
+    modules: dict[str, ModuleInfo] = Field(default_factory=dict)
+    #: Declared name -> owning module. Derived from where a name is declared
+    #: (ADR-037), never from a hand-written list.
+    owners: dict[str, str] = Field(default_factory=dict)
+
+    def owner_module(self, name: str) -> str | None:
+        """The module that declares ``name``, or None for a flat document."""
+        return self.owners.get(name)
 
     def handling_rank(self, code: str) -> int:
         """Clearance level required for a handling code (index in the ordered list)."""
@@ -342,11 +383,23 @@ def _format_pydantic_errors(exc: ValidationError) -> list[str]:
 # ── entry points ─────────────────────────────────────────────────────────────
 
 
+#: Fields the composition loader fills in. A document that declares them is
+#: asserting an ownership it cannot know, so they are rejected on input rather
+#: than silently overwritten.
+_LOADER_OWNED_FIELDS = ("modules", "owners")
+
+
 def load_dict(data: dict[str, Any], source: str = "<dict>") -> Ontology:
-    """Validate a parsed ontology mapping; raise OntologyValidationError with every
-    violation, or return the frozen registry."""
+    """Validate a parsed *flat* ontology mapping; raise OntologyValidationError with
+    every violation, or return the frozen registry."""
     if not isinstance(data, dict):
         raise OntologyValidationError([f"top level must be a mapping, got {type(data).__name__}"], source)
+    reserved = [field for field in _LOADER_OWNED_FIELDS if field in data]
+    if reserved:
+        raise OntologyValidationError(
+            [f"{field}: populated by the composition loader, not declared" for field in reserved],
+            source,
+        )
     try:
         ont = Ontology.model_validate(data)
     except ValidationError as exc:
@@ -359,10 +412,17 @@ def load_dict(data: dict[str, Any], source: str = "<dict>") -> Ontology:
 
 
 def load(path: str | Path) -> Ontology:
-    """Load and validate an ontology YAML file."""
+    """Load and validate an ontology artifact — a composition manifest or a flat file."""
     path = Path(path)
     if not path.exists():
         raise OntologyError(f"ontology file not found: {path}")
     with path.open("r", encoding="utf-8") as fh:
         data = yaml.safe_load(fh)
+
+    # Imported here rather than at module scope: `modules` imports this file for
+    # the registry model and the shared error type.
+    from aegis.ontology.modules import is_composition, load_composition
+
+    if is_composition(data):
+        return load_composition(path, data)
     return load_dict(data, source=str(path))

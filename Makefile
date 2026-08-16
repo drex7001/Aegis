@@ -57,8 +57,9 @@ test-coverage:
 		--cov=aegis --cov-branch --cov-report=term-missing --cov-report=xml
 	uv run coverage report
 
-lint-ontology:
-	.venv/bin/aegis ontology validate
+lint-ontology:     ## validate the composition + the second-domain fixture (Article XI/XIV)
+	uv run aegis ontology validate
+	uv run aegis ontology validate tests/fixtures/ontology/border-cargo-composition.yaml
 
 # ── workspace (ui/, T22) ────────────────────────────────────────────────────
 

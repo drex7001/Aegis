@@ -32,7 +32,7 @@ AC met: spec 08 status draft → final with the module section; every retained v
 feature names its consumer; excluded machinery listed in §11 with its trigger
 phase.
 
-**T30. ⛓ Module loader & composition** (spec 08 §2, §9 rules 8–12; needs T29) —
+**T30. ⛓ Module loader & composition — DONE (2026-08-17)** (spec 08 §2, §9 rules 8–12; needs T29) —
 loader resolves the composition manifest into one registry: module manifests,
 PEP 440 import constraints, cross-module reference validation, name-collision
 detection, derived `owner_module`, enable/disable. Split `ontology/aegis.yaml`
@@ -49,7 +49,7 @@ name collision across modules fails validation; a pinned version that
 contradicts an importer's specifier fails; `aegis ontology validate` reports
 per-module names, namespaces and versions.
 
-**T31. Second-domain proof fixture** (Article XIV, ADR-037; needs T30) — a tiny
+**T31. Second-domain proof fixture — DONE (2026-08-17)** (Article XIV, ADR-037; needs T30) — a tiny
 fictional `border-cargo` module (≈2 object types, 3 predicates, 1 interface
 implementation once T32 lands) in `tests/fixtures/ontology/`; CI loads
 platform + fixture module and runs claim record/read + projection round-trip
@@ -58,6 +58,19 @@ AC: the fixture round-trips through actions, API, and projection with **zero
 core-code change** — the test fails if any file under `aegis/` needs a domain
 edit; disabling the module removes its vocabulary from validation; the
 criminal-network module is not loaded for this run and nothing breaks.
+
+AC met by `tests/contract/test_second_domain.py` (6 cases, including the
+string sweep over every file in `aegis/`) and
+`tests/integration/test_second_domain.py` (4 cases: claim round-trip, literal
+predicate, validation still constrains, projection builds a graph grouped by
+the fixture's own category). **One defect found and fixed in the process**:
+`build_graph` emitted a segment whose endpoint the graph had excluded (an
+entity tombstoned by a canonical-map rebuild that the projection had not caught
+up with), using the raw entity id as the node reference — which made
+`detect_cells` die with an opaque `KeyError` instead of returning a graph. Such
+segments are now dropped, with a regression case in
+`tests/integration/test_edge_projection.py` that reproduces the exact failure
+without the fix.
 
 ## Milestone B — Semantic layer v2 & generation
 

@@ -104,6 +104,18 @@ def ontology_validate(
         f"{len(ont.categories)} categories, {len(ont.actions)} actions",
         fg=typer.colors.GREEN,
     )
+    # Per-module lines, so "which version of which module composed this?" is
+    # answerable from the gate itself rather than by reading four files
+    # (spec 08 §2, T30). A flat document reports none, which is honest: it is
+    # one implicit module.
+    for name in sorted(ont.modules):
+        info = ont.modules[name]
+        state = "" if info.enabled else "  [disabled]"
+        typer.secho(
+            f"  · {name} v{info.version} ({info.namespace}) — "
+            f"{len(info.declares)} declared names{state}",
+            fg=typer.colors.GREEN if info.enabled else typer.colors.YELLOW,
+        )
 
 
 @api_app.command("export-openapi")
