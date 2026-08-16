@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 
-pytestmark = pytest.mark.requirement("ADR-025", "M-01", "T28")
+pytestmark = pytest.mark.requirement("ADR-025", "M-01", "T28", "T29")
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -41,13 +41,21 @@ def test_status_surfaces_agree_on_the_phase_boundary() -> None:
     roadmap = _read("speckit/roadmap.md")
     phase_2_tasks = _read("speckit/tasks/phase-02.md")
     phase_3_tasks = _read("speckit/tasks/phase-03.md")
+    phase_3_charter = _read("speckit/phases/phase-03-ontology-v2.md")
 
     assert "Milestones I and II (Phases 0–2) are complete" in root_readme
     assert "Active phase: Phase 2" not in root_readme
     assert "DONE, ★ MVP gate passed" in kit_readme
     assert "Milestone II — MVP *(complete 2026-07-20)*" in roadmap
     assert "Status: COMPLETE 2026-07-20 — ★ MVP GATE PASSED" in phase_2_tasks
-    assert "READY FOR T29 RE-VALIDATION, NOT ACTIVE" in phase_3_tasks
+
+    # Phase 3 opened on 2026-08-17 with T29's re-validation (ADR-025 requires it
+    # before any other P3 task). Until then this asserted the phase had *not*
+    # started; the guard still exists for the same reason — the surfaces must
+    # agree on where work is — it just now has a later boundary to hold.
+    assert "Status: ACTIVE — T29 complete" in phase_3_tasks
+    assert "Status: **ACTIVE**" in phase_3_charter
+    assert "Active phase: Phase 3" in root_readme
 
 
 def test_phase_2_release_version_and_tag_are_pinned() -> None:

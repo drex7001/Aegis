@@ -2,9 +2,14 @@
 
 Status: implemented in Phase 1 (v1 reference) · Owner: analyst · Constitutional basis: Article XI
 
-> **v2 note:** Phase 3 extends this DSL with interfaces, shared properties,
-> functions, actions v2, change management, and generated SDKs — see
-> `08-ontology-v2.md` (ADR-021). Everything below remains valid; v2 is additive.
+> **v2 note:** Phase 3 extends this DSL with **module composition** (the
+> headline — `ontology/aegis.yaml` becomes a manifest over a platform module
+> plus domain modules, ADR-037), interfaces, shared properties, actions v2, and
+> change management — see `08-ontology-v2.md`, narrowed by ADR-033. Everything
+> below remains valid and applies to the *composed* registry; v2 is additive.
+> The two exceptions, both corrected by T29: §5's codegen targets never existed
+> (ADR-038 — see the note there), and functions/SDKs moved to their consumer
+> phases (spec 08 §11).
 
 ## 1. Purpose
 
@@ -140,8 +145,21 @@ can *reject* any action declared without it.
   the same change, and the previous ontology version kept in `ontology/history/`.
 - Claims store the ontology version current at `recorded_at`; the loader must be able
   to interpret all historical versions (or a migration must have upgraded the rows).
+- **Under composition (P3, ADR-037)** these rules apply at two levels: each module
+  carries its own semver and the composition carries its own. `claim.ontology_version`
+  stores the **composition** version, so existing stamped values keep their meaning.
+  Spec 08 §7 defines the release artifact every bump is compared against.
 
 ## 5. Codegen targets (`aegis ontology generate`)
+
+> **Corrected by T29 (ADR-038).** This section described three targets as
+> Phase 1 deliverables. **None was built**: the CLI has only `aegis ontology
+> validate`, `infra/fga/model.fga` is hand-written and declares no domain object
+> type, and the workspace reads vocabulary from `GET /v1/ontology/vocabulary`
+> rather than a generated descriptor file. The table below is the original
+> intent, retained for reference; **spec 08 §8 is authoritative** and assigns
+> each target to the phase whose consumer needs it — three land in P3, the rest
+> in P4/P7/P8.
 
 | Target | Output | Used by |
 |---|---|---|
@@ -150,7 +168,8 @@ can *reject* any action declared without it.
 | UI descriptors | `aegis/api/_generated/ui_meta.json` | generic entity screens (Phase 4) |
 
 Generated files are committed; CI fails if regeneration produces a diff (ontology and
-code drifted).
+code drifted). That discipline is unchanged — it now applies to generators that
+exist.
 
 DB constraints are deliberately **not** a codegen target (ADR-013): vocabulary columns
 stay TEXT and are validated at write time by the actions layer against this registry.

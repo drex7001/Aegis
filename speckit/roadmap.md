@@ -160,20 +160,26 @@ re-validation of its pre-authored plan against the P2-as-built system.
 
 ## Milestone III — Ontology platform
 
-### Phase 3 — Ontology modules & contracts *(GOAL.md §7.8–7.10 · effort: M · ADR-021 narrowed by ADR-033)*
+### Phase 3 — Ontology modules & contracts *(ACTIVE from 2026-08-17 · GOAL.md §7.8–7.10 · effort: M · ADR-021 narrowed by ADR-033, amended by ADR-037…040)*
 
 **Goal.** Make "domains are ontology modules" true, and give the workspace a
 typed contract. Charter: `phases/phase-03-ontology-v2.md` · spec:
-`specs/08-ontology-v2.md` · tasks: `tasks/phase-03.md` (re-validated at start).
+`specs/08-ontology-v2.md` (final) · tasks: `tasks/phase-03.md` (re-validated by
+T29, whose six divergences are recorded in spec 08 §0).
 
 **Deliverables (summary)** — **module composition** (platform module + domain
 module manifests, namespaces, imports/versions, enable/disable; a tiny second
 fictional domain in CI proving zero core-code change — B-07); interfaces +
-shared property types; ontology change management (proposals, history, CI
-gates); stable OpenAPI operation IDs + generated TypeScript client consumed by
-the P2-born workspace. **Moved out** (each lands with its first consumer):
-functions execution machinery (first consumer: P5/P6 derived records),
-generalized side-effect outbox, Python SDK (first consumer: P8 producers).
+shared property types; actions v2 declarations enforced at the write with
+audited denials (ADR-040); ontology change management (proposals, a composed
+release artifact per bump, CI gates); the error envelope in the OpenAPI
+contract plus ontology-derived constants for the workspace's already-generated
+TypeScript client (ADR-039). **Moved out** (each lands with its first
+consumer): functions execution machinery (first consumer: P5/P6 derived
+records), generalized side-effect outbox, Python SDK (first consumer: P8
+producers), UI-descriptor codegen (P4) and FGA-stub codegen (P7) — the three
+codegen targets spec 01 §5 called Phase 1 deliverables were never built
+(ADR-038).
 
 **Exit criteria.** A new predicate added via a domain module + proposal flows
 to API validation and the TS client with zero hand-written domain code; the

@@ -53,9 +53,11 @@ The governed MVP now includes:
   `aegis serve` on the same origin as the API.
 - **API v1 + `aegis` CLI**, migrations, backup/restore runbook.
 
-**Next phase: Phase 3 — ontology modules and contracts.** It is ready but not
-active: T29 must first re-validate the pre-authored plan against the Phase 2
-system. See [`speckit/tasks/phase-03.md`](speckit/tasks/phase-03.md). The full
+**Active phase: Phase 3 — ontology modules and contracts** (opened 2026-08-17).
+T29 re-validated the pre-authored plan against the Phase 2 system; its six
+divergences are recorded in
+[`speckit/specs/08-ontology-v2.md`](speckit/specs/08-ontology-v2.md) §0 and
+ADR-037…040. See [`speckit/tasks/phase-03.md`](speckit/tasks/phase-03.md). The full
 roadmap to production is [`speckit/roadmap.md`](speckit/roadmap.md); the
 external-review disposition is
 [`speckit/reviews/2026-07-18-external-review-disposition.md`](speckit/reviews/2026-07-18-external-review-disposition.md).
@@ -127,7 +129,7 @@ commands and results in the pull request.
 |---|---|
 | `ontology/` | **The domain artifact** (`aegis.yaml`) everything derives from (Article XI), plus change proposals and version history (Phase 3) |
 | `aegis/` | Platform core package — domain-neutral (Article XIV): ontology loader/codegen, actions, queries, authz, audit, store, evidence, ingestion, ER, projections, API, plus scaffolded homes for functions (P3), search/analytics (P6), sharing (P7), and controlled AI (P8) |
-| `sdk/` | Generated Python + TypeScript clients (Phase 3, spec 08) — committed codegen output, never hand-edited |
+| `sdk/` | Reserved for clients published outside this repo. Empty by decision: the TypeScript surface is generated into `ui/` while `ui/` is its only consumer, and the Python SDK lands with its P8 producers (ADR-038, ADR-039) |
 | `ui/` | React + TypeScript investigation workspace (ADR-032) — the single durable UI, landed at Phase 2 T22 and grown in place from there |
 | `migrations/` | Alembic schema migrations |
 | `infra/` | Compose stack + bootstrap (PostgreSQL/PostGIS, MinIO, Keycloak, OpenFGA) |
