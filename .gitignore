@@ -124,6 +124,13 @@ backups/
 # T26 fictional ER golden set (committed numeric quality-gate input)
 !data/sample/mvp/er-golden-set.json
 
+# T33 generated ontology artifacts (spec 08 §8). Committed on purpose: the
+# release chain and the compatibility diff compare against a *committed*
+# artifact rather than reading git history (H-16), and `aegis ontology generate
+# --check` fails CI when they are stale.
+!ontology/release.json
+!ontology/history/*.json
+
 # T22 workspace: tracked JSON exceptions to *.json above. The lockfile is not
 # optional — `npm ci` in the workspace CI job refuses to run without it (T16c),
 # and openapi.json is the contract the typed client is generated from.

@@ -1,2 +1,10 @@
 # Shell scripts must stay LF — they run inside Linux containers.
 *.sh text eol=lf
+
+# Generated ontology artifacts (spec 08 §8) are byte-compared by
+# `aegis ontology generate --check`. The generator always writes LF, so without
+# these a Windows checkout (core.autocrlf=true) rewrites them to CRLF and the
+# drift gate fails on a tree nobody touched.
+ontology/release.json    text eol=lf
+ontology/history/*.json  text eol=lf
+ui/src/api/ontology.ts   text eol=lf
