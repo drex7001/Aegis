@@ -5,7 +5,7 @@
  * Regenerate with `aegis ontology generate`; CI fails on drift.
  */
 
-export const ONTOLOGY_VERSION = "1.4.0" as const;
+export const ONTOLOGY_VERSION = "1.5.0" as const;
 export const ONTOLOGY_NAMESPACE = "aegis.lk" as const;
 
 /** Ordered low to high — the index is the clearance level (spec 03). */

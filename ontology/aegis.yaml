@@ -16,7 +16,19 @@
 # (requires migration + copy in ontology/history/). The composition's class is
 # the strongest class among its modules' changes plus its own manifest changes.
 
-version: 1.4.0   # minor: shared properties + interfaces (T32, ADR-041).
+version: 1.5.0   # minor: action parameters, submission criteria and side-effect
+                 # declarations (T34, ADR-040).  Additive — no action, role or
+                 # dual-control rule changed, and the parameters describe the
+                 # request contract that already existed.
+                 #
+                 # The composition bumps because a module did: spec 08 §7.4
+                 # makes the composition's class the strongest among its
+                 # modules' changes plus its own manifest changes, and this
+                 # manifest now pins platform 1.2.0.  A claim stamped 1.4.0 and
+                 # one stamped 1.5.0 were recorded under different action
+                 # contracts, so they must not carry the same version.
+                 #
+                 # 1.4.0: shared properties + interfaces (T32, ADR-041).
                  # Additive — `party` and `identifiable` are new, and the three
                  # properties that became `shared:` references resolve to the
                  # same type and sensitivity they already had.

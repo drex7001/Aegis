@@ -1,12 +1,12 @@
 {
   "compatibility": null,
-  "content_hash": "a05c20e89a5ce1e5401730ef8b0c1f183b6d77b9e8750f1f91bbd1f6518fd888",
+  "content_hash": "989fb3b12c2ef56b2f854afb24c4fbfd8eae3204168fb90efac3b215c7a8e955",
   "modules": {
     "criminal_network": "1.1.0",
     "platform": "1.2.0"
   },
-  "previous_content_hash": null,
-  "previous_version": null,
+  "previous_content_hash": "2ed063b3d85ae35b9e3ed036e1fb21272dd91d470cbce200ec138305bec660c8",
+  "previous_version": "1.4.0",
   "proposal": null,
-  "version": "1.4.0"
+  "version": "1.5.0"
 }
