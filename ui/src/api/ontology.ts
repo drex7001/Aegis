@@ -14,7 +14,7 @@ export const SOURCE_TYPES = ["algorithmic", "commission_report", "court_record",
 
 export const MODULES = {
   "criminal_network": { version: "1.1.0", namespace: "aegis.lk/criminal-network", enabled: true },
-  "platform": { version: "1.1.0", namespace: "aegis.lk/platform", enabled: true },
+  "platform": { version: "1.2.0", namespace: "aegis.lk/platform", enabled: true },
 } as const;
 
 export const OBJECT_TYPES = {

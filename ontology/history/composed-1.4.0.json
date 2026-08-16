@@ -3,7 +3,7 @@
     {
       "enabled": true,
       "imports": {
-        "platform": ">=1.1.0,<2.0.0"
+        "platform": ">=1.2.0,<2.0.0"
       },
       "name": "criminal_network",
       "namespace": "aegis.lk/criminal-network",
@@ -14,7 +14,7 @@
       "imports": {},
       "name": "platform",
       "namespace": "aegis.lk/platform",
-      "version": "1.1.0"
+      "version": "1.2.0"
     }
   ],
   "namespace": "aegis.lk",
@@ -25,87 +25,549 @@
         "dual_control_for": [
           "protected_person"
         ],
+        "parameters": {
+          "candidate_id": {
+            "type": "identifier"
+          },
+          "entity_id": {
+            "to": "entity",
+            "type": "ref"
+          },
+          "evidence_basis": {
+            "type": "text"
+          },
+          "mention_a": {
+            "to": "mention",
+            "type": "ref"
+          },
+          "mention_b": {
+            "to": "mention",
+            "type": "ref"
+          },
+          "mention_ids": {
+            "many": true,
+            "to": "mention",
+            "type": "ref"
+          },
+          "mode": {
+            "required": true,
+            "type": "enum",
+            "values": [
+              "confirm_match",
+              "reject_match",
+              "split_entity",
+              "mark_unresolved"
+            ]
+          },
+          "note": {
+            "required": true,
+            "type": "text"
+          },
+          "parent_revision_id": {
+            "required": true,
+            "type": "int"
+          },
+          "protected_person": {
+            "default": false,
+            "type": "bool"
+          },
+          "target_entity_id": {
+            "to": "entity",
+            "type": "ref"
+          }
+        },
         "roles": [
           "analyst"
+        ],
+        "side_effects": [
+          {
+            "refresh_projection": "edge_projection"
+          }
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role",
+          "second_approver_present"
         ]
       },
       "assign_case_member": {
         "audit": true,
+        "parameters": {
+          "case_id": {
+            "required": true,
+            "to": "case",
+            "type": "ref"
+          },
+          "role": {
+            "required": true,
+            "type": "enum",
+            "values": [
+              "supervisor",
+              "investigator",
+              "analyst",
+              "auditor"
+            ]
+          },
+          "user_id": {
+            "required": true,
+            "to": "user",
+            "type": "ref"
+          }
+        },
         "roles": [
           "supervisor"
+        ],
+        "side_effects": [
+          {
+            "notify": "case_supervisors"
+          }
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role"
         ]
       },
       "link_claims": {
         "audit": true,
+        "parameters": {
+          "from_claim": {
+            "required": true,
+            "to": "claim",
+            "type": "ref"
+          },
+          "relation": {
+            "required": true,
+            "type": "enum",
+            "values": [
+              "corroborates",
+              "contradicts"
+            ]
+          },
+          "to_claim": {
+            "required": true,
+            "to": "claim",
+            "type": "ref"
+          }
+        },
         "roles": [
           "analyst"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role"
         ]
       },
       "open_case": {
         "audit": true,
+        "parameters": {
+          "case_id": {
+            "type": "identifier"
+          },
+          "handling_code": {
+            "default": "open",
+            "type": "handling_code"
+          },
+          "purpose": {
+            "required": true,
+            "type": "text"
+          },
+          "title": {
+            "required": true,
+            "type": "text"
+          }
+        },
         "roles": [
           "analyst",
           "investigator"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role"
         ]
       },
       "record_claim": {
         "audit": true,
+        "parameters": {
+          "analytic_confidence": {
+            "dimension": "analytic_confidence",
+            "type": "grade"
+          },
+          "assertion_type": {
+            "default": "reported",
+            "type": "assertion_type"
+          },
+          "case_id": {
+            "to": "case",
+            "type": "ref"
+          },
+          "claim_id": {
+            "type": "identifier"
+          },
+          "collection_method": {
+            "type": "enum",
+            "values": [
+              "extracted",
+              "curated",
+              "manual",
+              "imported"
+            ]
+          },
+          "credibility_normalized": {
+            "default": "cannot_judge",
+            "dimension": "credibility",
+            "type": "grade"
+          },
+          "credibility_original": {
+            "type": "text"
+          },
+          "credibility_scheme": {
+            "type": "grading_scheme"
+          },
+          "event_time_earliest": {
+            "type": "timestamp"
+          },
+          "event_time_latest": {
+            "type": "timestamp"
+          },
+          "excerpt": {
+            "type": "text"
+          },
+          "handling_code": {
+            "default": "open",
+            "type": "handling_code"
+          },
+          "jurisdiction": {
+            "type": "text"
+          },
+          "location_text": {
+            "type": "text"
+          },
+          "object_entity_type": {
+            "type": "object_type"
+          },
+          "object_id": {
+            "to": "entity",
+            "type": "ref"
+          },
+          "object_mention_id": {
+            "to": "mention",
+            "type": "ref"
+          },
+          "object_value": {
+            "type": "literal"
+          },
+          "predicate": {
+            "required": true,
+            "type": "predicate"
+          },
+          "record_id": {
+            "required": true,
+            "to": "source_record",
+            "type": "ref"
+          },
+          "subject_entity_type": {
+            "type": "object_type"
+          },
+          "subject_id": {
+            "to": "entity",
+            "type": "ref"
+          },
+          "subject_mention_id": {
+            "to": "mention",
+            "type": "ref"
+          },
+          "supersedes": {
+            "to": "claim",
+            "type": "ref"
+          },
+          "valid_from": {
+            "type": "date"
+          },
+          "valid_to": {
+            "type": "date"
+          },
+          "verification_status": {
+            "default": "unverified",
+            "dimension": "verification",
+            "type": "grade"
+          }
+        },
         "roles": [
           "analyst",
           "investigator"
+        ],
+        "side_effects": [
+          {
+            "refresh_projection": "edge_projection"
+          }
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role",
+          "actor_is_case_member"
         ]
       },
       "register_evidence": {
         "audit": true,
+        "parameters": {
+          "acquired_at": {
+            "type": "timestamp"
+          },
+          "acquired_by": {
+            "type": "text"
+          },
+          "case_id": {
+            "to": "case",
+            "type": "ref"
+          },
+          "content_hash": {
+            "type": "text"
+          },
+          "description": {
+            "required": true,
+            "type": "text"
+          },
+          "evidence_id": {
+            "type": "identifier"
+          },
+          "handling_code": {
+            "default": "restricted",
+            "type": "handling_code"
+          },
+          "legal_basis": {
+            "type": "text"
+          },
+          "record_id": {
+            "to": "source_record",
+            "type": "ref"
+          },
+          "storage_uri": {
+            "type": "text"
+          }
+        },
         "roles": [
           "analyst",
           "investigator",
           "evidence_officer"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role",
+          "actor_is_case_member"
         ]
       },
       "release_quarantine": {
         "audit": true,
+        "parameters": {
+          "note": {
+            "required": true,
+            "type": "text"
+          },
+          "record_id": {
+            "required": true,
+            "to": "source_record",
+            "type": "ref"
+          }
+        },
         "roles": [
           "supervisor"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role"
         ]
       },
       "remove_case_member": {
         "audit": true,
+        "parameters": {
+          "case_id": {
+            "required": true,
+            "to": "case",
+            "type": "ref"
+          },
+          "user_id": {
+            "required": true,
+            "to": "user",
+            "type": "ref"
+          }
+        },
         "roles": [
           "supervisor"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role"
         ]
       },
       "retract_claim": {
         "audit": true,
+        "parameters": {
+          "claim_id": {
+            "required": true,
+            "to": "claim",
+            "type": "ref"
+          },
+          "reason": {
+            "required": true,
+            "type": "text"
+          }
+        },
         "roles": [
           "analyst",
           "supervisor"
+        ],
+        "side_effects": [
+          {
+            "refresh_projection": "edge_projection"
+          }
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role"
         ]
       },
       "review_suggestion": {
         "audit": true,
+        "parameters": {
+          "decision": {
+            "required": true,
+            "type": "enum",
+            "values": [
+              "accepted",
+              "rejected"
+            ]
+          },
+          "edits": {
+            "payload_schema": "suggestion_payload",
+            "type": "json"
+          },
+          "note": {
+            "type": "text"
+          },
+          "suggestion_id": {
+            "required": true,
+            "to": "suggestion",
+            "type": "ref"
+          }
+        },
         "roles": [
           "analyst"
+        ],
+        "side_effects": [
+          {
+            "refresh_projection": "edge_projection"
+          }
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role"
         ]
       },
       "seal_record": {
         "audit": true,
+        "parameters": {
+          "reason": {
+            "required": true,
+            "type": "text"
+          },
+          "resource_id": {
+            "required": true,
+            "type": "identifier"
+          }
+        },
         "roles": [
           "supervisor"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role"
         ]
       },
       "submit_suggestion": {
         "audit": true,
+        "parameters": {
+          "case_id": {
+            "to": "case",
+            "type": "ref"
+          },
+          "expires_at": {
+            "type": "timestamp"
+          },
+          "idempotency_key": {
+            "type": "text"
+          },
+          "payload": {
+            "payload_schema": "suggestion_payload",
+            "required": true,
+            "type": "json"
+          },
+          "producer": {
+            "required": true,
+            "type": "text"
+          },
+          "producer_meta": {
+            "payload_schema": "suggestion_payload",
+            "type": "json"
+          },
+          "producer_version": {
+            "default": "unversioned",
+            "type": "text"
+          },
+          "record_id": {
+            "to": "source_record",
+            "type": "ref"
+          },
+          "suggestion_id": {
+            "type": "identifier"
+          },
+          "suggestion_kind": {
+            "default": "claim_draft",
+            "type": "enum",
+            "values": [
+              "claim_draft",
+              "identity_candidate",
+              "claim_relation"
+            ]
+          },
+          "supersedes": {
+            "to": "suggestion",
+            "type": "ref"
+          }
+        },
         "roles": [
           "analyst",
           "investigator"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role"
         ]
       },
       "transfer_custody": {
         "audit": true,
+        "parameters": {
+          "evidence_id": {
+            "required": true,
+            "to": "evidence_item",
+            "type": "ref"
+          },
+          "from_actor": {
+            "type": "text"
+          },
+          "hash_checked": {
+            "default": false,
+            "type": "bool"
+          },
+          "note": {
+            "type": "text"
+          },
+          "occurred_at": {
+            "required": true,
+            "type": "timestamp"
+          },
+          "purpose": {
+            "required": true,
+            "type": "text"
+          },
+          "to_actor": {
+            "required": true,
+            "type": "text"
+          }
+        },
         "roles": [
           "evidence_officer",
           "investigator"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role"
         ]
       }
     },

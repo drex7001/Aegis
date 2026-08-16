@@ -23,7 +23,7 @@ module:
     # Declaring the import is what makes referencing them legal — spec 08 §2.3
     # rejects a cross-module reference without one.
     - module: platform
-      version: ">=1.1.0,<2.0.0"
+      version: ">=1.2.0,<2.0.0"
   #
   # 1.1.0 (T32): additive — object types implement platform interfaces and
   # reference platform shared properties. No predicate or type was added,

@@ -46,7 +46,7 @@ composition:
   # vocabulary every domain module imports.
   - module: platform
     path: modules/platform.yaml
-    version: "1.1.0"
+    version: "1.2.0"
 
   # The first domain module. A second domain is added by appending an entry
   # here and writing its file; no code under `aegis/` changes (Article XIV,

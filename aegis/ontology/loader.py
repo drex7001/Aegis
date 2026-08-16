@@ -19,7 +19,13 @@ from pathlib import Path
 from typing import Any, Literal, Sequence, Union
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+
+from aegis.ontology.registries import (
+    PAYLOAD_SCHEMAS,
+    SIDE_EFFECTS,
+    SUBMISSION_CRITERIA,
+)
 
 # Roles the platform defines (speckit spec 03 §2). Actions may only reference these.
 KNOWN_ROLES = frozenset(
@@ -169,11 +175,114 @@ class CategorySpec(BaseModel):
     color: str | None = None
 
 
+#: The closed parameter type list (spec 08 §6.2), sized against the real
+#: Phase 2 request bodies rather than an illustration. The validator rejects
+#: anything outside it, so a domain module cannot invent a value shape the
+#: actions layer has no way to check.
+ParameterType = Literal[
+    "text",
+    "identifier",
+    "ref",
+    "predicate",
+    "object_type",
+    "literal",
+    "handling_code",
+    "source_type",
+    "grade",
+    "grading_scheme",
+    "assertion_type",
+    "enum",
+    "bool",
+    "int",
+    "decimal",
+    "date",
+    "timestamp",
+    "json",
+]
+
+#: What a `ref` may point at. Platform rows only — a reference to a *domain*
+#: row is an entity, and `to: entity` covers every object type at once.
+REF_TARGETS = frozenset(
+    {
+        "entity",
+        "claim",
+        "case",
+        "source_record",
+        "evidence_item",
+        "suggestion",
+        "mention",
+        "user",
+    }
+)
+
+#: type -> the modifier key it requires. Any other type carrying a modifier is
+#: a validation error, so `{type: text, values: [...]}` cannot look like it
+#: constrains something.
+PARAMETER_MODIFIERS: dict[str, str] = {
+    "ref": "to",
+    "grade": "dimension",
+    "enum": "values",
+    "json": "payload_schema",
+}
+
+
+class ParameterSpec(BaseModel):
+    """One declared parameter of an action (spec 08 §6.1).
+
+    Declares the action's **public request contract** — what an API, CLI, or
+    SDK caller may send. Undeclared parameters are rejected by the generated
+    request model, which is what stops a caller reaching a field the ontology
+    never described.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    type: ParameterType
+    required: bool = False
+    default: Any = None
+    many: bool = False
+    description: str | None = None
+    #: `ref` — which table the id points at.
+    to: str | None = None
+    #: `grade` — which grading dimension the value is drawn from.
+    dimension: str | None = None
+    #: `enum` — the closed inline list.
+    values: list[str] | None = None
+    #: `json` — a schema id registered in `aegis.ontology.registries`.
+    payload_schema: str | None = None
+
+
+class SideEffectSpec(BaseModel):
+    """A declared post-commit hook. Parsed and stored; never executed in P3.
+
+    Written in YAML as a one-entry mapping — `- refresh_projection: edge_projection`
+    — which reads better in a list than `{hook: ..., target: ...}` and is what
+    spec 08 §6 shows. Normalized here so the registry has one shape.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+    hook: str
+    target: str
+
+    @model_validator(mode="before")
+    @classmethod
+    def _accept_single_key_mapping(cls, value: Any) -> Any:
+        if isinstance(value, dict) and len(value) == 1 and "hook" not in value:
+            (hook, target), = value.items()
+            return {"hook": hook, "target": target}
+        return value
+
+
 class ActionSpec(BaseModel):
     model_config = ConfigDict(extra="forbid")
     roles: list[str] = Field(min_length=1)
     audit: bool
     dual_control_for: list[str] = Field(default_factory=list)
+    parameters: dict[str, ParameterSpec] = Field(default_factory=dict)
+    #: Named predicates the actions layer evaluates before the write; a failure
+    #: is an audited denial, not a silent 403 (spec 08 §6.4).
+    submission_criteria: list[str] = Field(default_factory=list)
+    side_effects: list[SideEffectSpec] = Field(default_factory=list)
 
 
 class GradedScale(BaseModel):
@@ -420,6 +529,81 @@ def _interface_errors(ont: Ontology) -> list[str]:
     return errors
 
 
+def _action_errors(ont: Ontology) -> list[str]:
+    """Spec 08 §9 rules 15–17 — parameters, criteria, and side effects."""
+    errors: list[str] = []
+    for aname, action in ont.actions.items():
+        for pname, parameter in action.parameters.items():
+            where = f"actions.{aname}.parameters.{pname}"
+            if not _NAME_RE.match(pname):
+                errors.append(f"{where}: name must be snake_case ([a-z][a-z0-9_]*)")
+
+            required_modifier = PARAMETER_MODIFIERS.get(parameter.type)
+            for modifier in set(PARAMETER_MODIFIERS.values()):
+                value = getattr(parameter, modifier)
+                if value is None:
+                    continue
+                if modifier != required_modifier:
+                    errors.append(
+                        f"{where}.{modifier}: only valid on a "
+                        f"{[t for t, m in PARAMETER_MODIFIERS.items() if m == modifier][0]!r} "
+                        f"parameter, not {parameter.type!r}"
+                    )
+            if required_modifier is not None and getattr(parameter, required_modifier) is None:
+                errors.append(
+                    f"{where}.{required_modifier}: required for a "
+                    f"{parameter.type!r} parameter"
+                )
+
+            if parameter.type == "ref" and parameter.to is not None:
+                if parameter.to not in REF_TARGETS:
+                    errors.append(
+                        f"{where}.to: unknown reference target {parameter.to!r} "
+                        f"(known: {sorted(REF_TARGETS)})"
+                    )
+            if parameter.type == "grade" and parameter.dimension is not None:
+                if parameter.dimension not in GRADING_DIMENSIONS:
+                    errors.append(
+                        f"{where}.dimension: unknown grading dimension "
+                        f"{parameter.dimension!r} (declared: {list(GRADING_DIMENSIONS)})"
+                    )
+            if parameter.type == "enum" and not parameter.values:
+                errors.append(f"{where}.values: an enum needs at least one value")
+            if parameter.type == "json" and parameter.payload_schema is not None:
+                # Without this, `json` would be a hole straight through the
+                # closed suggestion-kind list (ADR-031 §1).
+                if parameter.payload_schema not in PAYLOAD_SCHEMAS:
+                    errors.append(
+                        f"{where}.payload_schema: unregistered schema "
+                        f"{parameter.payload_schema!r} (registered: {sorted(PAYLOAD_SCHEMAS)})"
+                    )
+            if parameter.required and parameter.default is not None:
+                errors.append(
+                    f"{where}.default: a required parameter has no default — "
+                    "the caller must supply it"
+                )
+
+        for criterion in action.submission_criteria:
+            if criterion not in SUBMISSION_CRITERIA:
+                errors.append(
+                    f"actions.{aname}.submission_criteria: {criterion!r} is not "
+                    f"implemented (registered: {sorted(SUBMISSION_CRITERIA)}). A "
+                    "criterion must be enforceable before it can be declared."
+                )
+        if len(set(action.submission_criteria)) != len(action.submission_criteria):
+            errors.append(
+                f"actions.{aname}.submission_criteria: duplicate criterion"
+            )
+
+        for effect in action.side_effects:
+            if effect.hook not in SIDE_EFFECTS:
+                errors.append(
+                    f"actions.{aname}.side_effects.{effect.hook}: unknown hook "
+                    f"(registered: {sorted(SIDE_EFFECTS)})"
+                )
+    return errors
+
+
 def _semantic_errors(ont: Ontology) -> list[str]:
     errors: list[str] = []
 
@@ -467,6 +651,7 @@ def _semantic_errors(ont: Ontology) -> list[str]:
 
     errors += _shared_property_errors(ont)
     errors += _interface_errors(ont)
+    errors += _action_errors(ont)
 
     # rule 2: predicate endpoint types exist (object may be the string 'literal',
     # or a list of object types optionally including 'literal' for mixed objects).

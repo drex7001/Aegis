@@ -224,7 +224,7 @@ def test_drift_is_detected_when_a_generated_file_is_edited(
     tmp_path: Path, composition, ontology
 ) -> None:
     report = plan(composition, ontology, repo_root=tmp_path)
-    assert len(report.drifted) == 3, "nothing exists in an empty tree"
+    assert len(report.drifted) == len(report.files), "nothing exists in an empty tree"
 
     for generated in report.files:
         generated.write()

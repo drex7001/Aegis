@@ -132,7 +132,7 @@ def accept_suggestion(
     _require_visible(session, ontology, auth, suggestion_id)
     service = ActionService(session, ontology)
     row = service.review_suggestion(
-        ActionContext(actor=auth.user.sub, purpose=auth.purpose),
+        ActionContext(actor=auth.user.sub, purpose=auth.purpose, roles=auth.user.roles),
         suggestion_id=suggestion_id,
         decision="accepted",
         edits=body.edits,
@@ -157,7 +157,7 @@ def reject_suggestion(
     _require_visible(session, ontology, auth, suggestion_id)
     service = ActionService(session, ontology)
     row = service.review_suggestion(
-        ActionContext(actor=auth.user.sub, purpose=auth.purpose),
+        ActionContext(actor=auth.user.sub, purpose=auth.purpose, roles=auth.user.roles),
         suggestion_id=suggestion_id,
         decision="rejected",
         note=body.reason,

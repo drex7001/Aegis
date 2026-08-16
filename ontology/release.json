@@ -1,9 +1,9 @@
 {
   "compatibility": null,
-  "content_hash": "2ed063b3d85ae35b9e3ed036e1fb21272dd91d470cbce200ec138305bec660c8",
+  "content_hash": "a05c20e89a5ce1e5401730ef8b0c1f183b6d77b9e8750f1f91bbd1f6518fd888",
   "modules": {
     "criminal_network": "1.1.0",
-    "platform": "1.1.0"
+    "platform": "1.2.0"
   },
   "previous_content_hash": null,
   "previous_version": null,
