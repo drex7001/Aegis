@@ -16,7 +16,12 @@
 # (requires migration + copy in ontology/history/). The composition's class is
 # the strongest class among its modules' changes plus its own manifest changes.
 
-version: 1.3.0   # minor: modularization (T30, ADR-037).  Pure reorganization —
+version: 1.4.0   # minor: shared properties + interfaces (T32, ADR-041).
+                 # Additive — `party` and `identifiable` are new, and the three
+                 # properties that became `shared:` references resolve to the
+                 # same type and sensitivity they already had.
+                 #
+                 # 1.3.0: modularization (T30, ADR-037).  Pure reorganization —
                  # the composed registry is unchanged section for section, so
                  # nothing was added, removed, renamed or retyped.
                  #
@@ -41,12 +46,12 @@ composition:
   # vocabulary every domain module imports.
   - module: platform
     path: modules/platform.yaml
-    version: "1.0.0"
+    version: "1.1.0"
 
   # The first domain module. A second domain is added by appending an entry
   # here and writing its file; no code under `aegis/` changes (Article XIV,
   # proved executably by tests/fixtures/ontology/border-cargo.yaml).
   - module: criminal_network
     path: modules/criminal-network.yaml
-    version: "1.0.0"
+    version: "1.1.0"
     enabled: true

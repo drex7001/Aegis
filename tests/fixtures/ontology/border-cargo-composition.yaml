@@ -13,8 +13,8 @@ namespace: test.border-cargo
 composition:
   - module: platform
     path: ../../../ontology/modules/platform.yaml
-    version: "1.0.0"
+    version: "1.1.0"
 
   - module: border_cargo
     path: border-cargo.yaml
-    version: "1.0.0"
+    version: "1.1.0"

@@ -83,6 +83,25 @@ def test_no_core_module_names_the_fixture_vocabulary() -> None:
     )
 
 
+def test_a_domain_module_implements_a_platform_interface(border_cargo) -> None:
+    """ADR-041 in one assertion: this line is impossible under `members:`.
+
+    `identifiable` is declared by the platform module. `consignment` is
+    declared by a fixture the platform module has never heard of. The
+    implementation is recorded on the implementor, so no platform edit was
+    needed — which is what "domains are modules" has to mean for interfaces.
+    """
+    assert border_cargo.owner_module("identifiable") == "platform"
+    assert border_cargo.owner_module("consignment") == "border_cargo"
+    assert border_cargo.implementors("identifiable") == ["consignment"]
+    # ...and the interface's requirement was actually enforced: the shared
+    # property resolved, sensitivity included.
+    reference = border_cargo.object_type("consignment").properties["reference"]
+    assert reference.shared == "registered_identifier"
+    assert reference.sensitivity == "restricted"
+    assert reference.required is True
+
+
 def test_the_identifier_flag_reaches_the_second_domain(border_cargo) -> None:
     """The ER rules pick this domain up without knowing what it is (spec 05 §3.1)."""
     identifiers = border_cargo.identifier_predicates()

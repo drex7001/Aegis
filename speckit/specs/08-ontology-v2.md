@@ -200,11 +200,19 @@ object_types:
       nic:     {shared: registered_identifier}
 ```
 
-Validator: a `shared:` reference may not override `type` or `sensitivity`
-(display hints may be specialized); the referenced name must be owned by this
-module or an imported one. Rule of three (GOAL.md §7.9): the third duplicated
-inline property definition should become a shared property — enforced in
-review, not by the validator.
+Validator: a `shared:` reference may not override `type`, `sensitivity`, or
+`many` — those are the definition; the referenced name must be owned by this
+module or an imported one; a property declares exactly one of `type` or
+`shared`. `required` **does** belong to the reference: whether a phone number
+must have a number is a fact about phone numbers, not about identifiers.
+
+The reference is **resolved in place at load time** — after loading,
+`properties['nic'].sensitivity` is `restricted` and `properties['nic'].shared`
+records where that came from. No consumer learns the v2 syntax exists, which is
+what let `aegis/authz/filters.py` keep working unchanged (ADR-041).
+
+Rule of three (GOAL.md §7.9): the third duplicated inline property definition
+should become a shared property — enforced in review, not by the validator.
 
 ## 4. `interfaces`
 
@@ -214,29 +222,53 @@ with no domain code); P4 object views; P6 object sets.*
 Named shapes over object types — polymorphism for predicates, workflows, and
 generated types. Composition over wide types.
 
+> **Amended by ADR-041 (T32).** This section originally gave each interface an
+> explicit `members:` list. That is unworkable under module composition:
+> `party`'s members are domain types, so a platform-owned interface would have
+> to name them and platform would have to import the domain — inverting the
+> dependency the composition rests on. **Membership is declared by the
+> implementor instead.**
+
 ```yaml
+# platform module — the interface declares what it requires
 interfaces:
-  party:                       # person-or-organization
-    members: [person, organization]
-    properties: [alias]        # shared properties every member must carry
+  party:
+    label: Party
+    properties: [alias]                    # shared properties every implementor carries
   identifiable:
-    members: [person, vehicle, phone_number]
+    label: Identifiable
     properties: [registered_identifier]
+
+# criminal-network module — the object type declares what it implements
+object_types:
+  person:
+    implements: [party, identifiable]
+    properties:
+      aliases: {shared: alias}
+      nic:     {shared: registered_identifier}
 ```
 
-- `members` is explicit (no structural inference); adding a member is a minor
-  bump.
-- Predicates may target interfaces: `subject: [party]` expands to member types
-  at validation time. The **expansion is what is stored** — a claim records the
+- Membership is **declared, never inferred** — the original rule, relocated to
+  the implementor. `Ontology.implementors(name)` derives the member list.
+  Adding a member is a minor bump of the *domain* module.
+- A domain module may implement a platform interface with **no platform edit**;
+  `tests/fixtures/ontology/border-cargo.yaml` proves it.
+- Predicates may target interfaces: `subject: [party]` expands to implementors
+  at load time. The **expansion is what is stored** — a claim records the
   concrete predicate and concrete entity types, never the interface — so
-  interfaces add no new value to `claim`.
-- An interface and its members may live in different modules, subject to §2.3.
-- Validator (§9): members exist; every member carries the interface's required
-  shared properties; no interface cycles; an interface is not also an object
-  type name (§2.4 uniqueness).
+  interfaces add no new value to `claim`. The declared form survives on
+  `PredicateSpec.subject_interfaces` / `object_interfaces` for codegen.
+- An interface with **no implementor is valid** (a platform interface no
+  enabled domain implements). A predicate *targeting* one is not: it could
+  never be satisfied.
+- Interfaces do not extend interfaces in P3, so §9 rule 14's cycle clause is
+  vacuous until something adds inheritance.
+- Validator (§9): the interface's required shared properties exist; every
+  implementor declares them; an interface is not also an object type or
+  predicate name (§2.4 uniqueness).
 
-Members and interfaces are emitted as constants by the generated client (§8) so
-the UI can group by interface without a second list.
+Interfaces and their implementors are emitted as constants by the generated
+client (§8) so the UI can group by interface without a second list.
 
 ## 5. `functions` — moved out
 
@@ -461,11 +493,14 @@ composed registry).
     both.
 12. **Enable/disable** — a disabled module is not imported by an enabled one
     (§2.6).
-13. **Shared properties** — `shared:` references resolve; no `type` or
-    `sensitivity` override.
-14. **Interfaces** — members exist; every member carries the interface's
-    required shared properties; no cycles; predicates targeting interfaces
-    expand to a non-empty valid member set.
+13. **Shared properties** — `shared:` references resolve; no `type`,
+    `sensitivity`, or `many` override; a property declares exactly one of
+    `type` or `shared`; a shared property's `sensitivity` is a declared
+    handling code.
+14. **Interfaces** — an interface's required shared properties exist; every
+    implementor declares them; `implements:` names a declared interface; a
+    predicate targeting an interface expands to a non-empty implementor set.
+    (Cycles are impossible without interface inheritance — ADR-041.)
 15. **Action parameters** — types come from the closed list (§6.2); modifiers
     are present and valid for the type; `json` names a registered schema.
 16. **Submission criteria** — every name is registered in the actions-layer
