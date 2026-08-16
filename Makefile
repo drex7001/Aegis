@@ -61,6 +61,7 @@ lint-ontology:     ## validate the composition + the second-domain fixture (Arti
 	uv run aegis ontology validate
 	uv run aegis ontology validate tests/fixtures/ontology/border-cargo-composition.yaml
 	uv run aegis ontology generate --check
+	uv run aegis ontology check-release
 
 ontology-generate: ## regenerate the artifacts derived from the ontology (spec 08 §8)
 	uv run aegis ontology generate

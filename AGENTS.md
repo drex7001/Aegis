@@ -58,6 +58,7 @@ make test-coverage               # full line + branch coverage gate
 aegis ontology validate          # Article XI gate (also in CI)
 aegis ontology generate          # regenerate derived artifacts (spec 08 §8)
 aegis ontology generate --check  # CI drift gate — writes nothing, exits 1 if stale
+aegis ontology check-release     # proposal + compatibility gates (spec 08 §7.3)
 aegis identity run-rules         # deterministic ER → candidates (never merges)
 aegis identity run-splink        # probabilistic ER → candidates (never merges)
 aegis identity backfill-anchors  # heuristic mention anchors for pre-T17 claims

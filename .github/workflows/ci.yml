@@ -113,6 +113,8 @@ jobs:
         run: uv run aegis ontology validate tests/fixtures/ontology/border-cargo-composition.yaml
       - name: Fail if generated ontology artifacts are stale (T33)
         run: uv run aegis ontology generate --check
+      - name: Ontology release gates — proposal, class, compatibility (T35)
+        run: uv run aegis ontology check-release
       - if: always()
         run: make down
 

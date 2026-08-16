@@ -179,6 +179,58 @@ def ontology_generate(
         typer.secho(f"  · {generated.path.relative_to(REPO_ROOT)}", fg=typer.colors.GREEN)
 
 
+@ontology_app.command("check-release")
+def ontology_check_release(
+    path: Path = typer.Argument(
+        None, help="Composition manifest (default: AEGIS_ONTOLOGY_PATH)"
+    ),
+) -> None:
+    """Enforce the change-management gates on the committed release (spec 08 §7.3)."""
+    import json
+
+    from aegis.config import get_settings
+    from aegis.ontology import OntologyValidationError, compose, registry
+    from aegis.ontology.generate import composed_artifact
+    from aegis.ontology.release import check
+
+    target = path or REPO_ROOT / get_settings().ontology_path
+    try:
+        composition = compose(target)
+        ontology = registry(composition)
+    except OntologyValidationError as exc:
+        typer.secho(f"INVALID: {target}", fg=typer.colors.RED, err=True)
+        for error in exc.errors:
+            typer.secho(f"  - {error}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+
+    release_path = REPO_ROOT / "ontology" / "release.json"
+    if not release_path.exists():
+        typer.secho(
+            "release.json is missing — run `aegis ontology generate`",
+            fg=typer.colors.RED,
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
+    release = json.loads(release_path.read_text(encoding="utf-8"))
+    errors = check(
+        REPO_ROOT, release=release, artifact=composed_artifact(composition, ontology)
+    )
+    if errors:
+        typer.secho(f"RELEASE GATE FAILED: v{release.get('version')}", fg=typer.colors.RED, err=True)
+        for error in errors:
+            typer.secho(f"  - {error}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+    previous = release.get("previous_version")
+    chain = f"from {previous}" if previous else "first generated release"
+    typer.secho(
+        f"OK: v{release['version']} ({release['compatibility']}, "
+        f"proposal {release['proposal']}, {chain})",
+        fg=typer.colors.GREEN,
+    )
+
+
 @api_app.command("export-openapi")
 def api_export_openapi(
     out: Path = typer.Option(

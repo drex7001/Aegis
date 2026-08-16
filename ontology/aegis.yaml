@@ -52,6 +52,14 @@ version: 1.5.0   # minor: action parameters, submission criteria and side-effect
                  # (spec 01 §4).  No rows existed: nothing ever wrote it.
 namespace: aegis.lk
 
+# Authored, not derived (spec 08 §7.2): which proposal justified this bump and
+# what class it claims. `aegis ontology check-release` fails CI when either is
+# missing, when the proposal file does not exist, or when the diff against the
+# previous released artifact is stronger than the class declared here.
+release:
+  proposal: 003-action-parameters-and-criteria
+  compatibility: minor
+
 composition:
   # Platform first by convention, not by requirement — the loader resolves
   # imports rather than reading top to bottom. It owns the governance
