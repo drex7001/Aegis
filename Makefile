@@ -1,5 +1,5 @@
 # Aegis dev workflow (speckit T1/T2). Run from repo root.
-.PHONY: up down nuke bootstrap ps logs install test test-fast test-integration test-mvp test-er-evaluation test-system test-coverage lint-ontology ui-install ui-build ui-test openapi
+.PHONY: up down nuke bootstrap ps logs install test test-fast test-integration test-mvp test-er-evaluation test-system test-coverage lint-ontology ontology-generate ui-install ui-build ui-test openapi
 
 ENVFILE := $(wildcard .env)
 COMPOSE = docker compose $(if $(ENVFILE),--env-file $(ENVFILE)) -f infra/docker-compose.yml
@@ -60,6 +60,10 @@ test-coverage:
 lint-ontology:     ## validate the composition + the second-domain fixture (Article XI/XIV)
 	uv run aegis ontology validate
 	uv run aegis ontology validate tests/fixtures/ontology/border-cargo-composition.yaml
+	uv run aegis ontology generate --check
+
+ontology-generate: ## regenerate the artifacts derived from the ontology (spec 08 §8)
+	uv run aegis ontology generate
 
 # ── workspace (ui/, T22) ────────────────────────────────────────────────────
 

@@ -114,6 +114,21 @@ outputs regenerate byte-identical in CI; the constants file matches the
 composed registry; generation is deterministic across runs and platforms
 (sorted keys, LF endings).
 
+**DONE (2026-08-17)** — `aegis/ontology/generate.py` plus
+`aegis ontology generate [--check]`. Outputs:
+`ontology/history/composed-1.4.0.json` (the declaration, interfaces
+unexpanded and `shared:` intact per spec 08 §7.2),
+`ontology/release.json` (content hash, per-module versions, and the
+`proposal`/`compatibility` fields the manifest's optional `release:` block
+supplies — null until T35 makes CI reject that), and
+`ui/src/api/ontology.ts`. The constants close a real gap:
+`GET /v1/ontology/vocabulary` serves handling codes, source types and
+assertion types and **no predicates**, so a client had no typed way to know a
+predicate exists — which is exactly what T39's exit criterion measures. AC met
+by 21 cases in `tests/contract/test_ontology_generate.py`, including a
+"committed artifacts are current" test so drift fails the fast suite, not only
+CI. The history chain starts at 1.4.0; earlier versions predate the tooling.
+
 ## Milestone C — Actions v2 schema
 
 **T34. ⛓ Actions v2 declarations + enforcement** (spec 08 §6, §9 rules 15–17;

@@ -37,7 +37,10 @@ scaffolding: **replace, never extend** (ADR-023, ADR-024).
   an authorization dependency (VI), projections are rebuildable caches (XIII),
   the core is domain-neutral — domains arrive as ontology modules (XIV).
 - `ontology/aegis.yaml` is the single domain artifact (XI): never hand-write a
-  domain type the ontology doesn't declare. Changes follow the versioning
+  domain type the ontology doesn't declare. Since P3 T30 it is a **composition
+  manifest** over `ontology/modules/*.yaml` — edit the module that owns the
+  vocabulary, bump both its version and the composition's, and rerun
+  `aegis ontology generate` (ADR-037, ADR-038). Changes follow the versioning
   rules in `speckit/specs/01-ontology.md` (v2: `specs/08-ontology-v2.md`).
 - Load-bearing decisions live in `speckit/decisions.md` (ADRs, append-only).
   If implementation diverges from a spec, append an ADR — don't silently
@@ -53,6 +56,8 @@ make test-integration            # dedicated PostgreSQL test database
 make test-system                 # real compose/OpenFGA behavior
 make test-coverage               # full line + branch coverage gate
 aegis ontology validate          # Article XI gate (also in CI)
+aegis ontology generate          # regenerate derived artifacts (spec 08 §8)
+aegis ontology generate --check  # CI drift gate — writes nothing, exits 1 if stale
 aegis identity run-rules         # deterministic ER → candidates (never merges)
 aegis identity run-splink        # probabilistic ER → candidates (never merges)
 aegis identity backfill-anchors  # heuristic mention anchors for pre-T17 claims

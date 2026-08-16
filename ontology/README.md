@@ -28,6 +28,7 @@ subsystems.
 | `modules/criminal-network.yaml` | The first domain module: object types, predicates, categories. A second domain is a sibling file plus a manifest entry — no code changes (proved by `tests/fixtures/ontology/border-cargo.yaml`). |
 | `proposals/` | Change proposals (`NNN-short-title.md`) — motivation, YAML diff, competency questions (spec 08 §7) |
 | `history/` | Prior versions: the composed artifact on every bump, plus the module sources on a **major** bump, so historical claims stay interpretable (spec 08 §7.2) |
+| `release.json` | **Generated.** Metadata for the current version: content hash, per-module versions, the proposal that justified the bump, and the chain back to the previous release |
 
 Names are **global and unprefixed** across modules — `claim.predicate` stores
 them bare and claims are immutable — so a collision between two modules is a
