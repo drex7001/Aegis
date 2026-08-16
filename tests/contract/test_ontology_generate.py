@@ -223,7 +223,7 @@ def test_the_committed_constants_match_the_registry(ontology) -> None:
 def test_drift_is_detected_when_a_generated_file_is_edited(
     tmp_path: Path, composition, ontology
 ) -> None:
-    report = plan(composition, ontology, repo_root=tmp_path)
+    report = plan(composition, ontology, repo_root=tmp_path, release=composition.release)
     assert len(report.drifted) == len(report.files), "nothing exists in an empty tree"
 
     for generated in report.files:

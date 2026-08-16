@@ -183,6 +183,20 @@ AC: a bump without a proposal reference in `release.json` fails CI; a minor
 bump removing a predicate fails the diff check; proposal 001 exists and the
 modularization diff shows no vocabulary change.
 
+**DONE (2026-08-17)** — `aegis/ontology/release.py` plus
+`aegis ontology check-release`, wired into CI and `make lint-ontology`. Six
+gates: proposal named and present, compatibility class declared, the computed
+diff no stronger than the declared class, version monotonicity for the
+composition and every module, the archived artifact still hashing to what
+`release.json` recorded, and a major bump archiving its prior sources. AC met by
+27 cases in `tests/contract/test_ontology_release.py`.
+
+Proposals `001`–`003` are backfilled for the bumps that landed at T30, T32 and
+T34; `000-template.md` is the skeleton. Every bump from 1.5.0 onward is
+proposed before it merges. Over-declaring a class is allowed — a cautious
+author may call an additive change major — because the risk being managed runs
+one way only.
+
 ## Milestone E — Contract & TypeScript client
 
 **T36. ⛓ API contract conventions** (specs/06 §7; ADR-039; needs T29) — the
