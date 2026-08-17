@@ -1,12 +1,12 @@
 {
   "compatibility": "minor",
-  "content_hash": "989fb3b12c2ef56b2f854afb24c4fbfd8eae3204168fb90efac3b215c7a8e955",
+  "content_hash": "86bf9b247d25db0e80db00689abd6af3974a03193e103b8356ab5ac68db7698f",
   "modules": {
-    "criminal_network": "1.1.0",
+    "criminal_network": "1.2.0",
     "platform": "1.2.0"
   },
-  "previous_content_hash": "2ed063b3d85ae35b9e3ed036e1fb21272dd91d470cbce200ec138305bec660c8",
-  "previous_version": "1.4.0",
-  "proposal": "003-action-parameters-and-criteria",
-  "version": "1.5.0"
+  "previous_content_hash": "989fb3b12c2ef56b2f854afb24c4fbfd8eae3204168fb90efac3b215c7a8e955",
+  "previous_version": "1.5.0",
+  "proposal": "004-controls-predicate",
+  "version": "1.6.0"
 }

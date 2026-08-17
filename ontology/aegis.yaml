@@ -16,7 +16,12 @@
 # (requires migration + copy in ontology/history/). The composition's class is
 # the strongest class among its modules' changes plus its own manifest changes.
 
-version: 1.5.0   # minor: action parameters, submission criteria and side-effect
+version: 1.6.0   # minor: the `controls` predicate, targeting the `party`
+                 # interface (T39, proposal 004).  The first ontology change to
+                 # run the workflow forwards rather than being backfilled, and
+                 # the first shipped predicate whose endpoint is an interface.
+                 #
+                 # 1.5.0: action parameters, submission criteria and side-effect
                  # declarations (T34, ADR-040).  Additive — no action, role or
                  # dual-control rule changed, and the parameters describe the
                  # request contract that already existed.
@@ -57,7 +62,7 @@ namespace: aegis.lk
 # missing, when the proposal file does not exist, or when the diff against the
 # previous released artifact is stronger than the class declared here.
 release:
-  proposal: 003-action-parameters-and-criteria
+  proposal: 004-controls-predicate
   compatibility: minor
 
 composition:
@@ -73,5 +78,5 @@ composition:
   # proved executably by tests/fixtures/ontology/border-cargo.yaml).
   - module: criminal_network
     path: modules/criminal-network.yaml
-    version: "1.1.0"
+    version: "1.2.0"
     enabled: true

@@ -5,7 +5,7 @@
  * Regenerate with `aegis ontology generate`; CI fails on drift.
  */
 
-export const ONTOLOGY_VERSION = "1.5.0" as const;
+export const ONTOLOGY_VERSION = "1.6.0" as const;
 export const ONTOLOGY_NAMESPACE = "aegis.lk" as const;
 
 /** Ordered low to high — the index is the clearance level (spec 03). */
@@ -13,7 +13,7 @@ export const HANDLING_CODES = ["open", "restricted", "sensitive"] as const;
 export const SOURCE_TYPES = ["algorithmic", "commission_report", "court_record", "government_system", "human", "investigator", "open_source", "sensor"] as const;
 
 export const MODULES = {
-  "criminal_network": { version: "1.1.0", namespace: "aegis.lk/criminal-network", enabled: true },
+  "criminal_network": { version: "1.2.0", namespace: "aegis.lk/criminal-network", enabled: true },
   "platform": { version: "1.2.0", namespace: "aegis.lk/platform", enabled: true },
 } as const;
 
@@ -55,6 +55,7 @@ export const PREDICATES = {
   "communicated_with": { subject: ["person"], object: ["person"], allowsLiteral: false, category: "transnational", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
   "conspired_against": { subject: ["person"], object: ["person"], allowsLiteral: false, category: "financial", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
   "conspired_with": { subject: ["person"], object: ["person"], allowsLiteral: false, category: "ideological", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "controls": { subject: ["organization", "person"], object: ["organization"], allowsLiteral: false, category: "financial", symmetric: false, identifier: false, subjectInterfaces: ["party"], objectInterfaces: [], module: "criminal_network" },
   "financed_and_supplied_materiel_to": { subject: ["person"], object: ["organization"], allowsLiteral: false, category: "financial", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
   "foreign_contact_of": { subject: ["person"], object: ["organization"], allowsLiteral: false, category: "transnational", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
   "founded": { subject: ["person"], object: ["organization"], allowsLiteral: false, category: "ideological", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },

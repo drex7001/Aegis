@@ -278,15 +278,32 @@ def test_expand_types_and_implementors_reject_unknown_names() -> None:
 
 
 def test_a_document_with_no_v2_sections_still_validates(data: dict) -> None:
-    """Inline properties keep working; v2 is additive, not a migration."""
+    """Inline properties keep working; v2 is additive, not a migration.
+
+    The transformation below is a faithful downgrade: remove the v2 sections
+    *and* every reference to them — shared properties become inline, and a
+    predicate targeting an interface names its members instead. Dropping the
+    sections while leaving `subject: [party]` behind would be testing a
+    document nobody could have written before v2.
+    """
+    interfaces = data.pop("interfaces")
     data.pop("shared_properties")
-    data.pop("interfaces")
     for otype in data["object_types"].values():
         otype.pop("implements", None)
         for name, prop in list(otype["properties"].items()):
             if "shared" in prop:
                 otype["properties"][name] = {"type": "text"}
+    for predicate in data["predicates"].values():
+        for endpoint in ("subject", "object"):
+            names = predicate.get(endpoint)
+            if not isinstance(names, list):
+                continue
+            predicate[endpoint] = [
+                name for name in names if name not in interfaces
+            ] or ["person"]
+
     ont = load_dict(data)
     assert ont.shared_properties == {}
     assert ont.interfaces == {}
     assert ont.object_type("person").properties["nic"].type == "text"
+    assert ont.predicate("controls").subject_interfaces == ()

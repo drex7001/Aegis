@@ -87,17 +87,30 @@ def test_a_flat_document_is_still_valid_and_reports_no_modules() -> None:
     assert flat.owners == {}
 
 
-def test_the_composed_registry_matches_the_pre_split_vocabulary() -> None:
-    """T30 is a reorganization: the merged sections are the whole ontology.
+def test_the_composed_registry_is_exactly_what_the_modules_declare() -> None:
+    """Nothing is dropped in the merge, and nothing appears from nowhere.
 
-    Pinned as counts plus the single-owner sections, because those are what a
-    silent drop during the file split would change.
+    Stated as an identity between the modules' own declarations and the
+    composed registry rather than as fixed counts: a count would have to be
+    edited by every future predicate, which trains people to update the number
+    without checking what it is guarding. The single-owner sections are pinned
+    by value because those *are* the guarantee — a clearance ladder or a
+    grading model quietly changing shape is the failure this catches.
     """
     ont = load(ONTOLOGY_PATH)
-    assert len(ont.object_types) == 5
-    assert len(ont.predicates) == 33
-    assert len(ont.categories) == 5
-    assert len(ont.actions) == 13
+    declared = {name for info in ont.modules.values() for name in info.declares}
+    composed = (
+        set(ont.object_types)
+        | set(ont.predicates)
+        | set(ont.categories)
+        | set(ont.actions)
+        | set(ont.interfaces)
+        | set(ont.shared_properties)
+        | set(ont.event_types)
+    )
+    assert declared == composed
+    assert set(ont.owners) == composed
+
     assert ont.handling_codes == ["open", "restricted", "sensitive"]
     assert len(ont.source_types) == 8
     assert ont.normalize_grade("admiralty", "B") == {"reliability": "generally_reliable"}
