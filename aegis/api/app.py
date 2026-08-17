@@ -27,6 +27,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from aegis.api.auth import OIDCAuthenticator
 from aegis.api.errors import install_error_handlers
+from aegis.api.problems import apply_error_responses, retag_problem_media_type
 from aegis.api.ratelimit import build_limiter
 from aegis.api.routes import (
     audit,
@@ -55,6 +56,24 @@ from aegis.ontology.modules import disabled_vocabulary_in_use
 from aegis.store import Claim, Entity, get_sessionmaker
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _install_openapi(app: FastAPI) -> None:
+    """Generate the document once, then correct the error media type.
+
+    FastAPI attaches an additional response's model to the route's media type,
+    `application/json`, but those bodies go out as `application/problem+json`.
+    The fix has to happen on the finished document because `responses=` has no
+    per-response media type (spec 06 §7.2).
+    """
+    generate = app.openapi
+
+    def openapi() -> dict:
+        if app.openapi_schema is None:
+            app.openapi_schema = retag_problem_media_type(generate())
+        return app.openapi_schema
+
+    app.openapi = openapi  # type: ignore[method-assign]
 
 
 class DisabledVocabularyInUseError(RuntimeError):
@@ -170,7 +189,16 @@ def create_app() -> FastAPI:
         projections.router,
         ontology_routes.router,
     ):
+        # Every `/v1` route can answer 401 and 429 — the token is checked before
+        # routing and the limiter runs before the gate validates it — so they
+        # are declared once here rather than repeated on 37 operations
+        # (spec 06 §7.2). Route-level `responses` override on conflict.
         app.include_router(router, prefix="/v1")
+
+    # The error envelope becomes part of the contract (spec 06 §7.2), derived
+    # from each route's own gate rather than listed in a table beside it.
+    apply_error_responses(app)
+    _install_openapi(app)
 
     # The workspace bundle, when it has been built. Mounted last so it cannot
     # shadow an API path, and only when present so a Python-only checkout runs

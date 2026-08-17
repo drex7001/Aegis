@@ -211,6 +211,25 @@ error responses; the error schema appears in `ui/openapi.json`; a renamed
 operation id, a removed response code, or a parameter becoming required fails
 the contract-diff check; documenting a status a route cannot return also fails.
 
+**DONE (2026-08-17)** — `aegis/api/problems.py` (the envelope as component
+schemas) and `aegis/api/contract.py` + `aegis api check-contract` (the diff, in
+CI). The document went from `200/201/204/422` to also carrying 401, 403, 404,
+409, 413 and 429 — **derived from each route's own gate**, not from a table
+beside it: `authorize()` already tags itself with the roles it requires, and a
+path parameter means 404 is reachable. `test_error_envelope.py` asserts the
+derivation matches the gates in both directions, so the document cannot claim a
+403 a route will never raise.
+
+Three findings: FastAPI 0.139 keeps included routes **unprefixed behind a
+`_IncludedRouter` wrapper**, so a one-level `app.routes` scan documented
+nothing and ran clean; FastAPI attaches an additional response's model to the
+*route's* media type, so the 4xx schemas had to be retagged onto
+`application/problem+json` on the finished document; and `errors.py` now builds
+its bodies from the same models, which is stronger than a test asserting the
+two agree. **ADR-042** records why this check reads a git ref while the
+ontology's deliberately does not — spec 06 §7.3's claimed symmetry was wrong
+and is corrected.
+
 **T37. TypeScript client generation** (spec 08 §8, ADR-039; needs T33, T34,
 T36) — **rescoped by T29**: `ui/` already generates `src/api/schema.d.ts` from
 the committed OpenAPI document with a drift gate, so there is no client to

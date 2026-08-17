@@ -7,6 +7,7 @@ from pathlib import Path
 
 import typer
 
+from aegis.api.contract import BREAKING_MARKER
 from aegis.logging import configure_logging
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -227,6 +228,56 @@ def ontology_check_release(
     typer.secho(
         f"OK: v{release['version']} ({release['compatibility']}, "
         f"proposal {release['proposal']}, {chain})",
+        fg=typer.colors.GREEN,
+    )
+
+
+@api_app.command("check-contract")
+def api_check_contract(
+    baseline: str = typer.Option(
+        "origin/master",
+        "--baseline",
+        help="Git ref holding the contract to compare against.",
+    ),
+    allow_breaking: bool = typer.Option(
+        False,
+        "--allow-breaking",
+        help=f"Accept a breaking change (also state {BREAKING_MARKER!r} in the PR).",
+    ),
+) -> None:
+    """Fail on a breaking change to the committed OpenAPI document (spec 06 §7.3)."""
+    import json
+
+    from aegis.api.contract import compare, document_at
+
+    relative = "ui/openapi.json"
+    current = json.loads((REPO_ROOT / relative).read_text(encoding="utf-8"))
+    previous = document_at(baseline, relative)
+    if previous is None:
+        typer.secho(
+            f"no contract at {baseline}:{relative} — nothing to compare against",
+            fg=typer.colors.YELLOW,
+        )
+        return
+
+    diff = compare(previous, current)
+    for line in diff.additive:
+        typer.secho(f"  + {line}", fg=typer.colors.GREEN)
+    for line in diff.breaking:
+        typer.secho(f"  ! {line}", fg=typer.colors.RED, err=True)
+
+    if diff.is_breaking and not allow_breaking:
+        typer.secho(
+            f"BREAKING contract change against {baseline}. Every generated "
+            "client breaks on this. Re-run with --allow-breaking and say so in "
+            "the change if it is intended.",
+            fg=typer.colors.RED,
+            err=True,
+        )
+        raise typer.Exit(code=1)
+    typer.secho(
+        f"OK: {len(diff.additive)} additive, {len(diff.breaking)} breaking "
+        f"(accepted)" if diff.is_breaking else f"OK: {len(diff.additive)} additive changes",
         fg=typer.colors.GREEN,
     )
 

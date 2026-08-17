@@ -25,6 +25,11 @@ jobs:
       - run: uv lock --check
       - run: uv sync --locked --extra dev
       - run: make test-fast
+      - name: Fail on a breaking API contract change (T36)
+        # Needs the baseline branch, which the default shallow fetch omits.
+        run: |
+          git fetch --no-tags --depth=1 origin master
+          uv run aegis api check-contract --baseline origin/master
 
   integration-tests:
     name: PostgreSQL integration tests
