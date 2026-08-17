@@ -16,7 +16,16 @@
 # (requires migration + copy in ontology/history/). The composition's class is
 # the strongest class among its modules' changes plus its own manifest changes.
 
-version: 1.6.0   # minor: the `controls` predicate, targeting the `party`
+version: 1.6.1   # patch: display labels on `person.nic`, `phone_number.number`
+                 # and `has_nic` (T42, proposal 005).  Spec 01 §4 classes
+                 # display hints as a patch, and nothing else moved: no name was
+                 # added, removed or retyped, and every claim stamped 1.6.0
+                 # means exactly what it meant.  The labels exist because the
+                 # generator's default humanization renders `nic` as "Nic"
+                 # (ADR-043), and a label declared here is fixed by a proposal
+                 # rather than by editing React.
+                 #
+                 # 1.6.0: minor — the `controls` predicate, targeting the `party`
                  # interface (T39, proposal 004).  The first ontology change to
                  # run the workflow forwards rather than being backfilled, and
                  # the first shipped predicate whose endpoint is an interface.
@@ -62,8 +71,8 @@ namespace: aegis.lk
 # missing, when the proposal file does not exist, or when the diff against the
 # previous released artifact is stronger than the class declared here.
 release:
-  proposal: 004-controls-predicate
-  compatibility: minor
+  proposal: 005-display-labels
+  compatibility: patch
 
 composition:
   # Platform first by convention, not by requirement — the loader resolves
@@ -71,12 +80,12 @@ composition:
   # vocabulary every domain module imports.
   - module: platform
     path: modules/platform.yaml
-    version: "1.2.0"
+    version: "1.2.1"
 
   # The first domain module. A second domain is added by appending an entry
   # here and writing its file; no code under `aegis/` changes (Article XIV,
   # proved executably by tests/fixtures/ontology/border-cargo.yaml).
   - module: criminal_network
     path: modules/criminal-network.yaml
-    version: "1.2.0"
+    version: "1.2.1"
     enabled: true

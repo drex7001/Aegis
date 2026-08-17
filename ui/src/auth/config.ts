@@ -5,7 +5,7 @@ import {
 } from "oidc-client-ts";
 import type { AuthProviderProps } from "react-oidc-context";
 
-import { notifyNavigated } from "../routing";
+import { safeReturnTo } from "../routing";
 
 /**
  * Keycloak OIDC with PKCE, via the maintained library rather than a hand-rolled
@@ -66,26 +66,42 @@ export const userManager = new UserManager({
   monitorSession: false,
 });
 
+/**
+ * Where the finished sign-in should land, handed from the OIDC callback to the
+ * component that performs the navigation.
+ *
+ * A module variable rather than a `history.replaceState` (which is what P2 did)
+ * because the router now owns history: a write it cannot observe would leave
+ * the app rendering one route at another route's address, which is exactly the
+ * bug T23a's sources journey caught the first time. `SigninCallback` reads it
+ * and navigates, so there is one owner of the URL and no event to remember to
+ * dispatch.
+ */
+let pendingReturnTo: string | null = null;
+
+/** Read once and clear: a second sign-in must not reuse the first one's target. */
+export function takeReturnTo(): string {
+  const target = safeReturnTo(pendingReturnTo);
+  pendingReturnTo = null;
+  return target;
+}
+
 export const oidcConfig: AuthProviderProps = {
   userManager,
   /**
-   * Return to wherever the user actually was, and strip the callback from
-   * history on the way.
+   * Record where the user actually was. The navigation itself happens in
+   * `SigninCallback`, through the router, with `replace: true`.
    *
-   * Two reasons, not one. The `code`/`state` query must go so a reload cannot
-   * replay a spent authorization code and so a code never sits in the address
-   * bar to be shoulder-read, bookmarked, or pasted into a bug report. And
-   * `/auth/callback` is not a destination — leaving the user parked on it means
-   * every sign-in ends on a URL that renders only by accident.
+   * Replacing rather than pushing matters for two reasons, not one. The
+   * `code`/`state` query must go, so a reload cannot replay a spent
+   * authorization code and a code never sits in the address bar to be
+   * shoulder-read, bookmarked, or pasted into a bug report. And
+   * `/auth/callback` is not a destination — leaving it in history means the
+   * back button walks into a spent callback.
    */
   onSigninCallback: (user) => {
     const state = user?.state as { returnTo?: string } | undefined;
-    const target = state?.returnTo ?? "/";
-    window.history.replaceState({}, document.title, target);
-    // `replaceState` fires no event, and the app mounted at `/auth/callback`
-    // before this ran — so without telling the router, every sign-in would land
-    // on the fallback view no matter which page was asked for.
-    notifyNavigated();
+    pendingReturnTo = state?.returnTo ?? null;
   },
 };
 

@@ -111,7 +111,12 @@ def test_a_person_may_control_an_organization(world, ontology) -> None:
 
     stored = session.get(Claim, claim.claim_id)
     assert stored.predicate == "controls"
-    assert stored.ontology_version == ontology.version == "1.6.0"
+    # The stamp is the **composition** version (ADR-037), which is the durable
+    # claim here. This used to pin the literal `1.6.0` and went red at T42 for a
+    # label change: what matters is that a claim records the version of the
+    # whole composition, not the version of whichever module owns its predicate.
+    assert stored.ontology_version == ontology.version
+    assert stored.ontology_version != ontology.modules["criminal_network"].version
 
 
 def test_an_organization_may_control_an_organization(world) -> None:

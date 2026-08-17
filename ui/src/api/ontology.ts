@@ -5,7 +5,7 @@
  * Regenerate with `aegis ontology generate`; CI fails on drift.
  */
 
-export const ONTOLOGY_VERSION = "1.6.0" as const;
+export const ONTOLOGY_VERSION = "1.6.1" as const;
 export const ONTOLOGY_NAMESPACE = "aegis.lk" as const;
 
 /** Ordered low to high — the index is the clearance level (spec 03). */
@@ -13,16 +13,23 @@ export const HANDLING_CODES = ["open", "restricted", "sensitive"] as const;
 export const SOURCE_TYPES = ["algorithmic", "commission_report", "court_record", "government_system", "human", "investigator", "open_source", "sensor"] as const;
 
 export const MODULES = {
-  "criminal_network": { version: "1.2.0", namespace: "aegis.lk/criminal-network", enabled: true },
-  "platform": { version: "1.2.0", namespace: "aegis.lk/platform", enabled: true },
+  "criminal_network": { version: "1.2.1", namespace: "aegis.lk/criminal-network", enabled: true },
+  "platform": { version: "1.2.1", namespace: "aegis.lk/platform", enabled: true },
 } as const;
 
+/**
+ * The object-view descriptor (spec 09 §6.2). `display` names the properties a
+ * heading is drawn from; `properties` carries what a generic renderer needs to
+ * draw a value honestly — its label, whether it may repeat, whether it is
+ * clearance-gated, and whether conflicting values are preserved rather than
+ * overwritten.
+ */
 export const OBJECT_TYPES = {
-  "location": { label: "Location", implements: [], module: "criminal_network" },
-  "organization": { label: "Organization", implements: ["party"], module: "criminal_network" },
-  "person": { label: "Person", implements: ["identifiable", "party"], module: "criminal_network" },
-  "phone_number": { label: "Phone number", implements: ["identifiable"], module: "criminal_network" },
-  "vehicle": { label: "Vehicle", implements: [], module: "criminal_network" },
+  "location": { label: "Location", implements: [], module: "criminal_network", display: { title: "name", subtitle: null }, properties: { "name": { label: "Name", type: "text", required: true, many: false, sensitivity: null, conflicts: null, shared: null }, "precision": { label: "Precision", type: "text", required: false, many: false, sensitivity: null, conflicts: null, shared: null } } },
+  "organization": { label: "Organization", implements: ["party"], module: "criminal_network", display: { title: "name", subtitle: "aliases" }, properties: { "aliases": { label: "Aliases", type: "text", required: false, many: true, sensitivity: null, conflicts: null, shared: "alias" }, "name": { label: "Name", type: "text", required: true, many: false, sensitivity: null, conflicts: null, shared: null }, "notes": { label: "Notes", type: "text", required: false, many: false, sensitivity: null, conflicts: null, shared: "notes" } } },
+  "person": { label: "Person", implements: ["identifiable", "party"], module: "criminal_network", display: { title: "name", subtitle: "aliases" }, properties: { "aliases": { label: "Aliases", type: "text", required: false, many: true, sensitivity: null, conflicts: null, shared: "alias" }, "date_of_birth": { label: "Date of birth", type: "date", required: false, many: false, sensitivity: null, conflicts: "preserve", shared: null }, "name": { label: "Name", type: "text", required: true, many: false, sensitivity: null, conflicts: null, shared: null }, "nic": { label: "NIC", type: "identifier", required: false, many: false, sensitivity: "restricted", conflicts: null, shared: "registered_identifier" }, "notes": { label: "Notes", type: "text", required: false, many: false, sensitivity: null, conflicts: null, shared: "notes" } } },
+  "phone_number": { label: "Phone number", implements: ["identifiable"], module: "criminal_network", display: { title: "number", subtitle: null }, properties: { "number": { label: "Number", type: "identifier", required: true, many: false, sensitivity: "restricted", conflicts: null, shared: "registered_identifier" } } },
+  "vehicle": { label: "Vehicle", implements: [], module: "criminal_network", display: { title: "description", subtitle: "registration" }, properties: { "description": { label: "Description", type: "text", required: true, many: false, sensitivity: null, conflicts: null, shared: null }, "registration": { label: "Registration", type: "identifier", required: false, many: false, sensitivity: null, conflicts: null, shared: null } } },
 } as const;
 
 export const INTERFACES = {
@@ -44,40 +51,40 @@ export const CATEGORIES = {
  * declared, for a UI that wants to say `party` rather than list members.
  */
 export const PREDICATES = {
-  "affiliated_with": { subject: ["person"], object: ["organization"], allowsLiteral: true, category: "ideological", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "allied_with": { subject: ["person"], object: ["person"], allowsLiteral: false, category: "financial", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "assessed_as_criminal_organization": { subject: ["organization"], object: "literal", allowsLiteral: true, category: "ideological", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "born_on": { subject: ["person"], object: "literal", allowsLiteral: true, category: null, symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "close_associate_of": { subject: ["person"], object: ["person"], allowsLiteral: false, category: "financial", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "co_arrested_with": { subject: ["person"], object: ["person"], allowsLiteral: false, category: "transnational", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "co_attacker_with": { subject: ["person"], object: ["person"], allowsLiteral: false, category: "ideological", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "co_located_in_prison_with": { subject: ["person"], object: ["person"], allowsLiteral: false, category: "prison_co_location", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "communicated_with": { subject: ["person"], object: ["person"], allowsLiteral: false, category: "transnational", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "conspired_against": { subject: ["person"], object: ["person"], allowsLiteral: false, category: "financial", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "conspired_with": { subject: ["person"], object: ["person"], allowsLiteral: false, category: "ideological", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "controls": { subject: ["organization", "person"], object: ["organization"], allowsLiteral: false, category: "financial", symmetric: false, identifier: false, subjectInterfaces: ["party"], objectInterfaces: [], module: "criminal_network" },
-  "financed_and_supplied_materiel_to": { subject: ["person"], object: ["organization"], allowsLiteral: false, category: "financial", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "foreign_contact_of": { subject: ["person"], object: ["organization"], allowsLiteral: false, category: "transnational", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "founded": { subject: ["person"], object: ["organization"], allowsLiteral: false, category: "ideological", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "has_nic": { subject: ["person"], object: "literal", allowsLiteral: true, category: null, symmetric: false, identifier: true, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "helped_establish_operations_of": { subject: ["person"], object: ["person"], allowsLiteral: false, category: "transnational", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "killed_family_of": { subject: ["person"], object: ["person"], allowsLiteral: false, category: "financial", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "known_as": { subject: ["organization", "person"], object: "literal", allowsLiteral: true, category: null, symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "masterminded_attack_with": { subject: ["person"], object: ["person"], allowsLiteral: false, category: "ideological", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "member_of": { subject: ["person"], object: ["organization"], allowsLiteral: false, category: "ideological", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "ordered_killing_of": { subject: ["person"], object: ["person"], allowsLiteral: false, category: "financial", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "partnered_with": { subject: ["person"], object: ["person"], allowsLiteral: false, category: "financial", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "pledged_allegiance_to": { subject: ["organization", "person"], object: ["organization"], allowsLiteral: false, category: "ideological", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "provided_military_training_to": { subject: ["person"], object: ["organization", "person"], allowsLiteral: false, category: "ideological", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "reachable_on": { subject: ["phone_number"], object: "literal", allowsLiteral: true, category: null, symmetric: false, identifier: true, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "registered_as": { subject: ["vehicle"], object: "literal", allowsLiteral: true, category: null, symmetric: false, identifier: true, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "rival_of": { subject: ["person"], object: ["person"], allowsLiteral: false, category: "financial", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "sibling_of": { subject: ["person"], object: ["person"], allowsLiteral: false, category: "kinship", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "splinter_affiliate_of": { subject: ["organization"], object: ["organization"], allowsLiteral: false, category: "ideological", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "spouse_of": { subject: ["person"], object: ["person"], allowsLiteral: false, category: "kinship", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "successor_leader_of": { subject: ["person"], object: ["organization"], allowsLiteral: false, category: "ideological", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "tipped_off_police_on": { subject: ["person"], object: ["person"], allowsLiteral: false, category: "financial", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
-  "trafficked_narcotics_with": { subject: ["person"], object: ["person"], allowsLiteral: false, category: "transnational", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "affiliated_with": { label: "Affiliated with", subject: ["person"], object: ["organization"], allowsLiteral: true, category: "ideological", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "allied_with": { label: "Allied with", subject: ["person"], object: ["person"], allowsLiteral: false, category: "financial", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "assessed_as_criminal_organization": { label: "Assessed as criminal organization", subject: ["organization"], object: "literal", allowsLiteral: true, category: "ideological", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "born_on": { label: "Born on", subject: ["person"], object: "literal", allowsLiteral: true, category: null, symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "close_associate_of": { label: "Close associate of", subject: ["person"], object: ["person"], allowsLiteral: false, category: "financial", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "co_arrested_with": { label: "Co arrested with", subject: ["person"], object: ["person"], allowsLiteral: false, category: "transnational", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "co_attacker_with": { label: "Co attacker with", subject: ["person"], object: ["person"], allowsLiteral: false, category: "ideological", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "co_located_in_prison_with": { label: "Co located in prison with", subject: ["person"], object: ["person"], allowsLiteral: false, category: "prison_co_location", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "communicated_with": { label: "Communicated with", subject: ["person"], object: ["person"], allowsLiteral: false, category: "transnational", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "conspired_against": { label: "Conspired against", subject: ["person"], object: ["person"], allowsLiteral: false, category: "financial", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "conspired_with": { label: "Conspired with", subject: ["person"], object: ["person"], allowsLiteral: false, category: "ideological", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "controls": { label: "Controls", subject: ["organization", "person"], object: ["organization"], allowsLiteral: false, category: "financial", symmetric: false, identifier: false, subjectInterfaces: ["party"], objectInterfaces: [], module: "criminal_network" },
+  "financed_and_supplied_materiel_to": { label: "Financed and supplied materiel to", subject: ["person"], object: ["organization"], allowsLiteral: false, category: "financial", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "foreign_contact_of": { label: "Foreign contact of", subject: ["person"], object: ["organization"], allowsLiteral: false, category: "transnational", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "founded": { label: "Founded", subject: ["person"], object: ["organization"], allowsLiteral: false, category: "ideological", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "has_nic": { label: "Has NIC", subject: ["person"], object: "literal", allowsLiteral: true, category: null, symmetric: false, identifier: true, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "helped_establish_operations_of": { label: "Helped establish operations of", subject: ["person"], object: ["person"], allowsLiteral: false, category: "transnational", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "killed_family_of": { label: "Killed family of", subject: ["person"], object: ["person"], allowsLiteral: false, category: "financial", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "known_as": { label: "Known as", subject: ["organization", "person"], object: "literal", allowsLiteral: true, category: null, symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "masterminded_attack_with": { label: "Masterminded attack with", subject: ["person"], object: ["person"], allowsLiteral: false, category: "ideological", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "member_of": { label: "Member of", subject: ["person"], object: ["organization"], allowsLiteral: false, category: "ideological", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "ordered_killing_of": { label: "Ordered killing of", subject: ["person"], object: ["person"], allowsLiteral: false, category: "financial", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "partnered_with": { label: "Partnered with", subject: ["person"], object: ["person"], allowsLiteral: false, category: "financial", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "pledged_allegiance_to": { label: "Pledged allegiance to", subject: ["organization", "person"], object: ["organization"], allowsLiteral: false, category: "ideological", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "provided_military_training_to": { label: "Provided military training to", subject: ["person"], object: ["organization", "person"], allowsLiteral: false, category: "ideological", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "reachable_on": { label: "Reachable on", subject: ["phone_number"], object: "literal", allowsLiteral: true, category: null, symmetric: false, identifier: true, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "registered_as": { label: "Registered as", subject: ["vehicle"], object: "literal", allowsLiteral: true, category: null, symmetric: false, identifier: true, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "rival_of": { label: "Rival of", subject: ["person"], object: ["person"], allowsLiteral: false, category: "financial", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "sibling_of": { label: "Sibling of", subject: ["person"], object: ["person"], allowsLiteral: false, category: "kinship", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "splinter_affiliate_of": { label: "Splinter affiliate of", subject: ["organization"], object: ["organization"], allowsLiteral: false, category: "ideological", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "spouse_of": { label: "Spouse of", subject: ["person"], object: ["person"], allowsLiteral: false, category: "kinship", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "successor_leader_of": { label: "Successor leader of", subject: ["person"], object: ["organization"], allowsLiteral: false, category: "ideological", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "tipped_off_police_on": { label: "Tipped off police on", subject: ["person"], object: ["person"], allowsLiteral: false, category: "financial", symmetric: false, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
+  "trafficked_narcotics_with": { label: "Trafficked narcotics with", subject: ["person"], object: ["person"], allowsLiteral: false, category: "transnational", symmetric: true, identifier: false, subjectInterfaces: [], objectInterfaces: [], module: "criminal_network" },
 } as const;
 
 export type HandlingCode = (typeof HANDLING_CODES)[number];

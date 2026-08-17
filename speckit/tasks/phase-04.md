@@ -48,7 +48,7 @@ AC met: spec 09 exists covering the investigation model and every surface the
 generic object view renders; divergences are ADR'd; specs 06 §2.7 and 07 §2/§3/§6
 corrected.
 
-**T42. ⛓ Workspace v2 foundation** (specs/07 §3–4, spec 09 §6, §10; needs T41) —
+**T42. ⛓ Workspace v2 foundation — DONE (2026-08-17)** (specs/07 §3–4, spec 09 §6, §10; needs T41) —
 the P2-born app (ADR-032 — the shell, auth, and serving decision already exist)
 gains the case-centric layout and **ontology-driven navigation from the
 generated descriptors** (ADR-043); all data access migrates to the P3 generated
@@ -65,11 +65,19 @@ Also closes the **H-19 remainder** (spec 09 §10): declare
 them; write the CSRF model into spec 03 and assert no route accepts a
 cookie-borne identity; document multi-tab behaviour.
 
-AC: nav lists object types and interfaces from descriptors alone; `grep` finds
-no hand-written domain model in `ui/src`; existing P2 screens still pass their
-e2e smoke inside the new layout **and through the router**, sign-in round trip
-included; the version-mismatch banner appears when the bundle and server
-disagree; the three H-19 items each have a failing-if-removed test.
+AC met: the rail lists every declared object type and interface from the
+generated descriptors, and each has a live screen (`/types/:name`,
+`/interfaces/:name`) rendering properties, clearance, conflict policy and
+category-grouped links while calling **no endpoint**;
+`tests/contract/test_workspace_descriptors.py` sweeps `ui/src` for every
+domain-declared name — not just T39's one predicate — and finds none; all 42 P2
+e2e journeys pass unchanged inside the new layout and through the router, plus
+10 new ones covering the deep-link sign-in round trip and the back button; the
+mismatch banner appears on disagreement and not on agreement; the three H-19
+items are declared in the realm and in spec 03 §1.1–1.3 with
+`tests/contract/test_session_policy.py` (9 cases) failing if any is dropped.
+Ontology `1.6.0 → 1.6.1` (patch, proposal 005) for the four display labels the
+generator's humanization gets wrong.
 
 **T43. Investigation-model implementation** (spec 09 §2–§5; needs T41) —
 storage/actions/routes for hypotheses (`hypothesis` + append-only

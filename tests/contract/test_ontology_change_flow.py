@@ -26,6 +26,9 @@ pytestmark = pytest.mark.requirement("Article-XI", "Article-XIV", "T39")
 #: The change proposal 004 made, and the only name it introduced.
 NEW_PREDICATE = "controls"
 PROPOSAL = "004-controls-predicate"
+#: The composition version proposal 004 shipped at. Fixed forever — later bumps
+#: move `release.json` on, and this file is about what happened at 1.6.0.
+LANDED_AT = "1.6.0"
 
 #: Code names a predicate as a **quoted string** — `predicate == "controls"`,
 #: `PREDICATES["controls"]`. A bare substring sweep would also catch the word in
@@ -45,18 +48,34 @@ def ontology():
 
 
 def test_the_change_came_with_a_proposal() -> None:
-    """Not an assertion about paperwork: the release gate refuses without it."""
+    """Not an assertion about paperwork: the release gate refuses without it.
+
+    Asserted against the **chain**, not against `release.json`. This file used
+    to read the live release metadata, which made it a test of whichever bump
+    happened to be newest — it went red at T42 for a change that had nothing to
+    do with `controls`. The durable fact is that 1.6.0's artifact is still in
+    the history and its proposal is still on disk, which is exactly what
+    `check-release` walks back through.
+    """
     path = REPO_ROOT / "ontology" / "proposals" / f"{PROPOSAL}.md"
     assert path.exists()
-    release = json.loads((REPO_ROOT / "ontology" / "release.json").read_text("utf-8"))
-    assert release["proposal"] == PROPOSAL
-    assert release["compatibility"] == "minor"
-    assert release["previous_version"] == "1.5.0"
+    assert "`1.5.0` → `1.6.0` (`minor`)" in path.read_text("utf-8")
+    artifact = REPO_ROOT / "ontology" / "history" / f"composed-{LANDED_AT}.json"
+    assert artifact.exists()
+    composed = json.loads(artifact.read_text("utf-8"))
+    assert NEW_PREDICATE in composed["ontology"]["predicates"]
+    assert composed["owners"][NEW_PREDICATE] == "criminal_network"
 
 
 def test_the_predicate_is_owned_by_the_domain_module(ontology) -> None:
+    """Ownership is the durable claim; the module's *current* version is not.
+
+    A later patch to an unrelated label bumps `criminal_network` and would fail
+    an equality assertion here, so this checks the predicate never migrated out
+    of the domain module — which is what Article XIV cares about.
+    """
     assert ontology.owner_module(NEW_PREDICATE) == "criminal_network"
-    assert ontology.modules["criminal_network"].version == "1.2.0"
+    assert ontology.owner_module(NEW_PREDICATE) != "platform"
 
 
 # ── it targets an interface, and the expansion is what ships ────────────────
@@ -131,9 +150,17 @@ def test_the_generated_client_exposes_it(ontology) -> None:
     learn this predicate exists.
     """
     constants = (REPO_ROOT / "ui" / "src" / "api" / "ontology.ts").read_text("utf-8")
-    assert f'"{NEW_PREDICATE}": {{' in constants
-    assert 'subjectInterfaces: ["party"]' in constants
-    assert f'"{NEW_PREDICATE}": {{ subject: ["organization", "person"]' in constants
+    # Read the predicate's own line rather than matching from its opening brace:
+    # the entry gained a `label` field at T42, and an assertion anchored to the
+    # first key would fail for every future field with nothing to say about
+    # whether the predicate is exposed.
+    entry = next(
+        (line for line in constants.splitlines() if line.strip().startswith(f'"{NEW_PREDICATE}":')),
+        None,
+    )
+    assert entry is not None, f"{NEW_PREDICATE} is absent from the generated constants"
+    assert 'subject: ["organization", "person"]' in entry, "the expansion ships"
+    assert 'subjectInterfaces: ["party"]' in entry, "and so does the declaration"
 
 
 def test_the_composed_artifact_records_the_declaration(ontology) -> None:

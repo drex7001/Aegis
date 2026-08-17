@@ -13,7 +13,10 @@ namespace: test.border-cargo
 composition:
   - module: platform
     path: ../../../ontology/modules/platform.yaml
-    version: "1.2.0"
+    # Exact, like every manifest pin. It has to be edited on each platform
+    # bump, and that is the tripwire working: a second domain is re-read
+    # against the platform module every time the platform module moves.
+    version: "1.2.1"
 
   - module: border_cargo
     path: border-cargo.yaml
