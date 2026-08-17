@@ -99,7 +99,13 @@ def test_the_artifact_keeps_the_declaration_not_the_resolution(
     vocabulary change", and resolution is derived."""
     artifact = composed_artifact(composition, ontology)
     person = artifact["ontology"]["object_types"]["person"]
-    assert person["properties"]["nic"] == {"shared": "registered_identifier"}
+    assert person["properties"]["nic"] == {
+        "shared": "registered_identifier",
+        # Declared on the reference, not inherited: a label is presentation, so
+        # it resolves reference-wins while `type` and `sensitivity` resolve
+        # shared-wins (proposal 005).
+        "label": "NIC",
+    }
     assert person["implements"] == ["party", "identifiable"]
     # ...while the resolved registry has the shared values filled in.
     assert ontology.object_type("person").properties["nic"].sensitivity == "restricted"
@@ -204,12 +210,72 @@ def test_handling_codes_keep_their_order(ontology) -> None:
     assert '["open", "restricted", "sensitive"]' in rendered
 
 
+def _entry(rendered: str, name: str) -> str:
+    """The one generated line declaring `name`.
+
+    Assertions used to anchor on the opening brace, which pinned field order and
+    broke when T42 added `label`. Reading the line lets each test name the
+    fields it cares about and ignore the rest.
+    """
+    line = next(
+        (l for l in rendered.splitlines() if l.strip().startswith(f'"{name}":')), None
+    )
+    assert line is not None, f"{name} is absent from the generated constants"
+    return line
+
+
 def test_a_predicate_reports_its_expansion_and_its_declaration(ontology) -> None:
     rendered = typescript_constants(ontology)
-    assert (
-        '"member_of": { subject: ["person"], object: ["organization"]' in rendered
-    )
-    assert '"has_nic": { subject: ["person"], object: "literal"' in rendered
+    member_of = _entry(rendered, "member_of")
+    assert 'subject: ["person"]' in member_of
+    assert 'object: ["organization"]' in member_of
+    has_nic = _entry(rendered, "has_nic")
+    assert 'subject: ["person"]' in has_nic
+    assert 'object: "literal"' in has_nic
+
+
+def test_every_property_and_predicate_carries_a_label(ontology) -> None:
+    """The descriptor contract (spec 09 §6.2): a generic screen needs a caption
+    for every field, and the generator humanizes the name where the ontology
+    declares none — so there is never a blank heading."""
+    rendered = typescript_constants(ontology)
+    for name in ontology.predicates:
+        assert "label: " in _entry(rendered, name), name
+    for type_name, spec in ontology.object_types.items():
+        entry = _entry(rendered, type_name)
+        assert "display: " in entry, type_name
+        for prop in spec.properties:
+            assert f'"{prop}": {{ label: ' in entry, f"{type_name}.{prop}"
+
+
+def test_a_declared_label_beats_the_humanized_default(ontology) -> None:
+    """`nic` humanizes to "Nic", which is not the acronym — proposal 005."""
+    rendered = typescript_constants(ontology)
+    person = _entry(rendered, "person")
+    assert '"nic": { label: "NIC"' in person
+    assert '"Nic"' not in person
+    # ...and where nothing is declared, the humanized form is used rather than
+    # the raw name.
+    assert '"date_of_birth": { label: "Date of birth"' in person
+
+
+def test_a_reference_label_overrides_the_shared_one(ontology) -> None:
+    """One `registered_identifier` is a NIC on a person and a number on a phone.
+
+    The governance fields resolve the other way — `sensitivity` stays
+    `restricted` on both — which is the asymmetry proposal 005 argues for.
+    """
+    rendered = typescript_constants(ontology)
+    assert '"number": { label: "Number"' in _entry(rendered, "phone_number")
+    assert '"nic": { label: "NIC"' in _entry(rendered, "person")
+    assert ontology.object_type("phone_number").properties["number"].sensitivity == "restricted"
+    assert ontology.object_type("person").properties["nic"].sensitivity == "restricted"
+
+
+def test_an_undeclared_label_falls_back_to_the_shared_definition(ontology) -> None:
+    """`notes` declares no label anywhere it is referenced; the shared one shows."""
+    assert ontology.object_type("person").properties["notes"].label == "Notes"
+    assert '"notes": { label: "Notes"' in _entry(typescript_constants(ontology), "person")
 
 
 def test_the_committed_constants_match_the_registry(ontology) -> None:

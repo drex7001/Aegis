@@ -1,12 +1,12 @@
 {
-  "compatibility": "minor",
-  "content_hash": "86bf9b247d25db0e80db00689abd6af3974a03193e103b8356ab5ac68db7698f",
+  "compatibility": "patch",
+  "content_hash": "28aeb346f714cb982ca39cccbb83ebfcd99dc95fcc8c5a5ca4ceb6ad64fe0596",
   "modules": {
-    "criminal_network": "1.2.0",
-    "platform": "1.2.0"
+    "criminal_network": "1.2.1",
+    "platform": "1.2.1"
   },
-  "previous_content_hash": "989fb3b12c2ef56b2f854afb24c4fbfd8eae3204168fb90efac3b215c7a8e955",
-  "previous_version": "1.5.0",
-  "proposal": "004-controls-predicate",
-  "version": "1.6.0"
+  "previous_content_hash": "86bf9b247d25db0e80db00689abd6af3974a03193e103b8356ab5ac68db7698f",
+  "previous_version": "1.6.0",
+  "proposal": "005-display-labels",
+  "version": "1.6.1"
 }

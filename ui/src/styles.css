@@ -97,22 +97,8 @@ button:hover {
   gap: 8px;
 }
 
-.shell__nav {
-  display: flex;
-  gap: 12px;
+.shell__spacer {
   flex: 1;
-}
-
-.shell__link {
-  color: var(--muted);
-  text-decoration: none;
-  padding: 4px 8px;
-  border-radius: 4px;
-}
-
-.shell__link--active {
-  color: var(--ink);
-  background: var(--canvas);
 }
 
 .shell__user {
@@ -121,10 +107,164 @@ button:hover {
   gap: 10px;
 }
 
+/*
+ * T42: bar over rail + content (spec 07 §4). The rail is a column of real
+ * destinations — no placeholder rows — and `.rail__cases` is the empty slot the
+ * case switcher fills at T46.
+ */
+.shell__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.shell__content {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .shell__main {
   flex: 1;
   min-height: 0;
   display: flex;
+}
+
+.rail {
+  width: 200px;
+  flex: none;
+  padding: 12px 0;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+}
+
+.rail__group {
+  margin-bottom: 16px;
+}
+
+.rail__heading {
+  margin: 0 12px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.rail__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rail__link {
+  display: block;
+  padding: 5px 12px;
+  color: var(--muted);
+  text-decoration: none;
+  /* The mark, not the colour, is what says "you are here" (spec 07 §5). */
+  border-left: 3px solid transparent;
+}
+
+.rail__link:hover {
+  color: var(--ink);
+}
+
+.rail__link--active {
+  color: var(--ink);
+  background: var(--canvas);
+  border-left-color: var(--accent);
+}
+
+/*
+ * The bundle/server ontology mismatch (spec 09 §6.3). Caution bronze, never the
+ * failure colour: the data is correct and current, only the captions may be
+ * stale, and an alarm would misdescribe that.
+ */
+.banner {
+  padding: 8px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--line);
+}
+
+.banner--caution {
+  background: var(--hold-wash);
+  border-left: 3px solid var(--caution);
+}
+
+/* ── descriptor pages (T42) ──────────────────────────────────────────────── */
+
+.page {
+  flex: 1;
+  min-width: 0;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.page > * {
+  max-width: 980px;
+}
+
+.page__head h1 {
+  margin-bottom: 2px;
+}
+
+.page__head p {
+  margin-top: 0;
+}
+
+.table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 6px 10px 6px 0;
+  border-top: 1px solid var(--line);
+  font-weight: 400;
+}
+
+.table thead th {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-top: 0;
+}
+
+.tag {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.tag--hold {
+  border-color: var(--caution);
+  color: var(--caution);
+}
+
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: baseline;
+}
+
+.object-type__group ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
 }
 
 .graph {

@@ -1,6 +1,8 @@
 import { useEffect, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
 
+import { safeReturnTo } from "../routing";
+
 /**
  * Nothing renders before there is an authenticated caller.
  *
@@ -18,8 +20,12 @@ export function AuthGuard({ children }: { children: ReactNode }) {
     if (!isAuthenticated && !isLoading && !activeNavigator && !error) {
       // Carry where they were through the round trip: a deep link that lands on
       // the login redirect must come back to the same place, not to the root.
+      // `safeReturnTo` is what stops a visit to `/auth/callback` with no code
+      // from signing in and returning to `/auth/callback` forever.
       void signinRedirect({
-        state: { returnTo: window.location.pathname + window.location.search },
+        state: {
+          returnTo: safeReturnTo(window.location.pathname + window.location.search),
+        },
       });
     }
   }, [isAuthenticated, isLoading, activeNavigator, error, signinRedirect]);

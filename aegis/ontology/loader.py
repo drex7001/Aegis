@@ -96,6 +96,13 @@ class PropertySpec(BaseModel):
     #: The shared property this was declared from, retained after resolution so
     #: codegen and object views can render one definition rather than a copy.
     shared: str | None = None
+    #: What a screen calls this property. Optional: the generator humanizes the
+    #: name when none is declared (ADR-043), so a label exists only where the
+    #: humanized form would be wrong — `nic` reads as "Nic" and should not.
+    #: Unlike `type` and `sensitivity`, a local label **overrides** the shared
+    #: property's: naming is presentation, not governance, and the override is
+    #: how one shared definition serves `person.nic` and `phone_number.number`.
+    label: str | None = None
 
 
 class InterfaceSpec(BaseModel):
@@ -130,6 +137,10 @@ class PredicateSpec(BaseModel):
     # be an entity of those types *or* a literal value (spec 02 §6).
     object: Union[list[str], Literal["literal"]]
     category: str | None = None
+    #: What a screen calls this link. Optional for the same reason as
+    #: `PropertySpec.label`: `affiliated_with` humanizes correctly, `has_nic`
+    #: does not.
+    label: str | None = None
     symmetric: bool = False
     computed: bool = False
     system: bool = False
@@ -787,6 +798,12 @@ def _resolve_property(prop: PropertySpec, ont: Ontology) -> PropertySpec:
             # `conflicts` on the reference is not an override of a stated value
             # — the shared property may simply not have declared one.
             "conflicts": prop.conflicts if shared.conflicts is None else shared.conflicts,
+            # Labels resolve the other way round: the reference wins. One
+            # `registered_identifier` is a NIC on a person and a number on a
+            # phone, and the shared definition cannot know which. Governance
+            # fields above are shared-wins precisely so a domain cannot weaken
+            # them; a label weakens nothing.
+            "label": prop.label or shared.label,
         }
     )
 

@@ -12,11 +12,13 @@
 module:
   name: platform
   namespace: aegis.lk/platform
-  version: 1.2.0
+  version: 1.2.1
   label: Platform governance vocabulary
   # No imports: platform is the root of the composition. Everything else
   # imports it, which is why a cycle here would be a contradiction.
   #
+  # 1.2.1 (T42): patch — `alias` is labelled "Aliases". Display only; the
+  #               property's name, type and cardinality are untouched.
   # 1.2.0 (T34): additive — action parameters, submission criteria, side
   #               effects. No action, role or dual-control rule changed.
   # 1.1.0 (T32): additive — shared properties and interfaces.
@@ -29,7 +31,11 @@ shared_properties:
   alias:
     type: text
     many: true
-    label: Alias
+    # Plural because the definition itself is `many: true`: a screen renders a
+    # list here, and "Alias" as the heading over three of them is wrong
+    # wherever it appears.  The property's *name* stays singular — it is the
+    # shape's name, not a caption.
+    label: Aliases
   registered_identifier:
     type: identifier
     sensitivity: restricted      # a state-issued number is never `open`

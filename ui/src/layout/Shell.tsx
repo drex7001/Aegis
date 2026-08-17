@@ -1,22 +1,34 @@
+import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "react-oidc-context";
 
-import { ROUTES, type Route, navigate } from "../routing";
+import { ROUTES } from "../routing";
+import { OntologyNav } from "./OntologyNav";
+import { VersionBanner } from "./VersionBanner";
 
 /**
- * The P2 skeleton of spec 07 §4: top bar plus active view. No case column — the
- * case switcher, nav rail and detail panes arrive in P4 with the objects they
- * navigate; a nav bar full of dead links would be a promise the product does
- * not keep.
+ * Spec 07 §4's layout, as far as P4 has destinations for it: a top bar, a left
+ * rail, and the active view.
+ *
+ * P2 shipped the top bar alone and said why the rail was absent — "a nav bar
+ * full of dead links would be a promise the product does not keep". That rule
+ * still governs what is here. The rail lists the workspace views that exist and
+ * the ontology's own types and interfaces, each with a screen behind it. The
+ * **case switcher** spec 07 §4 draws above the rail is not here yet: cases have
+ * no list route until T46, and an empty switcher would be the dead link the
+ * rule forbids. It slots into `rail__cases` when T46 lands.
+ *
+ * The ontology section is generated, not written (ADR-043) — see `OntologyNav`.
  */
+
 // Ordered as the work flows: land a record, review what was proposed from it,
 // then look at the graph that results.
-const VIEWS: Array<{ route: Route; label: string }> = [
-  { route: ROUTES.sources, label: "Sources" },
-  { route: ROUTES.review, label: "Review" },
-  { route: ROUTES.graph, label: "Graph" },
+const WORKSPACE_VIEWS: Array<{ to: string; label: string }> = [
+  { to: ROUTES.sources, label: "Sources" },
+  { to: ROUTES.review, label: "Review" },
+  { to: ROUTES.graph, label: "Graph" },
 ];
 
-export function Shell({ route, children }: { route: Route; children: React.ReactNode }) {
+export function Shell() {
   const auth = useAuth();
   const profile = auth.user?.profile;
   const roles = extractRoles(auth.user?.profile);
@@ -28,26 +40,7 @@ export function Shell({ route, children }: { route: Route; children: React.React
           <strong>Aegis</strong>
           <span className="muted">investigation workspace</span>
         </div>
-        <nav className="shell__nav" aria-label="Views">
-          {VIEWS.map((view) => (
-            <a
-              key={view.route}
-              // A real href, so the link opens in a new tab and shows its
-              // target in the status bar; the click is intercepted only for
-              // the same-document case.
-              href={view.route}
-              className={`shell__link${route === view.route ? " shell__link--active" : ""}`}
-              aria-current={route === view.route ? "page" : undefined}
-              onClick={(event) => {
-                if (event.metaKey || event.ctrlKey || event.shiftKey) return;
-                event.preventDefault();
-                navigate(view.route);
-              }}
-            >
-              {view.label}
-            </a>
-          ))}
-        </nav>
+        <div className="shell__spacer" />
         <div className="shell__user">
           <span data-testid="username">
             {(profile?.preferred_username as string | undefined) ?? profile?.sub}
@@ -62,7 +55,38 @@ export function Shell({ route, children }: { route: Route; children: React.React
           </button>
         </div>
       </header>
-      <main className="shell__main">{children}</main>
+
+      <div className="shell__body">
+        <nav className="rail" aria-label="Workspace">
+          {/* T46 mounts the case switcher here. */}
+          <div className="rail__cases" />
+          <div className="rail__group">
+            <h2 className="rail__heading">Workspace</h2>
+            <ul className="rail__list" data-testid="nav-workspace">
+              {WORKSPACE_VIEWS.map((view) => (
+                <li key={view.to}>
+                  <NavLink
+                    to={view.to}
+                    className={({ isActive }) =>
+                      `rail__link${isActive ? " rail__link--active" : ""}`
+                    }
+                  >
+                    {view.label}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <OntologyNav />
+        </nav>
+
+        <div className="shell__content">
+          <VersionBanner />
+          <main className="shell__main">
+            <Outlet />
+          </main>
+        </div>
+      </div>
     </div>
   );
 }

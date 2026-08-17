@@ -4,6 +4,15 @@
   "displayName": "Aegis",
   "registrationAllowed": false,
   "bruteForceProtected": true,
+
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 28800,
+  "ssoSessionIdleTimeoutRememberMe": 1800,
+  "ssoSessionMaxLifespanRememberMe": 28800,
+  "accessTokenLifespan": 300,
+  "offlineSessionIdleTimeout": 1800,
+  "clientSessionIdleTimeout": 1800,
+  "clientSessionMaxLifespan": 28800,
   "roles": {
     "realm": [
       { "name": "admin", "description": "Users/roles/ontology/infra — no intelligence content access (speckit spec 03 §2)" },

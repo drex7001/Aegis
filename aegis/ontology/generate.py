@@ -153,6 +153,39 @@ def _ts_literal(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True)
 
 
+def humanize(name: str) -> str:
+    """`date_of_birth` -> "Date of birth". The default label (ADR-043).
+
+    Sentence case, not title case: "Date of Birth" is a headline, and these are
+    field labels. Where the result reads wrong — `nic` becomes "Nic" — the
+    ontology declares a `label` and this is not consulted. The transform lives
+    here rather than in React so that fixing a bad label is a proposal and a
+    version bump, not a UI change.
+    """
+    return name.replace("_", " ").capitalize()
+
+
+def _property_descriptor(name: str, spec: Any) -> str:
+    """One property, as the object view needs it (spec 09 §6.2).
+
+    `sensitivity` and `conflicts` are here because they are the two fields a
+    generic renderer cannot do without: the first decides whether a value can be
+    absent for governance reasons rather than because nobody asserted it, and
+    the second is why two dates of birth render side by side instead of one
+    overwriting the other (Article VIII).
+    """
+    return (
+        f"{_ts_literal(name)}: {{ "
+        f"label: {_ts_literal(spec.label or humanize(name))}, "
+        f"type: {_ts_literal(spec.type)}, "
+        f"required: {'true' if spec.required else 'false'}, "
+        f"many: {'true' if spec.many else 'false'}, "
+        f"sensitivity: {_ts_literal(spec.sensitivity)}, "
+        f"conflicts: {_ts_literal(spec.conflicts)}, "
+        f"shared: {_ts_literal(spec.shared)} }}"
+    )
+
+
 def typescript_constants(ontology: Ontology) -> str:
     """The ontology as TypeScript the workspace can import.
 
@@ -187,12 +220,37 @@ def typescript_constants(ontology: Ontology) -> str:
             f"namespace: {_ts_literal(info.namespace)}, "
             f"enabled: {'true' if info.enabled else 'false'} }},"
         )
-    lines += ["} as const;", "", "export const OBJECT_TYPES = {"]
+    lines += [
+        "} as const;",
+        "",
+        "/**",
+        " * The object-view descriptor (spec 09 §6.2). `display` names the properties a",
+        " * heading is drawn from; `properties` carries what a generic renderer needs to",
+        " * draw a value honestly — its label, whether it may repeat, whether it is",
+        " * clearance-gated, and whether conflicting values are preserved rather than",
+        " * overwritten.",
+        " */",
+        "export const OBJECT_TYPES = {",
+    ]
     for name, spec in sorted(ontology.object_types.items()):
+        display = (
+            "null"
+            if spec.display is None
+            else (
+                f"{{ title: {_ts_literal(spec.display.title)}, "
+                f"subtitle: {_ts_literal(spec.display.subtitle)} }}"
+            )
+        )
+        properties = ", ".join(
+            _property_descriptor(prop_name, prop)
+            for prop_name, prop in sorted(spec.properties.items())
+        )
         lines.append(
             f"  {_ts_literal(name)}: {{ label: {_ts_literal(spec.label)}, "
             f"implements: {_ts_literal(sorted(spec.implements))}, "
-            f"module: {_ts_literal(ontology.owner_module(name))} }},"
+            f"module: {_ts_literal(ontology.owner_module(name))}, "
+            f"display: {display}, "
+            f"properties: {{ {properties} }} }},"
         )
     lines += ["} as const;", "", "export const INTERFACES = {"]
     for name, spec in sorted(ontology.interfaces.items()):
@@ -220,7 +278,8 @@ def typescript_constants(ontology: Ontology) -> str:
     for name, spec in sorted(ontology.predicates.items()):
         objects = "literal" if spec.is_literal else sorted(spec.entity_object_types)
         lines.append(
-            f"  {_ts_literal(name)}: {{ subject: {_ts_literal(sorted(spec.subject))}, "
+            f"  {_ts_literal(name)}: {{ label: {_ts_literal(spec.label or humanize(name))}, "
+            f"subject: {_ts_literal(sorted(spec.subject))}, "
             f"object: {_ts_literal(objects)}, "
             f"allowsLiteral: {'true' if spec.allows_literal else 'false'}, "
             f"category: {_ts_literal(spec.category)}, "

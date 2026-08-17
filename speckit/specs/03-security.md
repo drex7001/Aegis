@@ -17,6 +17,63 @@ holds every role.
   level (integer index into the ontology's ordered `handling_codes`).
 - Local accounts now; the same OIDC seam later plugs into an agency IdP (ADR-004).
 
+### 1.1 Session lifetimes (T42, closing H-19)
+
+Declared in `infra/keycloak/aegis-realm.json`, not inherited. The realm set none
+of these until T42, so it ran on whatever the running Keycloak version happened
+to default to — which is not a policy, it is an accident that happened to be
+reasonable. `tests/contract/test_session_policy.py` fails if any is dropped.
+
+| Setting | Value | Why |
+|---|---|---|
+| `ssoSessionIdleTimeout` | 30 min | Long enough that a break does not lose work |
+| `ssoSessionMaxLifespan` | 8 h | A machine left signed in overnight is not still authorized in the morning |
+| `accessTokenLifespan` | 5 min | Bounds what a captured token is worth; the workspace renews from the refresh token, so the user never sees it |
+| `clientSessionIdleTimeout` / `clientSessionMaxLifespan` | 30 min / 8 h | The same bounds applied per client, so a long-lived SSO session cannot outlive them |
+
+The `RememberMe` variants are pinned to the same numbers rather than left
+unset — an unset value there silently reverts to the default and quietly
+undoes the policy for anyone who ticks the box.
+
+These bound the **SSO session**, not the API. Aegis validates a bearer token on
+every request and issues no session of its own, so signing out of Keycloak does
+not retroactively invalidate an access token already minted; the five-minute
+lifespan is what bounds that window.
+
+### 1.2 There is no ambient credential — the CSRF model (T42, closing H-19)
+
+Every governed route authenticates with `Authorization: Bearer <jwt>`
+(`HTTPBearer`, `aegis/api/auth.py`). Aegis sets **no** authentication cookie,
+reads none, and has no session store. A cross-site form post or image tag
+therefore carries no authority: the browser attaches cookies automatically, and
+an `Authorization` header never.
+
+This is why the API needs no CSRF token, no double-submit cookie, and no
+`SameSite` policy of its own — the class of attack is absent rather than
+mitigated. It is also a property that a single well-meaning change could remove,
+so it is asserted rather than assumed:
+`tests/contract/test_session_policy.py` fails if any route declares a cookie
+security scheme or reads a cookie parameter.
+
+The workspace holds tokens in memory and the PKCE verifier in `sessionStorage`
+(spec 07 §2). Neither is reachable cross-origin, and neither is sent
+automatically.
+
+### 1.3 Multi-tab behaviour
+
+Each browser tab holds its own in-memory user store, and `monitorSession` is
+off. Two consequences, stated because they are consequences of a decision and
+not oversights:
+
+- **Signing out in one tab does not sign out the others.** They keep working
+  until their access tokens expire (≤ 5 min) and their refresh fails.
+- **A reload re-authenticates** through the SSO session rather than restoring a
+  token, because tokens are never persisted (spec 07 §2).
+
+The alternative — a shared, persisted token store — is what "tokens never leave
+memory" exists to forbid, so this is the accepted cost, bounded by the token
+lifespan above.
+
 ## 2. Roles (RBAC)
 
 | Role | May (summary) | May not |

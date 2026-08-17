@@ -1,71 +1,52 @@
-import { useEffect, useState } from "react";
-
 /**
- * Path-based view selection, on the History API directly.
+ * The route table. History belongs to `react-router` from T42 onward.
  *
- * P2 has three views, and a router library is not what three views need. What
- * they do need is real URLs — the back button, a deep link to `/sources`, and a
- * path the auth guard can hand to `returnTo` — which is all this provides.
+ * P2 routed on the History API directly, and said why: two views did not need a
+ * router, but they did need real URLs. The reason to wait was that the OIDC
+ * callback finished by rewriting the URL with `history.replaceState`, so
+ * adopting a router meant re-testing the whole sign-in round trip — worth doing
+ * once, when the view count justified it.
  *
- * The reason it is here rather than `react-router` is narrower than "fewer
- * dependencies": the OIDC callback finishes by rewriting the URL with
- * `history.replaceState` (auth/config.ts), and a router that owns the history
- * stack would not observe that write. Swapping in a router therefore means
- * re-testing the sign-in round trip, and it is worth doing once, in P4, when
- * the view count actually justifies it — not now, for two.
+ * P4 is that point: `/types/:name` takes a parameter, and the phase adds cases
+ * and object views behind more of them. The callback no longer touches
+ * `history` at all — `auth/SigninCallback.tsx` navigates through the router
+ * instead, which is what removes the hazard rather than working around it.
+ *
+ * What stays here is the **table**: every path in one place, with builders, so
+ * a link is never a hand-written string and a renamed route is a type error.
  */
 
 export const ROUTES = {
   graph: "/graph",
   sources: "/sources",
   review: "/review",
+  /** One generic screen per declared object type (spec 09 §6). */
+  objectType: "/types/:name",
+  /** …and per interface, which is a shape over those types (spec 08 §4). */
+  interface: "/interfaces/:name",
+  signinCallback: "/auth/callback",
 } as const;
 
-export type Route = (typeof ROUTES)[keyof typeof ROUTES];
+export type RouteName = keyof typeof ROUTES;
+
+/** `/types/person`. The only place a parameterized path is assembled. */
+export function objectTypePath(name: string): string {
+  return `/types/${encodeURIComponent(name)}`;
+}
+
+export function interfacePath(name: string): string {
+  return `/interfaces/${encodeURIComponent(name)}`;
+}
 
 /**
- * Neither `pushState` nor `replaceState` fires an event, so any code that moves
- * the URL has to say so. `notifyNavigated` is that announcement, and the
- * sign-in callback is the caller that is easy to forget: it rewrites the URL to
- * the page the user originally asked for, *after* the app has already mounted
- * at `/auth/callback`. Without the notification the app renders the fallback
- * view at the right URL — which is what happened, and what the sources journey
- * caught.
+ * Where an interrupted visit resumes.
+ *
+ * `/auth/callback` is never a destination: returning to it would re-enter the
+ * callback with no code in the URL, which signs in again and returns to
+ * `/auth/callback`. That loop is the reason this function exists rather than a
+ * bare `?? "/"`.
  */
-const NAVIGATED = "aegis:navigated";
-
-export function notifyNavigated(): void {
-  window.dispatchEvent(new Event(NAVIGATED));
-}
-
-export function usePath(): string {
-  const [path, setPath] = useState(() => window.location.pathname);
-
-  useEffect(() => {
-    const sync = () => setPath(window.location.pathname);
-    window.addEventListener("popstate", sync);
-    window.addEventListener(NAVIGATED, sync);
-    // The signin callback replaces the URL after this component mounts, so read
-    // it once more on mount rather than trusting the initial render's value.
-    sync();
-    return () => {
-      window.removeEventListener("popstate", sync);
-      window.removeEventListener(NAVIGATED, sync);
-    };
-  }, []);
-
+export function safeReturnTo(path: string | undefined | null): string {
+  if (!path || path.startsWith(ROUTES.signinCallback)) return ROUTES.graph;
   return path;
-}
-
-export function navigate(to: Route): void {
-  if (window.location.pathname === to) return;
-  window.history.pushState({}, "", to);
-  notifyNavigated();
-}
-
-/** `/` opens the graph; anything unrecognised does too, rather than 404-ing. */
-export function activeRoute(path: string): Route {
-  if (path.startsWith(ROUTES.sources)) return ROUTES.sources;
-  if (path.startsWith(ROUTES.review)) return ROUTES.review;
-  return ROUTES.graph;
 }
