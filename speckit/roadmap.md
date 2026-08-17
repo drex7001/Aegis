@@ -27,7 +27,7 @@ external-review disposition (`reviews/2026-07-18-external-review-disposition.md`
 ```
 Milestone I    Governed foundation      P0 governance ▸ P1 claim store + RBAC     [COMPLETE]
 Milestone II   MVP                      P2 identity, provenance & workspace       [COMPLETE — ★ MVP]
-Milestone III  Ontology platform        P3 modules & contracts [COMPLETE] ▸ P4 workspace v2 & object views
+Milestone III  Ontology platform        P3 modules & contracts [COMPLETE] ▸ P4 workspace v2 & object views [ACTIVE]
 Milestone IV   Intelligence domain      P5 events, geo & time ▸ P6 search, object sets & analytics
 Milestone V    Trust boundaries & AI    P7 sharing & governance ▸ P8 controlled AI & reasoning
 Milestone VI   Production               P9 production certification & scale-out
@@ -186,11 +186,13 @@ to API validation and the TS client with zero hand-written domain code; the
 second-domain fixture loads with no core change; CI fails on codegen drift and
 on a bump without proposal + history.
 
-### Phase 4 — Investigation workspace v2 & object views *(GOAL.md §18, §29–30 · effort: M/L)*
+### Phase 4 — Investigation workspace v2 & object views *(ACTIVE from 2026-08-17 · GOAL.md §18, §29–30 · effort: M/L · ADR-043…045)*
 
 **Goal.** Work happens inside access-scoped cases; the P2 workspace grows
 object views, hypotheses, and time — it is **not** a new UI. Charter:
-`phases/phase-04-workspace-object-views.md` · tasks: `tasks/phase-04.md`.
+`phases/phase-04-workspace-object-views.md` · spec:
+`specs/09-investigation-domain.md` (final) · tasks: `tasks/phase-04.md`
+(re-validated by T41, whose five divergences are recorded in spec 09 §0).
 
 **Deliverables (summary)** — investigation-domain spec authored first (cases /
 hypotheses / tasks / leads model + routes — H-17); object views (entity-360:

@@ -142,7 +142,7 @@ one audit shape.
 
 | Route | R | F | Notes / filters | Limits | Tests |
 |---|---|---|---|---|---|
-| `GET /v1/ontology/vocabulary` | — | — | handling codes (**ordered** — clearance is an index into the list), source types, and `assertion_types`, so no client hard-codes a vocabulary the server owns. The first two come from `aegis.yaml` (Article XI); `assertion_types` is **platform epistemics, not domain vocabulary** (Article XIV), so it comes from a code-owned constant and is sorted — unlike handling codes, its order carries no meaning (T23b). Authenticated but unrestricted by role: it is the shape of the domain, not an assertion about anyone in it. Superseded in P4 by the generated `ui_meta.json` (spec 07 §3) | — | `test_ingest_routes.py`, `test_openapi.py` |
+| `GET /v1/ontology/vocabulary` | — | — | handling codes (**ordered** — clearance is an index into the list), source types, and `assertion_types`, so no client hard-codes a vocabulary the server owns. The first two come from `aegis.yaml` (Article XI); `assertion_types` is **platform epistemics, not domain vocabulary** (Article XIV), so it comes from a code-owned constant and is sorted — unlike handling codes, its order carries no meaning (T23b). Authenticated but unrestricted by role: it is the shape of the domain, not an assertion about anyone in it. **Not** superseded in P4: ADR-043 makes the generated `ui/src/api/ontology.ts` the descriptor, and this route becomes the runtime half of the bundle/server version comparison (spec 09 §6.3) — it also serves `assertion_types`, which appear in no ontology module | — | `test_ingest_routes.py`, `test_openapi.py` |
 
 ### 2.8 Audit
 

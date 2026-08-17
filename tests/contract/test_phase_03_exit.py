@@ -52,7 +52,12 @@ def test_status_surfaces_agree_on_the_current_phase() -> None:
 
     assert "Phase 3 — ontology modules and contracts — is complete" in root_readme
     assert "Active phase: Phase 3" not in root_readme
-    assert "Next phase: Phase 4" in root_readme
+    # "Next phase: Phase 4" used to be asserted here. It is a claim about
+    # whichever phase is *current*, which is exactly what this file's docstring
+    # says should not live in a test named for an earlier one — and it went
+    # stale the moment T41 opened P4. Relocated to
+    # `test_phase_04_status.py::test_status_surfaces_agree_that_phase_4_is_active`,
+    # which asserts the stronger form (active, and no longer "next").
     assert "**DONE**, all five gate criteria checked" in kit_readme
     assert "COMPLETE 2026-08-17" in roadmap
     assert "Status: COMPLETE 2026-08-17" in phase_3_tasks
