@@ -3129,7 +3129,8 @@
         "required": [
           "title",
           "status",
-          "parent_revision_id"
+          "parent_revision_id",
+          "intervening"
         ],
         "title": "StaleRevisionProblem",
         "type": "object"

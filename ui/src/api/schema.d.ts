@@ -1815,7 +1815,7 @@ export interface components {
             /** Detail */
             detail?: string | null;
             /** Intervening */
-            intervening?: components["schemas"]["InterveningDecision"][];
+            intervening: components["schemas"]["InterveningDecision"][];
             /** Parent Revision Id */
             parent_revision_id: number;
             /** Status */

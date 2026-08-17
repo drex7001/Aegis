@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 PROBLEM_MEDIA_TYPE = "application/problem+json"
 
@@ -92,7 +92,11 @@ class StaleRevisionProblem(ProblemDetail):
     """
 
     parent_revision_id: int
-    intervening: list[InterveningDecision] = Field(default_factory=list)
+    #: Required, not defaulted. The handler always builds the list, and a
+    #: default would make the generated client's field optional — teaching
+    #: every caller to handle an absence that cannot happen, in the one error
+    #: body they are supposed to read.
+    intervening: list[InterveningDecision]
 
 
 def _response(model: type[ProblemDetail], description: str) -> dict[str, Any]:
