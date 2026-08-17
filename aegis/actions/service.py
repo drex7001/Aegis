@@ -1077,8 +1077,21 @@ class ActionService:
         """
         if row.suggestion_kind == "claim_draft":
             self._validate_suggestion_payload(draft)
+            # Through `record_claim`'s declared parameters, exactly as a direct
+            # call goes (ADR-031 §2 — acceptance dispatches through the kind's
+            # action). Skipping this was a real inconsistency: a claim recorded
+            # directly got the ontology's declared defaults and the identical
+            # claim accepted from the queue did not, so a producer that omitted
+            # `assertion_type` failed here and nowhere else. It also means an
+            # undeclared key in a producer's payload is refused at acceptance
+            # rather than reaching the claim row.
+            validated = self._validate_parameters(
+                "record_claim",
+                self.ontology.action("record_claim"),
+                self._coerce_claim_payload(draft),
+            )
             try:
-                claim = self._create_claim(**self._coerce_claim_payload(draft))
+                claim = self._create_claim(**validated)
             except TypeError as exc:
                 raise ActionValidationError(
                     "review_queue.payload", f"invalid claim draft: {exc}"

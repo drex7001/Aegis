@@ -15,7 +15,7 @@
 module:
   name: criminal_network
   namespace: aegis.lk/criminal-network
-  version: 1.1.0
+  version: 1.2.0
   label: Criminal-network analysis
   imports:
     # Handling codes (property sensitivity), the grading model, and the shared
@@ -146,6 +146,14 @@ predicates:
   killed_family_of:                {subject: [person], object: [person], category: financial}
   tipped_off_police_on:            {subject: [person], object: [person], category: financial}
   financed_and_supplied_materiel_to: {subject: [person], object: [organization], category: financial}
+  # The first predicate in the shipped ontology to target an **interface**
+  # (proposal 004, spec 08 §4).  `party` expands at load time to person and
+  # organization — front companies are controlled by companies at least as
+  # often as by named individuals — so a third `party` implementor would widen
+  # this predicate without touching this line.  Control is neutral vocabulary:
+  # a party controls a lawful company exactly as it controls an unlawful one,
+  # and the doubt lives in the claim's grading (Article II, ADR-016).
+  controls:                          {subject: [party], object: [organization], category: financial}
 
   # ── prison co-location (computed) ─────────────────────────────────────
   co_located_in_prison_with:       {subject: [person], object: [person],

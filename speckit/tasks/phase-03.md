@@ -281,13 +281,37 @@ handling code was added, and is now the drift-gated constant. Surfacing a
 bundle/server ontology-version mismatch is the natural next step and belongs
 with P4's generic screens, not here.
 
-**T39. Ontology-change end-to-end proof** (charter exit №1; needs T35–T38) —
-land a new test predicate on an interface **in a domain module via the proposal
-workflow**: the change flows to API validation and the TS client with zero
-hand-written domain code.
+**T39. Ontology-change end-to-end proof — DONE (2026-08-17)** (charter exit №1;
+needs T35–T38) — land a new test predicate on an interface **in a domain module
+via the proposal workflow**: the change flows to API validation and the TS
+client with zero hand-written domain code.
 AC: the change's diff touches only the module file, the proposal, and
 regenerated artifacts; a test proves the API accepts the new predicate and the
 client exposes it; reproducible in CI.
+
+Proposal **004** adds `controls` (a *party* controlling an organization) to the
+criminal-network module. Composition 1.5.0 → 1.6.0, `criminal_network` 1.1.0 →
+1.2.0. The first proposal written **before** its change merges, and the first
+shipped predicate whose endpoint is an interface: `subject: [party]` expands to
+person + organization at load, so a third `party` implementor would widen it
+without the line being touched.
+
+AC met by 8 contract cases (`tests/contract/test_ontology_change_flow.py`) and
+6 integration cases (`tests/integration/test_ontology_change_flow.py`): a
+person and an organization may both control; a `location` may not, refused by
+the expansion rather than by any branch; the claim projects under its declared
+category; and the suggestion → review → accept path carries it. Sweeps assert
+no file under `aegis/` or `ui/src` names the predicate — matching on the quoted
+form, because `controls` is an English word and `aria-controls` is not a
+violation.
+
+**A defect this found.** Review acceptance called `_create_claim` with the raw
+draft, bypassing the generated request model — so a claim recorded directly got
+the ontology's declared defaults and the identical claim accepted from the
+queue did not. Acceptance now dispatches through `record_claim`'s declared
+parameters, as ADR-031 §2 always said it should, which also means an undeclared
+key in a producer's payload is refused at acceptance rather than reaching the
+claim row.
 
 **T40. Phase exit review** — walk the charter's gate criteria (non-deferrable,
 ADR-025); update speckit docs where reality diverged; append ADRs; write

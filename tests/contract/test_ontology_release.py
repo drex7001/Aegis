@@ -64,6 +64,7 @@ def test_the_backfilled_proposals_exist() -> None:
         "001-module-composition",
         "002-shared-properties-and-interfaces",
         "003-action-parameters-and-criteria",
+        "004-controls-predicate",
     ]
 
 
