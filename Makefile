@@ -1,5 +1,5 @@
 # Aegis dev workflow (speckit T1/T2). Run from repo root.
-.PHONY: up down nuke bootstrap ps logs install test test-fast test-integration test-mvp test-er-evaluation test-system test-coverage lint-ontology ontology-generate ui-install ui-build ui-test openapi
+.PHONY: up down nuke bootstrap ps logs install test test-fast test-integration test-mvp test-er-evaluation test-system test-coverage lint-ontology ontology-generate ui-install ui-build ui-test openapi check-contract
 
 ENVFILE := $(wildcard .env)
 COMPOSE = docker compose $(if $(ENVFILE),--env-file $(ENVFILE)) -f infra/docker-compose.yml
@@ -71,6 +71,9 @@ ontology-generate: ## regenerate the artifacts derived from the ontology (spec 0
 openapi:       ## re-export the OpenAPI document + regenerate the typed client
 	uv run aegis api export-openapi
 	cd ui && npm run generate:api
+
+check-contract: ## fail on a breaking change to the committed OpenAPI document
+	uv run aegis api check-contract
 
 ui-install:
 	cd ui && npm ci

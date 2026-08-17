@@ -1408,3 +1408,67 @@ refactor that claims to be additive.
 to declare that a type it does not own implements an interface (an "external
 implementation" — which this design deliberately makes impossible, since the
 implements list lives with the type).
+
+---
+
+## ADR-042: The API contract diffs against a git ref; the ontology diffs against a committed artifact
+
+**Context.** Spec 06 §7.3, written at T29, said the API contract-diff check
+compares "against the previously committed document" and then called it "the
+API-side analogue of the ontology compatibility diff… comparison against a
+committed artifact, not git archaeology". Those two sentences contradict each
+other, and implementing T36 forced the question.
+
+The ontology's rule (H-16) exists for a specific reason: `claim.ontology_version`
+stamps every recorded claim, claims are immutable (ADR-013), and a version must
+stay interpretable forever. That makes the previous ontology a **first-class
+artifact** — `ontology/history/composed-<version>.json`, chained by content hash
+— so the check works on a bare checkout with no remote, and an edited archive is
+detected rather than silently diffed against.
+
+Nothing stores an API version. `info.version` has been `1.0.0` through all of
+Phase 2 and no row, claim, or client records it. There is no historical question
+to answer, only a merge-time one: *does this branch break the contract on the
+branch it is merging into?* Making that non-git would mean bumping an API
+version and archiving a copy on every route change — ceremony with no consumer,
+imposed to satisfy a sentence rather than a need.
+
+**Decision.** The two checks compare differently, on purpose.
+
+- **Ontology** (`aegis ontology check-release`): against
+  `ontology/history/composed-<previous>.json`, named by `release.json` and
+  verified by `previous_content_hash`. No git. The chain is the point.
+- **API** (`aegis api check-contract`): against `git show <ref>:ui/openapi.json`,
+  defaulting to `origin/master`. The document is a committed artifact; the
+  *baseline selection* is a git ref, which is what "the contract we are merging
+  into" means. An unreachable ref reports "nothing to compare against" rather
+  than passing silently.
+
+Breaking, for a caller: an operation removed or renamed (the same event from the
+client's side — a method that stops existing), an operation moved to another
+path or method, a documented response code dropped, a parameter removed or
+becoming required, a request body becoming required. Additive: new operations,
+newly documented responses, new optional parameters, a parameter becoming
+optional. A break is accepted with `--allow-breaking` plus the phrase
+`BREAKING API CHANGE` in the change itself, so the reason lands in the history
+the break will later be explained from.
+
+Spec 06 §7.3 is corrected to say this rather than to claim a symmetry that does
+not hold.
+
+**Consequences.** CI's fast-tests job fetches `origin/master` at depth 1 before
+the check, because the default checkout is shallow and `git show` would
+otherwise fail into the "nothing to compare" branch — a check that cannot fail
+is worse than no check. `tests/contract/test_error_envelope.py` exercises the
+diff on in-memory documents, so its behaviour is pinned without depending on
+repository state.
+
+The asymmetry is a real cost: two commands, two mental models, one of which
+reads git. It is accepted because the alternative — versioning the API document
+per route change — buys nothing that `origin/master` does not already give,
+while adding a step every contributor would have to remember.
+
+**Revisit when.** An API version becomes load-bearing — recorded on a row, a
+token, or an export package — or a second client outside this repository pins a
+contract version. Either turns the historical question real, and the ontology's
+artifact-and-chain design becomes the right shape for the API too.

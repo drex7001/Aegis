@@ -267,12 +267,31 @@ a route cannot return is as much a contract defect as omitting one it can.
 
 ### 7.3 Contract diff
 
-The committed `ui/openapi.json` is the versioned artifact. On top of the P2
-drift test, T36 adds a **contract-diff check** against the previously committed
-document: a removed path or operation, a renamed operation id, a removed
-response code, or a parameter becoming required is a breaking change and fails
-CI unless the change explicitly declares itself breaking. Additive changes pass.
+The committed `ui/openapi.json` is the contract. On top of the P2 drift test,
+`aegis api check-contract` compares it against the baseline branch and fails on
+a breaking change. It catches what drift cannot: a route renamed in Python and
+faithfully re-exported passes the drift test and breaks every caller.
 
-This is the API-side analogue of the ontology compatibility diff (spec 08 §7.3)
-and works the same way — comparison against a committed artifact, not git
-archaeology.
+| Breaking | Additive |
+|---|---|
+| an operation removed **or renamed** (one event from the client's side — a method that stops existing) | a new operation |
+| an operation moved to another path or method | a newly documented response |
+| a documented response code dropped | a new **optional** parameter |
+| a parameter removed, or becoming required | a parameter becoming optional |
+| a request body becoming required | |
+
+A break is accepted with `--allow-breaking` **plus** the phrase
+`BREAKING API CHANGE` in the change itself, so the reason lands in the history
+the break will later be explained from.
+
+> **Corrected at T36 (ADR-042).** This section previously called the check "the
+> API-side analogue of the ontology compatibility diff… comparison against a
+> committed artifact, not git archaeology". It is not, and the two sentences it
+> used contradicted each other. The ontology's rule (H-16) exists because
+> `claim.ontology_version` is stamped on immutable rows and must stay
+> interpretable forever, which makes the previous ontology a first-class
+> archived artifact. **Nothing stores an API version.** The only meaningful
+> baseline is "the contract on the branch we are merging into", which *is* a
+> git ref; versioning and archiving the document per route change would be
+> ceremony with no consumer. The document is still a committed artifact — it is
+> the *baseline selection* that is a ref.
