@@ -53,11 +53,16 @@ The governed MVP now includes:
   `aegis serve` on the same origin as the API.
 - **API v1 + `aegis` CLI**, migrations, backup/restore runbook.
 
-**Active phase: Phase 3 — ontology modules and contracts** (opened 2026-08-17).
-T29 re-validated the pre-authored plan against the Phase 2 system; its six
-divergences are recorded in
-[`speckit/specs/08-ontology-v2.md`](speckit/specs/08-ontology-v2.md) §0 and
-ADR-037…040. See [`speckit/tasks/phase-03.md`](speckit/tasks/phase-03.md). The full
+**Phase 3 — ontology modules and contracts — is complete** (2026-08-17). The
+ontology is now a composition of a platform module plus domain modules, a
+fictional second domain is served over the API by a core that has never heard
+of it (Article XIV, executable), and ontology changes flow through proposals
+with compatibility gates. Verdict and evidence:
+[`speckit/reviews/phase-03-exit-review.md`](speckit/reviews/phase-03-exit-review.md).
+
+**Next phase: Phase 4 — investigation workspace v2 & object views.** It begins
+with T41's re-validation of its pre-authored plan. See
+[`speckit/tasks/phase-04.md`](speckit/tasks/phase-04.md). The full
 roadmap to production is [`speckit/roadmap.md`](speckit/roadmap.md); the
 external-review disposition is
 [`speckit/reviews/2026-07-18-external-review-disposition.md`](speckit/reviews/2026-07-18-external-review-disposition.md).
@@ -127,7 +132,7 @@ commands and results in the pull request.
 
 | Path | What |
 |---|---|
-| `ontology/` | **The domain artifact** (`aegis.yaml`) everything derives from (Article XI), plus change proposals and version history (Phase 3) |
+| `ontology/` | **The domain artifact** — `aegis.yaml` is a composition manifest over `modules/` (platform + domain), plus change proposals, the release chain, and version history (Article XI, ADR-037) |
 | `aegis/` | Platform core package — domain-neutral (Article XIV): ontology loader/codegen, actions, queries, authz, audit, store, evidence, ingestion, ER, projections, API, plus scaffolded homes for functions (P3), search/analytics (P6), sharing (P7), and controlled AI (P8) |
 | `sdk/` | Reserved for clients published outside this repo. Empty by decision: the TypeScript surface is generated into `ui/` while `ui/` is its only consumer, and the Python SDK lands with its P8 producers (ADR-038, ADR-039) |
 | `ui/` | React + TypeScript investigation workspace (ADR-032) — the single durable UI, landed at Phase 2 T22 and grown in place from there |

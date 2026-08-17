@@ -4,11 +4,12 @@ Ordered; each task lists acceptance criteria (AC). Tasks marked ⛓ block everyt
 after them; narrower dependencies are noted in the task text. Reference specs in
 parentheses. Numbering continues from Phase 2 (T28).
 
-> **Status: ACTIVE — T29 complete (2026-08-17).** Phase 2 passed the ★ MVP gate
-> on 2026-07-20. This file was rewritten 2026-07-18 to the narrowed charter
-> (ADR-033) and **re-validated by T29** against the P2-as-built system; T29's
-> six divergences are dispositioned in spec 08 §0 and ADR-037…040, and the
-> tasks below carry the corrections. Charter:
+> **Status: COMPLETE 2026-08-17 — all five gate criteria checked**
+> (`../reviews/phase-03-exit-review.md`). This file was rewritten 2026-07-18
+> to the narrowed charter (ADR-033) and **re-validated by T29** against the
+> P2-as-built system; T29's six divergences are dispositioned in spec 08 §0 and
+> ADR-037…040, and the tasks below carry the corrections, plus ADR-041 (T32)
+> and ADR-042 (T36) found while implementing. Charter:
 > `../phases/phase-03-ontology-v2.md` · spec: `../specs/08-ontology-v2.md`
 > (final) · contract conventions: `../specs/06-api.md` §7.
 
@@ -313,11 +314,18 @@ parameters, as ADR-031 §2 always said it should, which also means an undeclared
 key in a producer's payload is refused at acceptance rather than reaching the
 claim row.
 
-**T40. Phase exit review** — walk the charter's gate criteria (non-deferrable,
-ADR-025); update speckit docs where reality diverged; append ADRs; write
-`../reviews/phase-03-exit-review.md`; tag per the git workflow.
+**T40. Phase exit review — DONE (2026-08-17)** — walk the charter's gate
+criteria (non-deferrable, ADR-025); update speckit docs where reality diverged;
+append ADRs; write `../reviews/phase-03-exit-review.md`; tag per the git
+workflow.
 AC: every gate criterion checked; non-blocking deliverables carried over with
 owner + target phase recorded.
+
+All five checked, none deferred. One gap closed during the review rather than
+noted: criterion 2 says the second-domain fixture *serves object/claim routes*,
+and T31 had covered the action layer and the projection but not the API —
+`tests/integration/test_second_domain_routes.py` now does. Release 0.2.0 →
+0.3.0. Six ADRs (037–042) and three defects are recorded in the review.
 
 ## Explicit non-goals for Phase 3
 

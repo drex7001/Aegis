@@ -27,7 +27,7 @@ external-review disposition (`reviews/2026-07-18-external-review-disposition.md`
 ```
 Milestone I    Governed foundation      P0 governance ▸ P1 claim store + RBAC     [COMPLETE]
 Milestone II   MVP                      P2 identity, provenance & workspace       [COMPLETE — ★ MVP]
-Milestone III  Ontology platform        P3 modules & contracts ▸ P4 workspace v2 & object views
+Milestone III  Ontology platform        P3 modules & contracts [COMPLETE] ▸ P4 workspace v2 & object views
 Milestone IV   Intelligence domain      P5 events, geo & time ▸ P6 search, object sets & analytics
 Milestone V    Trust boundaries & AI    P7 sharing & governance ▸ P8 controlled AI & reasoning
 Milestone VI   Production               P9 production certification & scale-out
@@ -160,7 +160,7 @@ re-validation of its pre-authored plan against the P2-as-built system.
 
 ## Milestone III — Ontology platform
 
-### Phase 3 — Ontology modules & contracts *(ACTIVE from 2026-08-17 · GOAL.md §7.8–7.10 · effort: M · ADR-021 narrowed by ADR-033, amended by ADR-037…040)*
+### Phase 3 — Ontology modules & contracts *(COMPLETE 2026-08-17 · GOAL.md §7.8–7.10 · effort: M · ADR-021 narrowed by ADR-033, amended by ADR-037…042)*
 
 **Goal.** Make "domains are ontology modules" true, and give the workspace a
 typed contract. Charter: `phases/phase-03-ontology-v2.md` · spec:
@@ -361,7 +361,7 @@ Items may be completed any time; none may be waived.
 |---|---|
 | Claims, grading, provenance, evidence, audit, review queue | **Implemented** P1–P2 |
 | Reversible identity, ER, multilingual matching | **Implemented** P2 |
-| Ontology modules, interfaces, typed clients | **Scheduled** P3 |
+| Ontology modules, interfaces, typed clients | **Implemented** P3 |
 | Investigation workspace, object views, hypotheses, as-of (narrowed) | **Scheduled** P4 |
 | Events, geospatial, timeline, map privacy | **Scheduled** P5 |
 | Search, object sets, analytics, watchlists/alert triage | **Scheduled** P6 |

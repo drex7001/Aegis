@@ -1,11 +1,11 @@
 # Phase 3 Charter — Ontology modules & contracts
 
-Status: **ACTIVE** (opened 2026-08-17 with T29's re-validation; Phase 2
-complete 2026-07-20; narrowed 2026-07-18, ADR-033 — was "ontology v2: semantic
-& kinetic completion") · tasks: `../tasks/phase-03.md` (T29–T40; re-validated
-by T29, which is complete) · Constitutional basis: Articles XI, XIV ·
-GOAL.md §7.8–7.10 · ADR-021, ADR-033, ADR-037, ADR-038, ADR-039, ADR-040 ·
-Spec: `../specs/08-ontology-v2.md` (final)
+Status: **COMPLETE 2026-08-17 — all five gate criteria checked**
+(review: `../reviews/phase-03-exit-review.md`; opened 2026-08-17 with T29's
+re-validation; narrowed 2026-07-18, ADR-033 — was "ontology v2: semantic &
+kinetic completion") · tasks: `../tasks/phase-03.md` (T29–T40, all done) ·
+Constitutional basis: Articles XI, XIV · GOAL.md §7.8–7.10 · ADR-021, ADR-033,
+ADR-037…ADR-042 · Spec: `../specs/08-ontology-v2.md` (final)
 
 ## Objective
 
@@ -80,18 +80,22 @@ schemas; the side-effect execution engine does not.
 
 ## Exit criteria
 
-- [ ] A new predicate added to a **domain module** via the proposal workflow
+All met 2026-08-17; the evidence is in `../reviews/phase-03-exit-review.md`.
+
+- [x] A new predicate added to a **domain module** via the proposal workflow
       flows to API validation and the TS client with zero hand-written domain
-      code.
-- [ ] The second-domain fixture module loads, validates, serves object/claim
+      code. *(T39, proposal 004 — `controls`)*
+- [x] The second-domain fixture module loads, validates, serves object/claim
       routes, and appears in the client types — with zero core-code change
-      (Article XIV executable test).
-- [ ] A cross-module reference without a declared import fails validation with
-      a precise error.
-- [ ] An action with declared `submission_criteria` rejects a non-qualifying
-      actor in a test, and the rejection is audited.
-- [ ] CI fails on codegen drift and on an ontology bump without proposal +
+      (Article XIV executable test). *(T31; the route half added at T40)*
+- [x] A cross-module reference without a declared import fails validation with
+      a precise error. *(T30 — the error names both modules and the YAML path)*
+- [x] An action with declared `submission_criteria` rejects a non-qualifying
+      actor in a test, and the rejection is audited. *(T34 — and the denial
+      survives a rolled-back caller transaction)*
+- [x] CI fails on codegen drift and on an ontology bump without proposal +
       history entry; all Phase 1–2 tests green on the modular ontology.
+      *(T33/T35; 282 integration tests pass unchanged on the composed registry)*
 
 ## Risks
 

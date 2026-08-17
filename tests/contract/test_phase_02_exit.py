@@ -35,13 +35,17 @@ def test_every_phase_2_gate_is_checked_and_reviewed() -> None:
     assert "none is deferred or weakened" in review
 
 
-def test_status_surfaces_agree_on_the_phase_boundary() -> None:
+def test_phase_2_status_surfaces_still_agree() -> None:
+    """Phase 2's own boundary, which never moves again.
+
+    Scoped to P2's immutable facts. The *current* phase's status and release
+    version live in that phase's own exit test — this one used to assert both,
+    which meant every later phase had to edit a file named for an earlier one.
+    """
     root_readme = _read("README.md")
     kit_readme = _read("speckit/README.md")
     roadmap = _read("speckit/roadmap.md")
     phase_2_tasks = _read("speckit/tasks/phase-02.md")
-    phase_3_tasks = _read("speckit/tasks/phase-03.md")
-    phase_3_charter = _read("speckit/phases/phase-03-ontology-v2.md")
 
     assert "Milestones I and II (Phases 0–2) are complete" in root_readme
     assert "Active phase: Phase 2" not in root_readme
@@ -49,24 +53,9 @@ def test_status_surfaces_agree_on_the_phase_boundary() -> None:
     assert "Milestone II — MVP *(complete 2026-07-20)*" in roadmap
     assert "Status: COMPLETE 2026-07-20 — ★ MVP GATE PASSED" in phase_2_tasks
 
-    # Phase 3 opened on 2026-08-17 with T29's re-validation (ADR-025 requires it
-    # before any other P3 task). Until then this asserted the phase had *not*
-    # started; the guard still exists for the same reason — the surfaces must
-    # agree on where work is — it just now has a later boundary to hold.
-    assert "Status: ACTIVE — T29 complete" in phase_3_tasks
-    assert "Status: **ACTIVE**" in phase_3_charter
-    assert "Active phase: Phase 3" in root_readme
 
-
-def test_phase_2_release_version_and_tag_are_pinned() -> None:
-    project = tomllib.loads(_read("pyproject.toml"))
-    lock = tomllib.loads(_read("uv.lock"))
+def test_phase_2_release_tag_is_pinned() -> None:
+    """0.2.0 was P2's release; the repository has moved on, the review has not."""
     review = _read("speckit/reviews/phase-02-exit-review.md")
-    locked_aegis = [
-        package for package in lock["package"] if package["name"] == "aegis"
-    ]
-
-    assert project["project"]["version"] == "0.2.0"
-    assert len(locked_aegis) == 1
-    assert locked_aegis[0]["version"] == "0.2.0"
+    assert "Release: Aegis 0.2.0" in review
     assert "`phase-2-mvp`" in review
