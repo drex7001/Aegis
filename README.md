@@ -60,9 +60,10 @@ of it (Article XIV, executable), and ontology changes flow through proposals
 with compatibility gates. Verdict and evidence:
 [`speckit/reviews/phase-03-exit-review.md`](speckit/reviews/phase-03-exit-review.md).
 
-**Next phase: Phase 4 — investigation workspace v2 & object views.** It begins
-with T41's re-validation of its pre-authored plan. See
-[`speckit/tasks/phase-04.md`](speckit/tasks/phase-04.md). The full
+**Active phase: Phase 4 — investigation workspace v2 & object views**, opened
+2026-08-17 with T41's re-validation of its pre-authored plan and
+[`speckit/specs/09-investigation-domain.md`](speckit/specs/09-investigation-domain.md).
+See [`speckit/tasks/phase-04.md`](speckit/tasks/phase-04.md). The full
 roadmap to production is [`speckit/roadmap.md`](speckit/roadmap.md); the
 external-review disposition is
 [`speckit/reviews/2026-07-18-external-review-disposition.md`](speckit/reviews/2026-07-18-external-review-disposition.md).

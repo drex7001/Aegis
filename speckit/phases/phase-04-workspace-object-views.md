@@ -1,11 +1,12 @@
 # Phase 4 Charter — Investigation workspace v2 & object views
 
-Status: charter (amended 2026-07-18, ADR-032/ADR-033 — the workspace *grows
-here*, it does not start here) · tasks pre-authored: `../tasks/phase-04.md`
-(T41–T53; re-validated by T41 at phase start, which also dispositions the
-2026-07 review findings tagged P4: H-17, H-18, H-19 remainder, B-11) ·
-Constitutional basis: Articles VI, VIII, XI · GOAL.md §18, §29–30, §7.8
-(consumption layer) · specs/07
+Status: **ACTIVE — opened 2026-08-17** (amended 2026-07-18, ADR-032/ADR-033 —
+the workspace *grows here*, it does not start here) · tasks:
+`../tasks/phase-04.md` (T41–T53; **re-validated by T41 on 2026-08-17**, which
+also dispositioned the 2026-07 review findings tagged P4: H-17, H-18, H-19
+remainder, B-11) · Constitutional basis: Articles VI, VIII, X, XI, XIV ·
+GOAL.md §18, §29–30, §7.8 (consumption layer) · specs/07,
+**specs/09** (authored by T41) · ADR-043, ADR-044, ADR-045
 
 ## Objective
 
@@ -35,6 +36,7 @@ first.
    linking semantics, hypothesis records (versions, evidence basis),
    tasks/leads (owner, status, dates), their actions and authorization —
    model/API tasks separated from UI tasks so acceptance is testable.
+   **Landed at T41, 2026-08-17.**
 2. **Object views (entity-360)**: claim-derived properties (with grading and
    conflict badges — two DOBs render as two DOBs, Article VIII), links grouped
    by predicate category, source list, timeline strip, cases the entity appears
@@ -42,8 +44,10 @@ first.
    no counts of hidden ones, no timing/ranking leak (H-18)**; every value opens
    its provenance (reuses the P2 why-connected API).
 3. **Case UI**: create/join/manage cases (FGA-scoped membership via existing
-   actions); claims and evidence linkable to cases; case-scoped graph view
-   (embedded Cytoscape, reusing the projection API).
+   actions); claims and evidence **referencable** from cases — a non-authorizing
+   link, because `claim.case_id` is the immutable recording scope and an access
+   predicate (**ADR-044**, spec 09 §2.3); case-scoped graph view (embedded
+   Cytoscape, reusing the projection API).
 4. **Hypotheses**: hypothesis records with supporting/contradicting claim links
    and missing-information notes (GOAL.md §18); a hypothesis page always shows
    both sides.
@@ -91,11 +95,17 @@ first.
 
 ## Specs to author or update
 
-- `specs/09-investigation-domain.md` — author **first** (H-17): cases,
-  hypotheses, tasks/leads model, actions, authorization; then the object-view
-  descriptor contract (same file or `specs/09b`).
-- `specs/07-ui.md` — workspace-v2 sections (case layout, object views,
-  timeline/as-of banner semantics).
+- [x] `specs/09-investigation-domain.md` — authored **first** (H-17) at T41,
+      2026-08-17: cases, hypotheses, tasks/leads model, actions, authorization
+      (§2–§5); then the object-view descriptor contract (§6) and the narrowed
+      as-of promise (§7). §0 records the five divergences re-validation found.
+- [x] `specs/07-ui.md` — amended at T41: §3 descriptors are the generated
+      TypeScript module (ADR-043), §6 audit console moves to P7 (ADR-045), §2
+      records the H-19 remainder. The workspace-v2 layout sections land with
+      T42/T44.
+- [x] `specs/06-api.md` — §2.7 corrected: the vocabulary route is not
+      superseded by `ui_meta.json`; it becomes the runtime half of the
+      version-mismatch check. §2.5 gains the new case rows with T46.
 
 ## Explicit non-goals
 
