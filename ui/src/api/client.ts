@@ -58,19 +58,19 @@ export type EntityHit = components["schemas"]["EntityHitOut"];
 export type ProjectionRebuild = components["schemas"]["ProjectionRebuildOut"];
 
 /**
- * RFC 7807 problem detail — what every Aegis error is (spec 06).
+ * RFC 7807 problem detail — what every Aegis error is (spec 06 §7.2).
+ *
+ * Generated since T36. It was hand-written here for as long as the envelope was
+ * real at runtime but absent from the OpenAPI document; now every operation
+ * declares it, so the shape comes from the server rather than from a copy kept
+ * in step by hand.
  *
  * Deliberately treated as opaque prose rather than parsed for meaning: error
  * bodies are written not to disclose whether a resource exists (spec 06 §6), so
  * code that branched on them would be building the inference channel the
  * convention exists to close.
  */
-export interface ProblemDetail {
-  type?: string;
-  title?: string;
-  status?: number;
-  detail?: string;
-}
+export type ProblemDetail = components["schemas"]["ProblemDetail"];
 
 export class ApiError extends Error {
   readonly status: number;
@@ -157,18 +157,15 @@ function multipart(body: Record<string, unknown>): FormData {
   return form;
 }
 
-export interface LandFileFields {
+/**
+ * The multipart landing form, generated from the route's own body model.
+ *
+ * `file` is narrowed to `File` because the document says `string` (binary), the
+ * only shape OpenAPI has for an upload — the browser needs the real thing.
+ */
+export type LandFileFields = Omit<components["schemas"]["Body_landFile"], "file"> & {
   file: File;
-  source_id?: string;
-  handling_code?: string;
-  source_url?: string;
-  collection_policy?: string;
-  retention_class?: string;
-  authority_ref?: string;
-  authority_valid_from?: string;
-  authority_valid_to?: string;
-  notes?: string;
-}
+};
 
 export async function landFile(fields: LandFileFields): Promise<LandingResult> {
   return unwrap(
@@ -350,16 +347,8 @@ export async function rebuildProjections(): Promise<ProjectionRebuild> {
  * re-presented with them. Showing a bare "conflict" instead is what teaches
  * people to retry until it sticks.
  */
-export interface StaleRevisionProblem extends ProblemDetail {
-  parent_revision_id: number;
-  intervening: {
-    decision_id: string;
-    kind: string;
-    decided_by: string;
-    note: string;
-    result_revision_id: number;
-  }[];
-}
+export type StaleRevisionProblem = components["schemas"]["StaleRevisionProblem"];
+export type InterveningDecision = components["schemas"]["InterveningDecision"];
 
 export function asStaleRevision(error: unknown): StaleRevisionProblem | null {
   if (!(error instanceof ApiError) || error.status !== 409) return null;

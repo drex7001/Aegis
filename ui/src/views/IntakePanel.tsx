@@ -10,6 +10,7 @@ import {
   listSources,
   type LandingResult,
 } from "../api/client";
+import { HANDLING_CODES } from "../api/ontology";
 
 /**
  * Raw landing (spec 04 §1 stage 1) from the browser.
@@ -141,7 +142,15 @@ export function IntakePanel({ onLanded }: { onLanded: (result: LandingResult) =>
             data-testid="intake-handling"
             onChange={(event) => setHandling(event.target.value)}
           >
-            {(vocabulary.data?.handling_codes ?? ["open"]).map((code) => (
+            {/* The served list wins; the generated constant is only the
+                fallback for the moment before it arrives. `["open"]` was the
+                previous fallback and would have been silently wrong the day a
+                code was added — whereas the constant is regenerated from the
+                ontology and drift-gated (spec 08 §8). The division of labour
+                is deliberate: runtime for what the *server* currently
+                declares, generated for types and for what must be right
+                synchronously. */}
+            {(vocabulary.data?.handling_codes ?? HANDLING_CODES).map((code) => (
               <option key={code} value={code}>
                 {code}
               </option>

@@ -241,6 +241,16 @@ AC: the generated files type-check in CI; ontology constants match the
 registry; CI fails on drift in either file; an example script lists entities
 with correct types.
 
+**DONE (2026-08-17)** — delivered across T33 (the `ontology.ts` generator and
+its drift gate) and T36 (`schema.d.ts` regenerated against the document that
+now carries the error envelope). Both are gated: `aegis ontology generate
+--check` in the governance job, `npm run generate:api` + `git diff --exit-code`
+in the workspace job, plus contract tests that fail the fast suite.
+
+The "example script" is dropped rather than written: `ui/src` is the example,
+it exercises every generated type on real screens, and its type-check is in CI.
+A toy script alongside it would be a second thing to keep working.
+
 **T38. UI consumes the generated surface** (needs T37) — delete the
 hand-written `ProblemDetail` and `StaleRevisionProblem` from
 `ui/src/api/client.ts` in favour of the generated error types; replace
@@ -251,6 +261,25 @@ AC: UI type-checks and its e2e smoke passes; **no hand-written request or
 response type remains in `ui/src`** (the client keeps only the fetch wrapper
 and the `ApiError` class); the `asStaleRevision` narrowing reads a generated
 shape.
+
+**DONE (2026-08-17)** — `ProblemDetail`, `StaleRevisionProblem` and
+`LandFileFields` become aliases onto generated schemas; `InterveningDecision`
+is exported from the contract. AC met by 7 cases in
+`tests/contract/test_workspace_types.py`, including a repository-wide sweep
+that fails on any `ui/src` declaration of an API shape that is not derived from
+`components[…]` — verified to fail on a reintroduced hand-written interface.
+
+**One thing deliberately not done.** `SuggestionQueue.tsx` carries the comment
+"served by the API, never a constant in this bundle: a second copy of a closed
+vocabulary keeps working while being wrong". That reasoning is correct and the
+generated constants do not supersede it, so the runtime route remains the
+source of truth for *pickers*. The constants earn their place elsewhere:
+compile-time types the route cannot provide, predicates and object types the
+route has never served, and a synchronous fallback — `IntakePanel`'s
+`["open"]` was a hardcoded list that would have been silently wrong the day a
+handling code was added, and is now the drift-gated constant. Surfacing a
+bundle/server ontology-version mismatch is the natural next step and belongs
+with P4's generic screens, not here.
 
 **T39. Ontology-change end-to-end proof** (charter exit №1; needs T35–T38) —
 land a new test predicate on an interface **in a domain module via the proposal
