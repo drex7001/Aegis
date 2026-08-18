@@ -50,8 +50,23 @@ class CanonicalMapReport:
         }
 
 
-def _lineage_from_ledger(session: Session) -> dict[str, str]:
-    """Replay decisions in revision order into `loser → winner` edges."""
+def _lineage_from_ledger(
+    session: Session, *, up_to_revision: int | None = None
+) -> dict[str, str]:
+    """Replay decisions in revision order into `loser → winner` edges.
+
+    ``up_to_revision`` stops the replay at a point in the ledger, which is what
+    makes ``?asOfRevision=`` possible (spec 06 §3, B-11): identity as it was
+    understood then, rather than as it is understood now. Decisions above the
+    pin have not happened yet from the query's point of view, so a merge made
+    afterwards does not collapse two entities, and a split made afterwards does
+    not restore them.
+
+    The pin is a *decision* bound rather than a membership bound on purpose. A
+    membership row only takes effect through the decision that opened or closed
+    it, so filtering decisions is sufficient and does not require reasoning
+    about rows that were written but not yet acted on.
+    """
     opened: dict[int, set[str]] = defaultdict(set)
     closed: dict[int, set[str]] = defaultdict(set)
     for revision_id, entity_id in session.execute(
@@ -65,12 +80,16 @@ def _lineage_from_ledger(session: Session) -> dict[str, str]:
     ):
         closed[revision_id].add(entity_id)
 
-    parent: dict[str, str] = {}
-    for kind, revision_id in session.execute(
-        select(IdentityDecision.kind, IdentityDecision.result_revision_id).order_by(
-            IdentityDecision.result_revision_id
+    decisions = select(
+        IdentityDecision.kind, IdentityDecision.result_revision_id
+    ).order_by(IdentityDecision.result_revision_id)
+    if up_to_revision is not None:
+        decisions = decisions.where(
+            IdentityDecision.result_revision_id <= up_to_revision
         )
-    ):
+
+    parent: dict[str, str] = {}
+    for kind, revision_id in session.execute(decisions):
         gained = opened.get(revision_id, set())
         lost = closed.get(revision_id, set()) - gained
         if kind in _MERGING_KINDS:
@@ -164,6 +183,38 @@ def canonical_entity(session: Session, entity_id: str) -> str:
     return row.canonical_entity_id if row is not None else entity_id
 
 
+def canonical_lineage_at(session: Session, revision_id: int) -> dict[str, str]:
+    """`loser → winner` as of a revision — the pinned form of the map (T49).
+
+    Computed rather than read: `entity_canonical_map` caches exactly one
+    answer, the active one, and caching every historical revision would be a
+    table that grows with the ledger to serve a question nobody asks twice.
+
+    The cost is a full ledger replay per pinned read. That is the honest price
+    of an as-of query and it is bounded by the number of identity *decisions*,
+    which is a number a human produces one at a time.
+    """
+    return _lineage_from_ledger(session, up_to_revision=revision_id)
+
+
+def canonical_entity_at(session: Session, entity_id: str, revision_id: int) -> str:
+    """Resolve one entity as identity was understood at ``revision_id``."""
+    return _resolve(entity_id, canonical_lineage_at(session, revision_id))
+
+
+def absorbed_ids_at(session: Session, entity_id: str, revision_id: int) -> set[str]:
+    """Every id resolving to this one at ``revision_id``, including itself.
+
+    The pinned counterpart of reading `entity_canonical_map` backwards: a claim
+    written against an id that had already been merged away by then still
+    belongs to the answer, and one merged away *afterwards* does not.
+    """
+    parent = canonical_lineage_at(session, revision_id)
+    return {entity_id} | {
+        candidate for candidate in parent if _resolve(candidate, parent) == entity_id
+    }
+
+
 def _now(session: Session):
     from datetime import datetime, timezone
 
@@ -173,6 +224,9 @@ def _now(session: Session):
 __all__ = [
     "CanonicalMapError",
     "CanonicalMapReport",
+    "absorbed_ids_at",
     "canonical_entity",
+    "canonical_entity_at",
+    "canonical_lineage_at",
     "rebuild_canonical_map",
 ]

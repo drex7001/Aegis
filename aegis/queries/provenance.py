@@ -30,7 +30,11 @@ from typing import Any, Sequence
 from sqlalchemy import ColumnElement, or_, select
 from sqlalchemy.orm import Session
 
-from aegis.er.canonical import canonical_entity
+from aegis.er.canonical import (
+    absorbed_ids_at,
+    canonical_entity,
+    canonical_entity_at,
+)
 from aegis.store import (
     Claim,
     ClaimRelation,
@@ -295,6 +299,7 @@ def entity_provenance(
     entity_id: str,
     filters: Sequence[ColumnElement[bool]] = (),
     limit: int = MAX_CLAIMS,
+    at_revision_id: int | None = None,
 ) -> EntityProvenance | None:
     """Every claim about one entity, with the relations between those claims.
 
@@ -309,12 +314,22 @@ def entity_provenance(
     does: a claim written before a merge still names the id it was written
     against, and asking only about the surviving id would answer "nothing is
     known" about an entity the graph is actively drawing.
+
+    ``at_revision_id`` pins that resolution to a point in the identity ledger
+    (T49, B-11). Without it the answer resolves through the **active** revision
+    — identity as it is understood now — which is almost never what a
+    historical question means: "what did we know in March" asked of a person
+    merged in April would otherwise answer about the merged entity.
     """
     if session.get(Entity, entity_id) is None:
         return None
 
-    resolved = canonical_entity(session, entity_id)
-    entity_ids = _absorbed_ids(session, resolved)
+    if at_revision_id is None:
+        resolved = canonical_entity(session, entity_id)
+        entity_ids = _absorbed_ids(session, resolved)
+    else:
+        resolved = canonical_entity_at(session, entity_id, at_revision_id)
+        entity_ids = absorbed_ids_at(session, resolved, at_revision_id)
     rows = session.scalars(
         select(Claim)
         .where(Claim.subject_id.in_(entity_ids), *filters)

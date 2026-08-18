@@ -333,10 +333,28 @@ export async function claimProvenance(claimId: string): Promise<ClaimProvenance>
   );
 }
 
-export async function getEntity(entityId: string): Promise<EntityDetail> {
+/**
+ * One entity's claims.
+ *
+ * `asOf` is a **claim-recording** snapshot: what had been recorded and not
+ * retracted then. `asOfRevision` pins the identity revision entity arguments
+ * resolve through — without it, a historical question is answered with today's
+ * identity, which is why the response always echoes the revision it used
+ * (spec 06 §3, B-11).
+ */
+export async function getEntity(
+  entityId: string,
+  options?: { asOf?: string; asOfRevision?: number },
+): Promise<EntityDetail> {
   return unwrap(
     await api.GET("/v1/entities/{entity_id}", {
-      params: { path: { entity_id: entityId } },
+      params: {
+        path: { entity_id: entityId },
+        query: {
+          asOf: options?.asOf,
+          asOfRevision: options?.asOfRevision,
+        },
+      },
     }),
   );
 }
