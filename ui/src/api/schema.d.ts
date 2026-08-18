@@ -1320,6 +1320,10 @@ export interface components {
             credibility_original: string | null;
             /** Credibility Scheme */
             credibility_scheme: string | null;
+            /** Event Time Earliest */
+            event_time_earliest: string | null;
+            /** Event Time Latest */
+            event_time_latest: string | null;
             /** Excerpt */
             excerpt: string | null;
             /** Handling Code */

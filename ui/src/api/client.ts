@@ -316,6 +316,21 @@ export async function whyConnected(
   );
 }
 
+/**
+ * One claim's evidence (spec 06 §2.1) — the generic drill-down.
+ *
+ * Any value a screen renders from a claim can reach its evidence through this,
+ * which is what makes provenance a property of the platform rather than a
+ * feature of the graph. Consumed as-is from P2: T45 adds no endpoint.
+ */
+export async function claimProvenance(claimId: string): Promise<ClaimProvenance> {
+  return unwrap(
+    await api.GET("/v1/claims/{claim_id}/provenance", {
+      params: { path: { claim_id: claimId } },
+    }),
+  );
+}
+
 export async function getEntity(entityId: string): Promise<EntityDetail> {
   return unwrap(
     await api.GET("/v1/entities/{entity_id}", {

@@ -267,6 +267,96 @@ button:hover {
   padding-left: 18px;
 }
 
+/* ── timeline strip (T45) ────────────────────────────────────────────────── */
+
+.timeline {
+  margin: 8px 0 20px;
+}
+
+.timeline__axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 2px;
+}
+
+.timeline__rows {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+}
+
+.timeline__row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr) 180px;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 0;
+  font-size: 12px;
+}
+
+.timeline__track {
+  position: relative;
+  height: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+}
+
+/*
+ * An interval is a bar; an instant is a hairline. The difference has to be
+ * visible without reading the dates, or a range renders as a suspiciously
+ * confident point (spec 09 §7).
+ */
+.timeline__bar {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  background: var(--accent);
+  border-radius: 4px;
+  opacity: 0.55;
+}
+
+.timeline__bar--exact {
+  width: 3px;
+  border-radius: 0;
+  opacity: 1;
+}
+
+.timeline__when {
+  font-size: 11px;
+  text-align: right;
+}
+
+.timeline__untimed {
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+/* ── provenance drill-down (T45) ─────────────────────────────────────────── */
+
+.claim__drill {
+  margin-top: 6px;
+  font-size: 12px;
+  padding: 2px 8px;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(420px, 100vw);
+  padding: 16px;
+  overflow-y: auto;
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  box-shadow: -2px 0 8px rgb(28 39 51 / 8%);
+  z-index: 10;
+}
+
 .graph {
   flex: 1;
   display: flex;

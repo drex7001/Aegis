@@ -135,14 +135,22 @@ Spec 09 §6.4 corrected: the heading is `entity.label`, not `display.title`
 resolved against claims. `display.title` names a *property* and the response is
 keyed by *predicate*, and the ontology declares no mapping between them.
 
-**T45. Provenance drill-down + timeline strip** (spec 09 §6.6; needs T44) —
+**T45. Provenance drill-down + timeline strip — DONE (2026-08-19)** (spec 09 §6.6; needs T44) —
 every displayed value and link opens its provenance (the P2 why-connected API,
 consumed as-is — a gap there is a P2 regression to fix in that route, not a new
 endpoint); a compact timeline strip on the object view shows the entity's claims
 over time.
-AC: clicking any value or edge resolves to claims with all three grading
-fields and their sources (parity with the P2 panel, same API, no new
-endpoint); the strip's items match the claim time model.
+AC met: a value opens `GET /v1/claims/{id}/provenance` and a link opens
+`GET /v1/entities/{a}/why-connected/{b}` — both P2 routes, consumed as-is, with
+an e2e request sweep asserting the pair adds **no** endpoint; the drawer renders
+all three grading dimensions, the source, and (for a link) the identity
+decisions behind its endpoints, through the same `ClaimCard` as everywhere else.
+The strip follows the claim time model exactly: an interval renders as a span
+and an instant as a hairline, and a claim that states no world time is **listed
+apart and said to state none** rather than placed at `recorded_at` — when we
+wrote something down is a fact about us, not about the world.
+`ClaimOut` gained `event_time_earliest`/`event_time_latest` (additive; the
+columns existed and no response exposed them).
 
 ## Milestone C — Cases
 

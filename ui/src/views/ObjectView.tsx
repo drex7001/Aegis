@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import {
@@ -17,6 +18,8 @@ import {
 } from "../api/ontology";
 import { objectTypePath } from "../routing";
 import { PredicateGroup, predicateLabel } from "./claims/ClaimGroup";
+import { ProvenanceDrawer, type Drill } from "./claims/ProvenanceDrawer";
+import { TimelineStrip } from "./claims/TimelineStrip";
 
 /**
  * The entity-360 (spec 09 §6.4): one generic component for any object type.
@@ -91,6 +94,7 @@ function sourcesOf(detail: EntityDetail) {
 
 export function ObjectView() {
   const { entityId = "" } = useParams<{ entityId: string }>();
+  const [drill, setDrill] = useState<Drill | null>(null);
   const entity = useQuery({
     queryKey: ["entity", entityId],
     queryFn: () => getEntity(entityId),
@@ -125,6 +129,35 @@ export function ObjectView() {
   const descriptor = OBJECT_TYPES[typeName];
   const { properties, links } = splitClaims(detail);
   const sources = sourcesOf(detail);
+  const allClaims = Object.values(detail.claims_by_predicate).flat();
+
+  /** Where did this value come from — the claim's own evidence (T45). */
+  const drillClaim = (entry: ClaimProvenance) =>
+    setDrill({
+      kind: "claim",
+      claimId: entry.claim.claim_id,
+      label: predicateLabel(entry.claim.predicate),
+    });
+
+  /**
+   * Why are these two connected — the link's evidence *and* the identity
+   * decisions behind its endpoints, which a claim-level view cannot show.
+   *
+   * `entity_provenance` returns claims where this entity is the **subject**, so
+   * the other end is always `object_id`. Falls back to the claim drill when a
+   * link has no entity object, which a mixed entity-or-literal predicate can
+   * produce (spec 02 §6).
+   */
+  const drillLink = (entry: ClaimProvenance) => {
+    const other = entry.claim.object_id;
+    if (!other) return drillClaim(entry);
+    setDrill({
+      kind: "link",
+      from: detail.resolved_entity_id,
+      to: other,
+      label: `Why connected: ${predicateLabel(entry.claim.predicate)}`,
+    });
+  };
 
   const grouped = new Map<string, { label: string; color: string | null; predicates: typeof links }>();
   for (const entry of links) {
@@ -169,13 +202,21 @@ export function ObjectView() {
         </p>
       )}
 
+      <h2>Timeline</h2>
+      <TimelineStrip claims={allClaims} />
+
       <h2>Properties</h2>
       <div data-testid="object-view-properties">
         {properties.length === 0 ? (
           <p className="notice">No property claims you are cleared to see.</p>
         ) : (
           properties.map(([predicate, claims]) => (
-            <PredicateGroup key={predicate} predicate={predicate} claims={claims} />
+            <PredicateGroup
+              key={predicate}
+              predicate={predicate}
+              claims={claims}
+              onDrill={drillClaim}
+            />
           ))
         )}
       </div>
@@ -198,7 +239,12 @@ export function ObjectView() {
                 {group.label}
               </h3>
               {group.predicates.map(([predicate, claims]) => (
-                <PredicateGroup key={predicate} predicate={predicate} claims={claims} />
+                <PredicateGroup
+                  key={predicate}
+                  predicate={predicate}
+                  claims={claims}
+                  onDrill={drillLink}
+                />
               ))}
             </div>
           ))
@@ -243,6 +289,8 @@ export function ObjectView() {
           Not part of any case.
         </p>
       )}
+
+      {drill && <ProvenanceDrawer drill={drill} onClose={() => setDrill(null)} />}
     </section>
   );
 }
