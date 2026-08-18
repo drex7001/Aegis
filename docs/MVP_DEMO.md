@@ -98,6 +98,26 @@ accounts:
 
 These credentials belong only to the imported local development realm.
 
+### Where things are (P4 layout)
+
+The workspace grew a **left rail** at T42 and the screens named below moved into
+it; the API and every step of this loop are unchanged. Reading top to bottom the
+rail holds:
+
+- **Cases** — the case switcher, and *All cases*. Empty until you open one.
+- **Workspace** — **Sources**, **Review**, **Graph**. Every instruction in this
+  runbook that says "open **Review**" means this group.
+- **Object types** and **Interfaces** — one screen per declared ontology type,
+  generated from the ontology rather than written per type (ADR-043). Nothing in
+  this runbook needs them; they are listed so their presence is not a surprise.
+
+Two things above the active view are worth recognising when they appear. A
+**caution-coloured banner** means either that this bundle was built against a
+different ontology version than the server is running, or that you are in a
+**historical (as-of) view** — in which case every value on the page is what was
+recorded at that moment, and the banner names what is *not* historical. Neither
+should appear during this runbook.
+
 ## 2. Complete the UI-only governed loop
 
 Sign in as `dev-analyst`.

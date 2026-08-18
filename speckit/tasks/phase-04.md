@@ -242,19 +242,42 @@ identity decisions, which a human produces one at a time.
 
 ## Milestone F — Cutover & proof
 
-**T50. P2-screen reorganization** (needs T44–T46) — the P2 review-queue,
+**T50. P2-screen reorganization — DONE (2026-08-19)** (needs T44–T46) — the P2 review-queue,
 search, adjudication, and provenance screens (same app — ADR-032) re-homed
 into the case-centric layout; their APIs unchanged. No audit console: ADR-045
 moves it to P7.
-AC: the MVP demo runbook (`docs/MVP_DEMO.md`) re-runs start-to-finish in the
-reorganized layout; the diff touches no API code.
+AC met: the loop is unchanged and the diff touches no API code — the
+reorganization itself happened at **T42**, which wrapped the P2 screens in the
+new Shell, so what T50 owed was the honesty pass and the proof. `docs/MVP_DEMO.md`
+gains a "Where things are (P4 layout)" section naming the rail's three groups and
+the two banners an operator can meet, and
+`tests/contract/test_mvp_demo_runbook.py` asserts both — plus that no step in the
+loop reaches for `curl`, the CLI or `psql`, because a loop that no longer closes
+in the product is not the loop the MVP gate measured.
 
-**T51. Ontology-to-screen proof** (charter exit №4; needs T44) — add a test
-object type via the ontology alone (+ proposal + regen, P3 discipline): a
+**T51. Ontology-to-screen proof — DONE (2026-08-19)** (charter exit №4; needs
+T44) — add a test object type via the ontology alone (+ proposal + regen, P3 discipline): a
 working object view with properties, links, and provenance appears with **no
 new React code**.
-AC: the change's diff is ontology + proposal + regenerated files only; a UI
-test loads the new type's object view and drills into provenance.
+AC met: `vessel` was added to the `border-cargo` fixture **after** the generic
+screens existed — which is what makes it a proof rather than a fixture that
+happened to be there first — carrying every field a generic screen reads: a
+`display` with a subtitle, a required property, a `many` property, a
+`restricted` one, a `conflicts: preserve` one, and a shared reference with a
+declared label override. The diff is the fixture module, its version, and the
+composition pin: `tests/contract/test_ontology_to_screen.py` (9 cases) asserts
+the generator emits a complete descriptor for it, that the governance fields
+survive the journey, and that **no hand-written file under `aegis/` or `ui/src`
+names it**, and that the **shipped** ontology is untouched — a fixture type
+must never leak into the product's vocabulary.
+
+The runtime half is `ui/e2e/object-view.spec.ts`: two shipped types render
+through one component, and an entity whose type the bundle has *never seen*
+still renders — the case an operator meets when the server is ahead, where the
+version banner is what explains it. The descriptor half is proved at the
+contract layer because the bundle is built from the shipped ontology, so a type
+added to a fixture cannot appear in it; the test says so rather than implying
+otherwise.
 
 **T52. No-unauthenticated-surface re-verification** (charter exit №5; needs
 T50 and the T41 checklist) — the legacy explorer and `/api/*` were deleted in

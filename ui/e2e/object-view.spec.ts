@@ -134,6 +134,55 @@ test("an entity you cannot see reads as absence, not as a refusal", async ({ pag
   }
 });
 
+test("an entity of a type this bundle has never seen still renders", async ({ page }) => {
+  /*
+   * The other side of the version banner (spec 09 §6.3). When the server is
+   * ahead of the bundle, an entity can arrive with a type the compiled
+   * descriptors do not contain — and the object view must degrade to something
+   * readable rather than a blank page or a crash, because the *data* is correct
+   * and only the captions are missing.
+   *
+   * The descriptor half of the charter's fourth exit criterion is proved at the
+   * contract layer (`tests/contract/test_ontology_to_screen.py`): the bundle is
+   * built from the shipped ontology, so a type added to a fixture cannot appear
+   * in it. This is the runtime half — the component's behaviour when it meets
+   * one anyway.
+   */
+  // The realistic shape of this: the server is ahead, so the vocabulary route
+  // reports a version the bundle was not built against *and* serves an entity
+  // whose type the bundle does not know. The banner reads the route, not the
+  // response stamp — the stamp says what an answer was computed against, which
+  // is a different question.
+  await stubVocabulary(page, { version: "9.9.9" });
+  await page.route(
+    (url) => url.pathname === "/v1/entities/ent_unknown_type",
+    (route) =>
+      route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({
+          entity: {
+            entity_id: "ent_unknown_type",
+            entity_type: "not_in_this_bundle",
+            label: "Fictional Unknown",
+          },
+          resolved_entity_id: "ent_unknown_type",
+          truncated: false,
+          stamp: { as_of: null, identity_revision_id: 7, ontology_version: "9.9.9" },
+          claims_by_predicate: {},
+        }),
+      }),
+  );
+  await page.goto("/entities/ent_unknown_type");
+
+  await expect(page.getByTestId("object-view")).toBeVisible();
+  // The label is the server's, so the heading is right even when the type is
+  // unknown; the type falls back to its raw name rather than to nothing.
+  await expect(page.getByTestId("object-view-title")).toHaveText("Fictional Unknown");
+  await expect(page.getByTestId("object-view-type")).toHaveText("not_in_this_bundle");
+  // ...and the version banner is what tells the reader why.
+  await expect(page.getByTestId("ontology-mismatch")).toBeVisible();
+});
+
 test("the object view reads no endpoint the P2 screens do not already have", async ({
   page,
 }) => {
