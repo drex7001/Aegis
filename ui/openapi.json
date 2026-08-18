@@ -1439,6 +1439,30 @@
         "title": "DerivativeOut",
         "type": "object"
       },
+      "EntityCaseOut": {
+        "description": "One case an entity appears in, that the caller is allowed to know about.\n\nDeliberately thin. A richer payload here would be a second read surface for\ncase data with its own filtering to get right; the object view needs a link\nand a name (spec 09 §6.5).",
+        "properties": {
+          "case_id": {
+            "title": "Case Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_id",
+          "title",
+          "status"
+        ],
+        "title": "EntityCaseOut",
+        "type": "object"
+      },
       "EntityDetail": {
         "description": "One entity's claims, grouped by predicate (spec 06 §2.1).\n\nEach entry is a full ``ClaimProvenanceOut`` rather than a bare claim, so\ntwo claims disagreeing about the same property arrive already knowing they\ndisagree. Grouping is what puts them side by side; ``contradicted_by`` is\nwhat stops the reader having to notice unaided (Article VIII).",
         "properties": {
@@ -6265,6 +6289,106 @@
           }
         ],
         "summary": "Get Entity",
+        "tags": [
+          "entities"
+        ]
+      }
+    },
+    "/v1/entities/{entity_id}/cases": {
+      "get": {
+        "description": "Cases this entity appears in — and no trace of the ones it does not (H-18).\n\nThe naive implementation is to find every case touching the entity and then\nfilter. That leaves a timing and ordering signal: how long the filtering\ntook, and where the gaps in a ranking are. So the answer is **derived only\nfrom rows the caller can already read**, and then intersected with\n``can_view`` on each surviving case (spec 09 §6.5):\n\n1. distinct ``case_id`` from claims about the entity **through**\n   ``claim_filters``, which already drops case-scoped claims the caller is\n   not a member of;\n2. plus cases whose ``case_reference`` names this entity — the step that can\n   surface a case the caller is *not* in, because a reference may point at\n   an entity everybody can see;\n3. ``can_view`` on each, dropping failures.\n\nStep 3 is not redundant with step 1. Without it, an open entity referenced\nfrom a restricted case would advertise that case's existence, which is\nexactly the finding.\n\nWhat this never does: return a total, a \"N more\", a relevance ordering, or a\ndifferent status code for \"in no cases\" and \"in cases you cannot see\". Both\nare an empty array from a 200.",
+        "operationId": "listEntityCases",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EntityCaseOut"
+                  },
+                  "title": "Response Listentitycases",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "No credentials, or a token that does not verify."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4)."
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "The body or parameters did not validate."
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Per-caller rate limit exceeded (spec 06 §1.6)."
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Entity Cases",
         "tags": [
           "entities"
         ]

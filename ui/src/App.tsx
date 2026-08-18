@@ -7,6 +7,7 @@ import { ROUTES } from "./routing";
 import { GraphView } from "./views/GraphView";
 import { InterfaceView } from "./views/InterfaceView";
 import { ObjectTypeView } from "./views/ObjectTypeView";
+import { ObjectView } from "./views/ObjectView";
 import { ReviewView } from "./views/ReviewView";
 import { SourcesView } from "./views/SourcesView";
 
@@ -29,6 +30,7 @@ export function App() {
           <Route path={ROUTES.graph} element={<GraphView />} />
           <Route path={ROUTES.sources} element={<SourcesView />} />
           <Route path={ROUTES.review} element={<ReviewView />} />
+          <Route path={ROUTES.entity} element={<ObjectView />} />
           <Route path={ROUTES.objectType} element={<ObjectTypeView />} />
           <Route path={ROUTES.interface} element={<InterfaceView />} />
           {/*

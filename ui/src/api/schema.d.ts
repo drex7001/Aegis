@@ -301,6 +301,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/entities/{entity_id}/cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Entity Cases
+         * @description Cases this entity appears in — and no trace of the ones it does not (H-18).
+         *
+         *     The naive implementation is to find every case touching the entity and then
+         *     filter. That leaves a timing and ordering signal: how long the filtering
+         *     took, and where the gaps in a ranking are. So the answer is **derived only
+         *     from rows the caller can already read**, and then intersected with
+         *     ``can_view`` on each surviving case (spec 09 §6.5):
+         *
+         *     1. distinct ``case_id`` from claims about the entity **through**
+         *        ``claim_filters``, which already drops case-scoped claims the caller is
+         *        not a member of;
+         *     2. plus cases whose ``case_reference`` names this entity — the step that can
+         *        surface a case the caller is *not* in, because a reference may point at
+         *        an entity everybody can see;
+         *     3. ``can_view`` on each, dropping failures.
+         *
+         *     Step 3 is not redundant with step 1. Without it, an open entity referenced
+         *     from a restricted case would advertise that case's existence, which is
+         *     exactly the finding.
+         *
+         *     What this never does: return a total, a "N more", a relevance ordering, or a
+         *     different status code for "in no cases" and "in cases you cannot see". Both
+         *     are an empty array from a 200.
+         */
+        get: operations["listEntityCases"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/entities/{entity_id}/identity-history": {
         parameters: {
             query?: never;
@@ -1413,6 +1455,22 @@ export interface components {
             tool: string;
             /** Tool Version */
             tool_version: string;
+        };
+        /**
+         * EntityCaseOut
+         * @description One case an entity appears in, that the caller is allowed to know about.
+         *
+         *     Deliberately thin. A richer payload here would be a second read surface for
+         *     case data with its own filtering to get right; the object view needs a link
+         *     and a name (spec 09 §6.5).
+         */
+        EntityCaseOut: {
+            /** Case Id */
+            case_id: string;
+            /** Status */
+            status: string;
+            /** Title */
+            title: string;
         };
         /**
          * EntityDetail
@@ -3581,6 +3639,67 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EntityDetail"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    listEntityCases: {
+        parameters: {
+            query?: {
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path: {
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntityCaseOut"][];
                 };
             };
             /** @description No credentials, or a token that does not verify. */

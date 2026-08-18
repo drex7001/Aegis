@@ -266,6 +266,21 @@ class CaseOut(BaseModel):
     closed_at: datetime | None
 
 
+class EntityCaseOut(BaseModel):
+    """One case an entity appears in, that the caller is allowed to know about.
+
+    Deliberately thin. A richer payload here would be a second read surface for
+    case data with its own filtering to get right; the object view needs a link
+    and a name (spec 09 §6.5).
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    case_id: str
+    title: str
+    status: str
+
+
 class CasePageOut(BaseModel):
     """Only the cases the caller can view. No total: a count is an existence
     leak (spec 06 §4 default 4, spec 09 §2.4)."""

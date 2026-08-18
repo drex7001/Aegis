@@ -48,6 +48,7 @@ EXPECTED = {
     "linkClaim": ({"analyst"}, False),
     "retractClaim": ({"analyst", "supervisor"}, False),
     "getEntity": (set(), False),
+    "listEntityCases": (set(), False),
     "identityHistory": (set(), False),
     "whyConnected": (set(), False),
     "registerEvidence": ({"investigator", "evidence_officer"}, False),
