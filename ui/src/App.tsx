@@ -7,6 +7,7 @@ import { ROUTES } from "./routing";
 import { CaseView } from "./views/CaseView";
 import { CasesView } from "./views/CasesView";
 import { GraphView } from "./views/GraphView";
+import { HypothesisView } from "./views/HypothesisView";
 import { InterfaceView } from "./views/InterfaceView";
 import { ObjectTypeView } from "./views/ObjectTypeView";
 import { ObjectView } from "./views/ObjectView";
@@ -34,6 +35,7 @@ export function App() {
           <Route path={ROUTES.review} element={<ReviewView />} />
           <Route path={ROUTES.cases} element={<CasesView />} />
           <Route path={ROUTES.case} element={<CaseView />} />
+          <Route path={ROUTES.hypothesis} element={<HypothesisView />} />
           <Route path={ROUTES.entity} element={<ObjectView />} />
           <Route path={ROUTES.objectType} element={<ObjectTypeView />} />
           <Route path={ROUTES.interface} element={<InterfaceView />} />

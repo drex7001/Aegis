@@ -469,6 +469,99 @@ export async function unlinkCaseReference(
   );
 }
 
+/* ── hypotheses and tasks (T47/T48, over the routes T43 landed) ─────────── */
+
+export type Hypothesis = components["schemas"]["HypothesisOut"];
+export type HypothesisSummary = components["schemas"]["HypothesisSummaryOut"];
+export type HypothesisRevision = components["schemas"]["HypothesisRevisionOut"];
+export type HypothesisClaim = components["schemas"]["HypothesisClaimOut"];
+export type Task = components["schemas"]["TaskOut"];
+
+export async function openHypothesis(
+  body: components["schemas"]["HypothesisIn"],
+): Promise<HypothesisRevision> {
+  return unwrap(await api.POST("/v1/hypotheses", { body }));
+}
+
+/** Always case-scoped: there is no global hypothesis list (spec 09 §3.5). */
+export async function listHypotheses(caseId: string): Promise<HypothesisSummary[]> {
+  const page = unwrap(
+    await api.GET("/v1/hypotheses", { params: { query: { case: caseId } } }),
+  );
+  return page.items;
+}
+
+export async function getHypothesis(hypothesisId: string): Promise<Hypothesis> {
+  return unwrap(
+    await api.GET("/v1/hypotheses/{hypothesis_id}", {
+      params: { path: { hypothesis_id: hypothesisId } },
+    }),
+  );
+}
+
+export async function reviseHypothesis(
+  hypothesisId: string,
+  body: components["schemas"]["HypothesisRevisionIn"],
+): Promise<HypothesisRevision> {
+  return unwrap(
+    await api.POST("/v1/hypotheses/{hypothesis_id}/revisions", {
+      params: { path: { hypothesis_id: hypothesisId } },
+      body,
+    }),
+  );
+}
+
+export async function linkHypothesisClaim(
+  hypothesisId: string,
+  body: components["schemas"]["HypothesisClaimIn"],
+): Promise<HypothesisClaim> {
+  return unwrap(
+    await api.POST("/v1/hypotheses/{hypothesis_id}/claims", {
+      params: { path: { hypothesis_id: hypothesisId } },
+      body,
+    }),
+  );
+}
+
+export async function unlinkHypothesisClaim(
+  hypothesisId: string,
+  claimId: string,
+  stance: string,
+  reason: string,
+): Promise<HypothesisClaim> {
+  return unwrap(
+    await api.DELETE("/v1/hypotheses/{hypothesis_id}/claims/{claim_id}/{stance}", {
+      params: {
+        path: { hypothesis_id: hypothesisId, claim_id: claimId, stance },
+        query: { reason },
+      },
+    }),
+  );
+}
+
+export async function openTask(
+  body: components["schemas"]["TaskIn"],
+): Promise<Task> {
+  return unwrap(await api.POST("/v1/tasks", { body }));
+}
+
+export async function listTasks(caseId: string): Promise<Task[]> {
+  const page = unwrap(await api.GET("/v1/tasks", { params: { query: { case: caseId } } }));
+  return page.items;
+}
+
+export async function updateTask(
+  taskId: string,
+  body: components["schemas"]["TaskUpdateIn"],
+): Promise<Task> {
+  return unwrap(
+    await api.POST("/v1/tasks/{task_id}", {
+      params: { path: { task_id: taskId } },
+      body,
+    }),
+  );
+}
+
 export async function rebuildProjections(): Promise<ProjectionRebuild> {
   return unwrap(await api.POST("/v1/projections/rebuild", {}));
 }
