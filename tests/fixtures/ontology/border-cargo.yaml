@@ -13,8 +13,12 @@
 module:
   name: border_cargo
   namespace: test/border-cargo
-  version: 1.1.0
+  version: 1.2.0
   label: Border cargo (fixture domain)
+  #
+  # 1.2.0 (T51): `vessel` — a type added *after* the generic screens existed,
+  #              which is what makes it a proof rather than a fixture that
+  #              happened to be there first.
   imports:
     # Load-bearing, not decorative: `port_of_entry.code` declares a
     # sensitivity, `consignment` implements a platform interface and
@@ -46,6 +50,25 @@ object_types:
       code: {type: identifier, sensitivity: restricted}
     display: {title: name, subtitle: code}
 
+  # T51's proof type. Added after `ObjectTypeView`, `ObjectView` and the rail
+  # already existed, and deliberately exercising every field a generic screen
+  # reads: a `display` with a subtitle, a `required` property, a `many`
+  # property, a `restricted` one, a `conflicts: preserve` one, and a shared
+  # reference. If a screen needed a line of React for any of them, this type is
+  # where it would show.
+  vessel:
+    label: Vessel
+    implements: [identifiable]
+    properties:
+      name:        {type: text, required: true}
+      imo_number:  {shared: registered_identifier, label: IMO number}
+      former_names: {shared: alias}
+      # Two sources may disagree about a flag and both stand — the same rule
+      # `person.date_of_birth` relies on, in a domain the core has never seen.
+      flag_state:  {type: text, conflicts: preserve}
+      notes:       {shared: notes}
+    display: {title: name, subtitle: former_names}
+
 predicates:
   # A literal-object predicate: what the paperwork said the cargo was.
   declared_as:      {subject: [consignment], object: literal, category: customs}
@@ -54,3 +77,7 @@ predicates:
   # An identifier predicate, so the deterministic ER rules pick this domain up
   # without knowing anything about bills of lading (spec 05 §3.1).
   manifested_under: {subject: [consignment], object: literal, identifier: true, category: customs}
+  # A link *onto* the new type and one *from* it, so its object view has both
+  # directions to group and the rail has somewhere to lead.
+  carried_on:       {subject: [consignment], object: [vessel], category: customs}
+  berthed_at:       {subject: [vessel], object: [port_of_entry], category: customs}

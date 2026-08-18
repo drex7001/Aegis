@@ -47,11 +47,17 @@ def border_cargo():
 
 def test_the_second_domain_composes_against_the_real_platform_module(border_cargo) -> None:
     assert set(border_cargo.modules) == {"platform", "border_cargo"}
-    assert set(border_cargo.object_types) == {"consignment", "port_of_entry"}
+    # `vessel` and its two links were added at T51, after the generic screens
+    # existed — the charter's fourth exit criterion (see
+    # `test_ontology_to_screen.py`). Listed exactly rather than loosely so a
+    # fixture that grows again does so visibly.
+    assert set(border_cargo.object_types) == {"consignment", "port_of_entry", "vessel"}
     assert set(border_cargo.predicates) == {
         "declared_as",
         "cleared_at",
         "manifested_under",
+        "carried_on",
+        "berthed_at",
     }
     # The platform module arrives whole: the same clearance ladder, grading
     # model and actions the criminal-network composition uses.
@@ -93,7 +99,7 @@ def test_a_domain_module_implements_a_platform_interface(border_cargo) -> None:
     """
     assert border_cargo.owner_module("identifiable") == "platform"
     assert border_cargo.owner_module("consignment") == "border_cargo"
-    assert border_cargo.implementors("identifiable") == ["consignment"]
+    assert border_cargo.implementors("identifiable") == ["consignment", "vessel"]
     # ...and the interface's requirement was actually enforced: the shared
     # property resolved, sensitivity included.
     reference = border_cargo.object_type("consignment").properties["reference"]

@@ -54,6 +54,37 @@ def test_runbook_pins_the_ui_only_governed_loop(runbook: str) -> None:
     assert loop.index("Accept") < loop.index("Rebuild projection")
 
 
+def test_runbook_tells_the_operator_where_the_screens_now_are(runbook: str) -> None:
+    """T50: the loop is unchanged, its navigation is not.
+
+    The screens this runbook names moved from a top bar into the left rail at
+    T42. The steps still read correctly — "open **Review**" is still what the
+    operator does — but an operator following them looks where the runbook says
+    to look, and a runbook that describes a layout the product no longer has is
+    the M-01 rot this project corrects at every review.
+    """
+    flat = " ".join(runbook.split())
+    assert "### Where things are (P4 layout)" in runbook
+    for landmark in ("left rail", "Cases", "Workspace", "Object types", "Interfaces"):
+        assert landmark in flat, landmark
+    # The two banners an operator can meet are described rather than left to be
+    # discovered mid-demo.
+    assert "historical (as-of) view" in flat
+    assert "different ontology version" in flat
+
+
+def test_the_runbook_loop_still_names_no_api_step(runbook: str) -> None:
+    """The reorganization was a UI change, and the runbook must stay UI-only.
+
+    A step that reached for `curl` or the CLI would mean the loop no longer
+    closes in the product, which is what the MVP gate measured.
+    """
+    loop = runbook.split("## 2. Complete the UI-only governed loop", maxsplit=1)[1]
+    loop = loop.split("## 3. Exercise the complete T25 fixture", maxsplit=1)[0]
+    for escape_hatch in ("curl ", "http POST", "aegis claims", "psql "):
+        assert escape_hatch not in loop, escape_hatch
+
+
 def test_runbook_pins_the_fixture_identity_and_governance_gate(runbook: str) -> None:
     flat = " ".join(runbook.split())
     required_fixture_contract = {
