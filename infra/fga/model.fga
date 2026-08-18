@@ -34,9 +34,19 @@ type evidence_item
 
 # The investigation's operational plane (T43, spec 09 §5). Neither type has any
 # authorization of its own: both belong to exactly one case, and the case is the
-# resource — the same derivation `evidence_item` already uses. Hand-written like
-# every other platform type; the FGA-stub generator (P3 carryover, P7) exists
-# for *domain* object types and still has nothing to emit.
+# resource — the same derivation `evidence_item` already uses.
+#
+# **What actually runs today is a check on the parent case.** The routes load
+# the row, read its `case_id`, and ask `can_view`/`can_edit` on `case:{id}`,
+# which is exactly what these derivations compute — so no tuple is written per
+# hypothesis or task and none needs to be. The types are declared for the same
+# reason `compartment` is: when a direct check becomes meaningful (P7 sealing,
+# per-resource compartments), the model it attaches to already exists and its
+# semantics are already the ones in use.
+#
+# Hand-written like every other platform type; the FGA-stub generator
+# (P3 carryover, P7) exists for *domain* object types and still has nothing to
+# emit.
 type hypothesis
   relations
     define case: [case]

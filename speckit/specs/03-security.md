@@ -139,6 +139,12 @@ type investigation_task
   be shared past its case. Their routes answer **404 for a non-member on writes
   as well as reads**: a 403 on a write discloses that the case exists just as
   surely as one on a read (spec 09 §5 rule 1).
+- What runs at request time is a check on the **parent case**: the route loads
+  the row, reads its `case_id`, and asks `can_view`/`can_edit` on `case:{id}` —
+  which is precisely what the derivations above compute, so no tuple is written
+  per hypothesis or task and none is needed. The types are declared for the same
+  reason `compartment` is: when a direct check becomes meaningful (P7 sealing,
+  per-resource compartments) the model is already there and already means this.
 - A **case reference** (`case_reference`, ADR-044) has no FGA type because it
   confers nothing. `claim.case_id` remains the claim's immutable recording
   scope and the only case field `claim_filters` consults; referring to a claim

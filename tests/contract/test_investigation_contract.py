@@ -5,10 +5,12 @@ silently rather than loudly:
 
 * the fourth **submission criterion** is registered in both places, so it cannot
   be declared by an ontology that nothing enforces;
-* the **FGA model** grows a type per new resource, derived from its case — a
-  missing one means `fga_check_or_404` asks about a type OpenFGA has never heard
-  of, and the answer to that is "no", which looks like working authorization
-  right up until it is not;
+* the **FGA model** grows a type per new resource, derived from its case. Note
+  what these types are *for*: the routes check the parent case directly, which
+  is what these derivations compute, so nothing queries `hypothesis:{id}` today.
+  They are declared so a P7 direct check has a model already meaning this — and
+  asserted here so the declaration cannot drift away from the derivation the
+  routes rely on;
 * the `.fga` source and the `.json` the bootstrap actually pushes **agree**.
   They are kept in step by hand until the openfga CLI is adopted, which is
   exactly the kind of arrangement that drifts.
