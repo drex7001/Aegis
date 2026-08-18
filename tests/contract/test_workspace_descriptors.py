@@ -113,6 +113,37 @@ def test_the_object_type_screen_reads_the_descriptors() -> None:
     assert "CATEGORIES" in view
 
 
+def test_the_object_view_divides_claims_using_the_descriptors(ontology) -> None:
+    """T44: property-vs-link and link categories come from the ontology.
+
+    The response returns one `claims_by_predicate` map; only the descriptors
+    know which entries state a property of this entity and which point at
+    another one. A screen that decided by inspecting the payload would get it
+    wrong for a predicate whose object may be either (spec 02 §6).
+    """
+    view = (UI_SRC / "views" / "ObjectView.tsx").read_text(encoding="utf-8")
+    assert "PREDICATES" in view
+    assert "CATEGORIES" in view
+    assert 'spec.object !== "literal"' in view
+    # Conflicts render through the shared component, not a second copy.
+    assert "PredicateGroup" in view
+
+
+def test_one_component_renders_conflicts_for_every_screen() -> None:
+    """Article VIII must not be able to become true in one screen and false in
+    another, so the panel and the object view share one implementation."""
+    shared = UI_SRC / "views" / "claims" / "ClaimGroup.tsx"
+    assert shared.exists()
+    body = shared.read_text(encoding="utf-8")
+    assert "contradicts-badge" in body
+    assert "data-contested" in body
+    for consumer in ("ProvenancePanel.tsx", "ObjectView.tsx"):
+        source = (UI_SRC / "views" / consumer).read_text(encoding="utf-8")
+        assert "claims/ClaimGroup" in source, consumer
+        # ...and neither has kept a private copy.
+        assert "contradicts-badge" not in source, consumer
+
+
 def test_the_version_banner_compares_bundle_against_server() -> None:
     """Spec 09 §6.3: the one thing a compiled-in descriptor cannot know."""
     banner = (UI_SRC / "layout" / "VersionBanner.tsx").read_text(encoding="utf-8")

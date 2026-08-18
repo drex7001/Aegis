@@ -47,6 +47,7 @@ export type OntologyVocabulary = components["schemas"]["OntologyVocabularyOut"];
 
 export type WhyConnected = components["schemas"]["WhyConnectedOut"];
 export type EntityDetail = components["schemas"]["EntityDetail"];
+export type EntityCase = components["schemas"]["EntityCaseOut"];
 /**
  * One claim with its evidence — the unit both provenance panels render. The
  * three grading dimensions arrive apart (Article III) and both relation
@@ -318,6 +319,22 @@ export async function whyConnected(
 export async function getEntity(entityId: string): Promise<EntityDetail> {
   return unwrap(
     await api.GET("/v1/entities/{entity_id}", {
+      params: { path: { entity_id: entityId } },
+    }),
+  );
+}
+
+/**
+ * Cases this entity appears in — only the ones the caller may know about.
+ *
+ * An empty array means "none you can see", and deliberately cannot be told
+ * apart from "none at all": the route returns the same 200 and the same body
+ * for both (H-18, spec 09 §6.5). Any UI that rendered "no cases" differently
+ * from "no visible cases" would put the leak back.
+ */
+export async function listEntityCases(entityId: string): Promise<EntityCase[]> {
+  return unwrap(
+    await api.GET("/v1/entities/{entity_id}/cases", {
       params: { path: { entity_id: entityId } },
     }),
   );

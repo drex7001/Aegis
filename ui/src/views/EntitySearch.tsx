@@ -1,7 +1,9 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { searchEntities, type EntityHit } from "../api/client";
+import { entityPath } from "../routing";
 
 /**
  * Entity search (T23c) — the "search first, expand second" half of spec 07 §5
@@ -83,6 +85,20 @@ export function EntitySearch({ onPick }: EntitySearchProps) {
                     <MatchedBy matched={hit.matched} />
                   </span>
                 </button>
+                {/*
+                 * Two destinations, because a hit answers two questions. The
+                 * button seeds the canvas ("show me around this"); the link
+                 * opens the object view ("tell me about this"). Keeping the
+                 * button's behaviour unchanged is deliberate — the P2 journey
+                 * that asserts search-then-focus still passes.
+                 */}
+                <Link
+                  to={entityPath(hit.entity_id)}
+                  className="search__open"
+                  data-testid={`search-open-${hit.entity_id}`}
+                >
+                  Open
+                </Link>
               </li>
             ))}
           </ul>

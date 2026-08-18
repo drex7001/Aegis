@@ -111,7 +111,7 @@ plane behind a UI task. T46 is now purely the case UI.
 
 ## Milestone B — Object views
 
-**T44. ⛓ Generic object view (entity-360)** (spec 09 §6; needs T42) — one
+**T44. ⛓ Generic object view (entity-360) — DONE (2026-08-19)** (spec 09 §6; needs T42) — one
 generic, descriptor-driven component renders any object type: claim-derived
 properties with grading badges; conflicting values render **side by side**
 with relation badges — two DOBs are two DOBs (Article VIII); links grouped by
@@ -119,11 +119,21 @@ predicate category; source list; cases the entity appears in via
 `GET /v1/entities/{id}/cases` — **built only from rows the caller can already
 read, then intersected with `can_view`: no hidden count, no relevance ordering,
 no existence leak (H-18, spec 09 §6.5)**.
-AC: person and organization render through the same component with zero
-type-specific React code; a seeded property conflict shows both values and
-their `contradicts` badge; a viewer authorized for the entity but not a
-restricted case that references it gets a response byte-identical to the
-no-case response; every rendered value came through the client.
+AC met: person and organization render through the same component — the
+descriptor sweep over `ui/src` finds no domain name, and the divisions the
+screen draws (property vs. link, and which category a link is in) come from
+`PREDICATES`/`CATEGORIES`; a seeded property conflict shows both dates of birth
+with the `contradicts` badge, through the **same** `PredicateGroup` the P2 panel
+uses, so Article VIII cannot become true in one screen and false in the other; a
+viewer authorized for the entity but not for a restricted case that references
+it gets a response byte-identical to an entity in no case at all
+(`tests/integration/test_object_view.py`, 8 cases); the only endpoint added is
+`GET /v1/entities/{id}/cases`, which exists because H-18 requires the list to be
+built server-side from readable rows.
+
+Spec 09 §6.4 corrected: the heading is `entity.label`, not `display.title`
+resolved against claims. `display.title` names a *property* and the response is
+keyed by *predicate*, and the ontology declares no mapping between them.
 
 **T45. Provenance drill-down + timeline strip** (spec 09 §6.6; needs T44) —
 every displayed value and link opens its provenance (the P2 why-connected API,

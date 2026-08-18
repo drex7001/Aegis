@@ -20,6 +20,8 @@ export const ROUTES = {
   graph: "/graph",
   sources: "/sources",
   review: "/review",
+  /** The entity-360: one generic screen for any entity (spec 09 §6.4). */
+  entity: "/entities/:entityId",
   /** One generic screen per declared object type (spec 09 §6). */
   objectType: "/types/:name",
   /** …and per interface, which is a shape over those types (spec 08 §4). */
@@ -36,6 +38,10 @@ export function objectTypePath(name: string): string {
 
 export function interfacePath(name: string): string {
   return `/interfaces/${encodeURIComponent(name)}`;
+}
+
+export function entityPath(entityId: string): string {
+  return `/entities/${encodeURIComponent(entityId)}`;
 }
 
 /**

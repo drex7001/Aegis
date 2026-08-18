@@ -7,13 +7,26 @@ from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import or_, select
 
-from aegis.api.deps import AuthContext, DbSession, OntologyDep, authorize
+from aegis.api.deps import (
+    AuthContext,
+    DbSession,
+    OntologyDep,
+    authorize,
+    get_fga,
+)
 from aegis.api.mappers import claim_provenance_out
-from aegis.api.schemas import ClaimProvenanceOut, EntityDetail, EntityOut
+from aegis.api.schemas import (
+    ClaimProvenanceOut,
+    EntityCaseOut,
+    EntityDetail,
+    EntityOut,
+)
+from aegis.authz.fga import FGAClient, FGAError
 from aegis.authz.filters import claim_filters, hidden_entity_types
 from aegis.queries.provenance import entity_provenance
-from aegis.store import Entity
+from aegis.store import CaseFile, CaseReference, Claim, Entity
 
 router = APIRouter(tags=["entities"])
 
@@ -58,3 +71,90 @@ def get_entity(
         resolved_entity_id=result.resolved_entity_id,
         truncated=result.truncated,
     )
+
+
+@router.get(
+    "/entities/{entity_id}/cases",
+    response_model=list[EntityCaseOut],
+    operation_id="listEntityCases",
+)
+def list_entity_cases(
+    entity_id: str,
+    session: DbSession,
+    ontology: OntologyDep,
+    fga=Depends(get_fga),
+    auth: AuthContext = Depends(authorize()),
+) -> list[CaseFile]:
+    """Cases this entity appears in — and no trace of the ones it does not (H-18).
+
+    The naive implementation is to find every case touching the entity and then
+    filter. That leaves a timing and ordering signal: how long the filtering
+    took, and where the gaps in a ranking are. So the answer is **derived only
+    from rows the caller can already read**, and then intersected with
+    ``can_view`` on each surviving case (spec 09 §6.5):
+
+    1. distinct ``case_id`` from claims about the entity **through**
+       ``claim_filters``, which already drops case-scoped claims the caller is
+       not a member of;
+    2. plus cases whose ``case_reference`` names this entity — the step that can
+       surface a case the caller is *not* in, because a reference may point at
+       an entity everybody can see;
+    3. ``can_view`` on each, dropping failures.
+
+    Step 3 is not redundant with step 1. Without it, an open entity referenced
+    from a restricted case would advertise that case's existence, which is
+    exactly the finding.
+
+    What this never does: return a total, a "N more", a relevance ordering, or a
+    different status code for "in no cases" and "in cases you cannot see". Both
+    are an empty array from a 200.
+    """
+    entity = session.get(Entity, entity_id)
+    if entity is None or entity.entity_type in hidden_entity_types(
+        ontology, auth.user.clearance
+    ):
+        raise HTTPException(404, "not found")
+
+    filters = claim_filters(session, auth.user, ontology)
+    from_claims = select(Claim.case_id).where(
+        Claim.case_id.is_not(None),
+        or_(Claim.subject_id == entity_id, Claim.object_id == entity_id),
+        *filters,
+    )
+    from_references = select(CaseReference.case_id).where(
+        CaseReference.target_type == "entity",
+        CaseReference.target_id == entity_id,
+        CaseReference.detached_at.is_(None),
+    )
+    candidates = set(session.scalars(from_claims)) | set(session.scalars(from_references))
+    if not candidates:
+        return []
+
+    rows = list(
+        session.scalars(
+            # Ordered by primary key, never by activity or claim count: a
+            # ranking is a place for a hidden row to leave a detectable gap.
+            select(CaseFile)
+            .where(CaseFile.case_id.in_(candidates))
+            .order_by(CaseFile.case_id)
+        )
+    )
+    return [row for row in rows if _can_view_case(fga, auth, row.case_id)]
+
+
+def _can_view_case(fga: FGAClient | None, auth: AuthContext, case_id: str) -> bool:
+    """`can_view`, as a boolean rather than as a 404.
+
+    `fga_check_or_404` is right when the case *is* the resource being asked
+    for. Here it is one row among several, and a failure means "leave it out",
+    not "this request was about something you may not have".
+    """
+    if fga is None:
+        # No authorization backend configured (dev without bootstrap). Fail
+        # closed: an unauthorized-by-default empty list is a worse answer than
+        # a leak is a bug.
+        return False
+    try:
+        return fga.check(f"user:{auth.user.sub}", "can_view", f"case:{case_id}")
+    except FGAError as exc:
+        raise HTTPException(503, f"authorization backend unavailable: {exc}") from exc
