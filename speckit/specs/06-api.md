@@ -186,7 +186,16 @@ case just as surely as one on a read.
   (specs/02 §3.1 rule 3). Passing `asOf` alone resolves identity as it is *now*,
   which is usually not what a historical question means — so any response
   carrying `asOf` **echoes the revision it resolved at**, and the UI shows both
-  in its as-of banner (specs/07 §5).
+  in its as-of banner (specs/07 §5). **Implemented at T49** on
+  `GET /v1/entities/{id}`: the pinned resolution replays the identity ledger up
+  to that revision (`aegis/er/canonical.py`) rather than reading
+  `entity_canonical_map`, which caches only the active answer. A revision above
+  the head is **422, never clamped** — answering about *now* under a heading
+  that says otherwise is the failure the parameter exists against.
+- Every as-of-capable read carries `stamp: {as_of, identity_revision_id,
+  ontology_version}`, **including when no snapshot was asked for**. A stamp
+  present only in as-of mode would leave a caller unable to tell a current
+  answer from a historical one without re-reading its own request.
 - Every projection-backed response carries the build's identity revision,
   ontology version, and builder version (ADR-030), so a stale read is
   detectable rather than silently wrong.

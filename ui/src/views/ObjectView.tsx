@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 
 import {
   getEntity,
@@ -17,6 +17,7 @@ import {
   type PredicateName,
 } from "../api/ontology";
 import { objectTypePath } from "../routing";
+import { AsOfBanner, StampLine } from "./claims/AsOfBanner";
 import { PredicateGroup, predicateLabel } from "./claims/ClaimGroup";
 import { ProvenanceDrawer, type Drill } from "./claims/ProvenanceDrawer";
 import { TimelineStrip } from "./claims/TimelineStrip";
@@ -95,9 +96,22 @@ function sourcesOf(detail: EntityDetail) {
 export function ObjectView() {
   const { entityId = "" } = useParams<{ entityId: string }>();
   const [drill, setDrill] = useState<Drill | null>(null);
+  /*
+   * As-of lives in the URL, not in component state. A historical view is
+   * something an analyst shares, bookmarks and comes back to, and a snapshot
+   * that vanished on reload would be a different answer at the same address.
+   */
+  const [search, setSearch] = useSearchParams();
+  const asOf = search.get("asOf") ?? undefined;
+  const asOfRevision = search.get("asOfRevision") ?? undefined;
+
   const entity = useQuery({
-    queryKey: ["entity", entityId],
-    queryFn: () => getEntity(entityId),
+    queryKey: ["entity", entityId, asOf ?? null, asOfRevision ?? null],
+    queryFn: () =>
+      getEntity(entityId, {
+        asOf,
+        asOfRevision: asOfRevision ? Number(asOfRevision) : undefined,
+      }),
   });
   const cases = useQuery({
     queryKey: ["entity-cases", entityId],
@@ -190,6 +204,57 @@ export function ObjectView() {
           · <code>{detail.entity.entity_id}</code>
         </p>
       </header>
+
+      <AsOfBanner stamp={detail.stamp} />
+
+      <form
+        className="case-form as-of"
+        data-testid="as-of-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const form = new FormData(event.currentTarget);
+          const at = String(form.get("as_of") ?? "");
+          const revision = String(form.get("as_of_revision") ?? "");
+          const next = new URLSearchParams();
+          if (at) next.set("asOf", new Date(at).toISOString());
+          if (revision) next.set("asOfRevision", revision);
+          setSearch(next);
+        }}
+      >
+        <label>
+          <span>What was recorded before</span>
+          <input type="date" name="as_of" defaultValue={asOf?.slice(0, 10)} data-testid="as-of-date" />
+        </label>
+        <label>
+          <span>Identity revision</span>
+          {/*
+           * Offered beside the date, because leaving it blank is a real
+           * choice with a real consequence: the answer uses today's identity.
+           * The banner says which revision was used either way.
+           */}
+          <input
+            type="number"
+            min={0}
+            name="as_of_revision"
+            defaultValue={asOfRevision}
+            data-testid="as-of-revision"
+          />
+        </label>
+        <button type="submit" data-testid="as-of-apply">
+          Apply
+        </button>
+        {asOf && (
+          <button
+            type="button"
+            data-testid="as-of-clear"
+            onClick={() => setSearch(new URLSearchParams())}
+          >
+            Back to now
+          </button>
+        )}
+      </form>
+
+      <StampLine stamp={detail.stamp} />
 
       {detail.resolved_entity_id !== detail.entity.entity_id && (
         <p className="notice" data-testid="object-view-resolved">

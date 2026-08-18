@@ -396,6 +396,21 @@ button:hover {
   overflow: hidden;
 }
 
+/* ── as-of (T49) ─────────────────────────────────────────────────────────── */
+
+.as-of {
+  font-size: 12px;
+}
+
+.as-of input {
+  min-width: 150px;
+}
+
+.stamp {
+  font-size: 11px;
+  margin: 4px 0 12px;
+}
+
 /* ── hypotheses and tasks (T47/T48) ─────────────────────────────────────── */
 
 /*

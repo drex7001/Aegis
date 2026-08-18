@@ -18,6 +18,7 @@ from aegis.api.deps import (
 )
 from aegis.api.mappers import claim_provenance_out
 from aegis.api.schemas import (
+    AsOfStampOut,
     ClaimProvenanceOut,
     EntityCaseOut,
     EntityDetail,
@@ -25,6 +26,7 @@ from aegis.api.schemas import (
 )
 from aegis.authz.fga import FGAClient, FGAError
 from aegis.authz.filters import claim_filters, hidden_entity_types
+from aegis.er.ledger import active_revision_id
 from aegis.queries.provenance import entity_provenance
 from aegis.store import CaseFile, CaseReference, Claim, Entity
 
@@ -39,6 +41,7 @@ def get_entity(
     session: DbSession,
     ontology: OntologyDep,
     as_of: Annotated[datetime | None, Query(alias="asOf")] = None,
+    as_of_revision: Annotated[int | None, Query(alias="asOfRevision", ge=0)] = None,
     auth: AuthContext = Depends(authorize()),
 ) -> EntityDetail:
     """One entity's claims, grouped by predicate, each with its evidence.
@@ -46,16 +49,33 @@ def get_entity(
     Grouping is what renders two disagreeing claims about the same property
     side by side; ``contradicted_by`` on each entry is what names the
     disagreement rather than leaving the reader to spot it (Article VIII).
+
+    **As-of is a claim-recording snapshot and nothing more** (B-11, spec 09 §7).
+    ``asOf`` filters to what had been recorded and not retracted at that
+    instant; ``asOfRevision`` pins the identity revision entity arguments
+    resolve through. Passing ``asOf`` alone resolves identity as it is *now*,
+    which is usually not what a historical question means — so the response
+    always carries the revision it actually used, whether pinned or active.
+
+    What as-of does **not** restore: labels, source evaluations, grading,
+    policy, projections, or the ontology. Those are current-state, and the
+    banner in the workspace says so.
     """
     entity = session.get(Entity, entity_id)
     if entity is None or entity.entity_type in hidden_entity_types(
         ontology, auth.user.clearance
     ):
         raise HTTPException(404, "not found")
+    if as_of_revision is not None and as_of_revision > active_revision_id(session):
+        # A revision that has not happened cannot be pinned. 422 rather than
+        # clamping to the head: silently answering about *now* under a heading
+        # that says otherwise is the failure mode this parameter exists against.
+        raise HTTPException(422, "identity revision does not exist")
     result = entity_provenance(
         session,
         entity_id=entity_id,
         filters=claim_filters(session, auth.user, ontology, as_of=as_of),
+        at_revision_id=as_of_revision,
     )
     # `entity_provenance` re-checks existence and returns None only when the
     # entity is gone; it was loaded above, so this is unreachable in practice
@@ -70,6 +90,17 @@ def get_entity(
         claims_by_predicate=grouped,
         resolved_entity_id=result.resolved_entity_id,
         truncated=result.truncated,
+        stamp=AsOfStampOut(
+            as_of=as_of,
+            # Echoed whether pinned or not: a caller must never have to re-read
+            # its own request to know which identity produced this answer.
+            identity_revision_id=(
+                as_of_revision
+                if as_of_revision is not None
+                else active_revision_id(session)
+            ),
+            ontology_version=ontology.version,
+        ),
     )
 
 

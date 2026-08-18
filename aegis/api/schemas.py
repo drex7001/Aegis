@@ -568,6 +568,26 @@ class ProjectionRebuildOut(BaseModel):
     builder_version: str
 
 
+class AsOfStampOut(BaseModel):
+    """What an answer was computed against (B-11, spec 09 §7).
+
+    Present on **every** response that can take `?asOf=`, not only on the ones
+    that did. A stamp that appeared only in as-of mode would leave a caller
+    unable to tell a current answer from a historical one without re-reading its
+    own request, and the identity revision is the field that makes the
+    difference legible: `asOf` alone resolves identity as it is *now*, which is
+    almost never what a historical question means.
+    """
+
+    #: The recording snapshot, or null for "current".
+    as_of: datetime | None
+    #: The revision entity arguments were resolved through — echoed whether or
+    #: not the caller pinned it (spec 06 §3).
+    identity_revision_id: int
+    #: The composition version this server is running (ADR-037).
+    ontology_version: str
+
+
 class EntityDetail(BaseModel):
     """One entity's claims, grouped by predicate (spec 06 §2.1).
 
@@ -585,6 +605,9 @@ class EntityDetail(BaseModel):
     #: True when the claim cap was reached — a thin panel is never mistaken for
     #: thin evidence.
     truncated: bool = False
+    #: What this answer was computed against (T49). Optional in the schema only
+    #: so a client built before T49 keeps type-checking; the route always sets it.
+    stamp: AsOfStampOut | None = None
 
 
 class IdentityDecisionOut(BaseModel):

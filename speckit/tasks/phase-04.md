@@ -210,7 +210,7 @@ requests editing the same file (the P3 precedent is T37/T38).
 
 ## Milestone E — Time
 
-**T49. Timeline + as-of mode (narrowed — B-11)** (spec 09 §7, specs/02 time
+**T49. Timeline + as-of mode (narrowed — B-11) — DONE (2026-08-19)** (spec 09 §7, specs/02 time
 model; needs T44) — claim/event times with uncertainty rendered honestly;
 `?asOf=` end-to-end in the UI as the defined **claim-recording snapshot** (the
 filter already exists in `aegis/authz/filters.py`; what is missing is the rest).
@@ -218,11 +218,27 @@ Add `?asOfRevision=<id>` — specified in spec 06 §3 since P2 and never
 implemented — the response stamp `{as_of, identity_revision_id,
 ontology_version}` echoed whether or not the revision was pinned, and a
 persistent, non-dismissible banner stating exactly what the view holds constant.
-AC: an as-of query in the UI excludes a claim recorded after X in a seeded
-test; the response carries all three stamps (exit criterion); a pinned revision
-resolves entity arguments differently from the active one in a seeded merge;
-uncertain dates render visually distinct from exact ones, and a claim with no
-stated time renders "time not stated" rather than its `recorded_at`.
+AC met (`tests/integration/test_as_of.py`, 10 cases; `ui/e2e/as-of.spec.ts`,
+8): an as-of query excludes a claim recorded after the timestamp and restores
+one retracted after it; **every** response carries `{as_of,
+identity_revision_id, ontology_version}`, including a current one, so a caller
+never re-reads its own request to learn which identity produced an answer; a
+pinned revision resolves a seeded merge differently from the active one, and
+the trap is asserted as its own test — `asOf` alone answers a January question
+with today's identity, which is why the revision is echoed and the banner names
+it; a revision that has not happened is **422 rather than clamped**, because
+answering about now under a heading that says otherwise is the failure the
+parameter exists against. Uncertainty rendering landed with T45's strip.
+
+The banner is persistent and **not dismissible**, and states the limits as well
+as the promise — labels, source evaluations, grading, policy and the ontology
+are current, not historical. B-11 was a finding about an overstated promise; a
+banner reading only "showing 1 March" would repeat it.
+
+`canonical_entity_at` / `absorbed_ids_at` replay the ledger up to a revision
+rather than reading `entity_canonical_map`, which caches exactly one answer —
+the active one. The cost is a replay per pinned read, bounded by the number of
+identity decisions, which a human produces one at a time.
 
 ## Milestone F — Cutover & proof
 

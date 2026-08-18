@@ -51,10 +51,17 @@ function claim(overrides: Record<string, unknown>) {
   };
 }
 
+export const STAMP = {
+  as_of: null as string | null,
+  identity_revision_id: 7,
+  ontology_version: "1.7.0",
+};
+
 export const PERSON = {
   entity: { entity_id: "ent_person", entity_type: "person", label: "Fictional A" },
   resolved_entity_id: "ent_person",
   truncated: false,
+  stamp: STAMP,
   claims_by_predicate: {
     // A property: `known_as` has a literal object.
     known_as: [claim({ claim: { claim_id: "clm_name" } })],
@@ -102,6 +109,7 @@ export const ORGANIZATION = {
   entity: { entity_id: "ent_org", entity_type: "organization", label: "Fictional Co" },
   resolved_entity_id: "ent_org",
   truncated: false,
+  stamp: STAMP,
   claims_by_predicate: {
     known_as: [
       claim({
@@ -118,13 +126,42 @@ export async function stubEntityRoutes(
   await page.route("**/v1/entities/*/cases", (route) =>
     route.fulfill({ contentType: "application/json", body: JSON.stringify(cases) }),
   );
-  await page.route("**/v1/entities/ent_person", (route) =>
-    route.fulfill({ contentType: "application/json", body: JSON.stringify(PERSON) }),
+  // URL predicates rather than globs: `**/v1/entities/ent_person` does not
+  // match `/v1/entities/ent_person?asOf=…`, and as-of is a query parameter.
+  await page.route(
+    (url) => url.pathname === "/v1/entities/ent_person",
+    (route) => {
+      const url = new URL(route.request().url());
+      const asOf = url.searchParams.get("asOf");
+      const revision = url.searchParams.get("asOfRevision");
+      const body = asOf
+        ? {
+            ...PERSON,
+            // A historical view drops the later claim, exactly as the server
+            // would: the fixture mirrors the recording snapshot rather than
+            // inventing a different shape for it.
+            claims_by_predicate: { known_as: PERSON.claims_by_predicate.known_as },
+            stamp: {
+              as_of: asOf,
+              identity_revision_id: revision ? Number(revision) : STAMP.identity_revision_id,
+              ontology_version: STAMP.ontology_version,
+            },
+          }
+        : PERSON;
+      return route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify(body),
+      });
+    },
   );
-  await page.route("**/v1/entities/ent_org", (route) =>
-    route.fulfill({ contentType: "application/json", body: JSON.stringify(ORGANIZATION) }),
+  await page.route(
+    (url) => url.pathname === "/v1/entities/ent_org",
+    (route) =>
+      route.fulfill({ contentType: "application/json", body: JSON.stringify(ORGANIZATION) }),
   );
-  await page.route("**/v1/entities/ent_missing", (route) =>
+  await page.route(
+    (url) => url.pathname === "/v1/entities/ent_missing",
+    (route) =>
     route.fulfill({
       status: 404,
       contentType: "application/problem+json",

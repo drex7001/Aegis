@@ -291,6 +291,17 @@ export interface paths {
          *     Grouping is what renders two disagreeing claims about the same property
          *     side by side; ``contradicted_by`` on each entry is what names the
          *     disagreement rather than leaving the reader to spot it (Article VIII).
+         *
+         *     **As-of is a claim-recording snapshot and nothing more** (B-11, spec 09 §7).
+         *     ``asOf`` filters to what had been recorded and not retracted at that
+         *     instant; ``asOfRevision`` pins the identity revision entity arguments
+         *     resolve through. Passing ``asOf`` alone resolves identity as it is *now*,
+         *     which is usually not what a historical question means — so the response
+         *     always carries the revision it actually used, whether pinned or active.
+         *
+         *     What as-of does **not** restore: labels, source evaluations, grading,
+         *     policy, projections, or the ontology. Those are current-state, and the
+         *     banner in the workspace says so.
          */
         get: operations["getEntity"];
         put?: never;
@@ -982,6 +993,25 @@ export interface components {
             /** Note */
             note?: string | null;
         };
+        /**
+         * AsOfStampOut
+         * @description What an answer was computed against (B-11, spec 09 §7).
+         *
+         *     Present on **every** response that can take `?asOf=`, not only on the ones
+         *     that did. A stamp that appeared only in as-of mode would leave a caller
+         *     unable to tell a current answer from a historical one without re-reading its
+         *     own request, and the identity revision is the field that makes the
+         *     difference legible: `asOf` alone resolves identity as it is *now*, which is
+         *     almost never what a historical question means.
+         */
+        AsOfStampOut: {
+            /** As Of */
+            as_of: string | null;
+            /** Identity Revision Id */
+            identity_revision_id: number;
+            /** Ontology Version */
+            ontology_version: string;
+        };
         /** AuditOut */
         AuditOut: {
             /** Action */
@@ -1499,6 +1529,7 @@ export interface components {
             entity: components["schemas"]["EntityOut"];
             /** Resolved Entity Id */
             resolved_entity_id: string;
+            stamp?: components["schemas"]["AsOfStampOut"] | null;
             /**
              * Truncated
              * @default false
@@ -3633,6 +3664,7 @@ export interface operations {
         parameters: {
             query?: {
                 asOf?: string | null;
+                asOfRevision?: number | null;
                 /** @description Reason for access */
                 purpose?: string | null;
             };
