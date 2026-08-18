@@ -36,6 +36,26 @@ export async function stubVocabulary(
 }
 
 /**
+ * `GET /v1/cases`, which the **rail** calls on every page from T46.
+ *
+ * It belongs to the shell rather than to any screen, which is why the
+ * "no endpoint of their own" sweeps list it beside the screen's own calls: the
+ * assertion stays exact equality, and the comment there says which call is
+ * whose.
+ */
+export async function stubCases(
+  page: Page,
+  items: Array<Record<string, unknown>> = [],
+): Promise<void> {
+  await page.route("**/v1/cases", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ items, next_cursor: null }),
+    }),
+  );
+}
+
+/**
  * The version the bundle under test was built against.
  *
  * Read from the generated constants rather than hard-coded: pinning "1.6.1"

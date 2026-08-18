@@ -455,6 +455,12 @@ export interface paths {
          *     category filters and time windows — not a resource address, and putting a
          *     hundred entity ids in a query string is how URL-length limits become silent
          *     truncation of an authorization-relevant input.
+         *
+         *     ``case_id`` narrows to the evidence that case recorded. It is threaded in as
+         *     an extra **claim filter** rather than applied to the result, which is what
+         *     makes "the case graph never renders out-of-case data" a property of the
+         *     query: edge visibility and every support summary are computed from the same
+         *     narrowed set (spec 09 §2.4).
          */
         post: operations["expandGraph"];
         delete?: never;
@@ -1658,6 +1664,8 @@ export interface components {
          *     useful than a 422 that teaches nothing about the limit.
          */
         GraphExpandIn: {
+            /** Case Id */
+            case_id?: string | null;
             /** Categories */
             categories?: string[];
             /**

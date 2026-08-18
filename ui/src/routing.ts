@@ -20,6 +20,9 @@ export const ROUTES = {
   graph: "/graph",
   sources: "/sources",
   review: "/review",
+  /** The caller's own cases, and one case (spec 09 §2.4). */
+  cases: "/cases",
+  case: "/cases/:caseId",
   /** The entity-360: one generic screen for any entity (spec 09 §6.4). */
   entity: "/entities/:entityId",
   /** One generic screen per declared object type (spec 09 §6). */
@@ -42,6 +45,10 @@ export function interfacePath(name: string): string {
 
 export function entityPath(entityId: string): string {
   return `/entities/${encodeURIComponent(entityId)}`;
+}
+
+export function casePath(caseId: string): string {
+  return `/cases/${encodeURIComponent(caseId)}`;
 }
 
 /**

@@ -135,6 +135,8 @@ export async function expandGraph(body: {
   max_hops?: number;
   max_elements?: number;
   categories?: string[];
+  /** Narrow to one case's own evidence (T46) — a claim filter, not a display one. */
+  case_id?: string;
 }): Promise<GraphView> {
   return unwrap(await api.POST("/v1/graph/expand", { body }));
 }
@@ -362,6 +364,108 @@ export async function searchEntities(
 ): Promise<SearchResults> {
   return unwrap(
     await api.GET("/v1/search/entities", { params: { query: { q, limit, cursor } } }),
+  );
+}
+
+/* ── cases (T46, over the routes T43 landed) ───────────────────────────── */
+
+export type Case = components["schemas"]["CaseOut"];
+export type CasePage = components["schemas"]["CasePageOut"];
+export type CaseMember = components["schemas"]["CaseMemberOut"];
+export type CaseReference = components["schemas"]["CaseReferenceOut"];
+
+/**
+ * The caller's own cases.
+ *
+ * An empty list means "none you are a member of". It carries no total, by
+ * design — a count over an authorization-filtered collection is an existence
+ * leak (spec 06 §4 default 4) — so nothing here may render one.
+ */
+export async function listCases(params?: {
+  cursor?: string;
+  limit?: number;
+}): Promise<CasePage> {
+  return unwrap(await api.GET("/v1/cases", { params: { query: params } }));
+}
+
+export async function openCase(
+  body: components["schemas"]["CaseIn"],
+  purpose: string,
+): Promise<Case> {
+  // `purpose` is a required query parameter on this route, not a body field:
+  // it is captured by the authorization gate and audited with the allow
+  // (GOAL.md §12.4), which happens before the handler sees a body.
+  return unwrap(await api.POST("/v1/cases", { params: { query: { purpose } }, body }));
+}
+
+export async function getCase(caseId: string): Promise<Case> {
+  return unwrap(
+    await api.GET("/v1/cases/{case_id}", { params: { path: { case_id: caseId } } }),
+  );
+}
+
+export async function closeCase(caseId: string, reason: string): Promise<Case> {
+  return unwrap(
+    await api.POST("/v1/cases/{case_id}/close", {
+      params: { path: { case_id: caseId } },
+      body: { reason },
+    }),
+  );
+}
+
+export async function listCaseMembers(caseId: string): Promise<CaseMember[]> {
+  return unwrap(
+    await api.GET("/v1/cases/{case_id}/members", {
+      params: { path: { case_id: caseId } },
+    }),
+  );
+}
+
+export async function addCaseMember(
+  caseId: string,
+  body: components["schemas"]["CaseMemberIn"],
+): Promise<unknown> {
+  return unwrap(
+    await api.POST("/v1/cases/{case_id}/members", {
+      params: { path: { case_id: caseId } },
+      body,
+    }),
+  );
+}
+
+export async function listCaseReferences(caseId: string): Promise<CaseReference[]> {
+  return unwrap(
+    await api.GET("/v1/cases/{case_id}/references", {
+      params: { path: { case_id: caseId } },
+    }),
+  );
+}
+
+export async function linkCaseReference(
+  caseId: string,
+  body: components["schemas"]["CaseReferenceIn"],
+): Promise<CaseReference> {
+  return unwrap(
+    await api.POST("/v1/cases/{case_id}/references", {
+      params: { path: { case_id: caseId } },
+      body,
+    }),
+  );
+}
+
+export async function unlinkCaseReference(
+  caseId: string,
+  targetType: string,
+  targetId: string,
+  reason: string,
+): Promise<CaseReference> {
+  return unwrap(
+    await api.DELETE("/v1/cases/{case_id}/references/{target_type}/{target_id}", {
+      params: {
+        path: { case_id: caseId, target_type: targetType, target_id: targetId },
+        query: { reason },
+      },
+    }),
   );
 }
 

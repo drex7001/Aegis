@@ -815,6 +815,15 @@ class GraphExpandIn(BaseModel):
     categories: list[str] = Field(default_factory=list)
     valid_from: date | None = None
     valid_to: date | None = None
+    #: Restrict to the evidence **this case recorded** (T46, spec 09 §2.4).
+    #:
+    #: Not a display filter: it is added to `claim_filters`, so it narrows edge
+    #: visibility *and* every support summary rebuilt from those claims. An edge
+    #: supported by one case claim and three open ones renders with a tally of
+    #: one, because that is what the case has. A filter applied after the
+    #: summaries were computed would overstate the case's evidence, which is the
+    #: mistake this parameter exists to make impossible.
+    case_id: str | None = None
 
 
 class GraphPathsIn(BaseModel):
