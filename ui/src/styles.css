@@ -380,12 +380,98 @@ button:hover {
 }
 
 .case-graph {
+  /*
+   * `position: relative` is load-bearing, not cosmetic. `.canvas` is
+   * `position: absolute; inset: 0`, so without a positioned container here
+   * Cytoscape's layers size themselves against the viewport and cover the whole
+   * page — including the forms above, whose clicks they then swallow. The T47
+   * journey found exactly that.
+   */
+  position: relative;
   height: 420px;
   display: flex;
   flex-direction: column;
   border: 1px solid var(--line);
   border-radius: 4px;
   overflow: hidden;
+}
+
+/* ── hypotheses and tasks (T47/T48) ─────────────────────────────────────── */
+
+/*
+ * Two columns, always both. An empty side keeps its heading and says so —
+ * collapsing it would tell the reader the question was never asked, which is
+ * the opposite of Article VIII.
+ */
+.hypothesis__columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 12px 0;
+}
+
+@media (max-width: 720px) {
+  .hypothesis__columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.hypothesis__column ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-size: 12px;
+}
+
+.hypothesis__missing {
+  padding: 10px 12px;
+  background: var(--hold-wash);
+  border-left: 3px solid var(--caution);
+  border-radius: 0 4px 4px 0;
+}
+
+.hypothesis__missing h2 {
+  margin: 0 0 4px;
+  font-size: 13px;
+}
+
+.task-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.task-board__column {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 12px;
+}
+
+.task-board__column h3 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.task-board__column ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.task-board__column li {
+  padding: 4px 0;
+  border-top: 1px solid var(--line);
+}
+
+.task-board__column select {
+  font: inherit;
+  font-size: 11px;
+  margin-top: 3px;
+  display: block;
 }
 
 .drawer {
@@ -447,17 +533,33 @@ button:hover {
   inset: 0;
 }
 
+/*
+ * In flow by default.
+ *
+ * This was `position: absolute` from T22, when the only notice in the product
+ * floated over the graph canvas. Every P4 screen reuses the class in ordinary
+ * prose, and the absolute default put each of those at the top-left of whatever
+ * happened to be positioned above it — which the T47 browser journey caught
+ * when a stray Cytoscape canvas swallowed a form's clicks.
+ *
+ * The overlay behaviour is kept where it was meant: inside `.graph__body`,
+ * which is the positioned container the canvas fills.
+ */
 .notice {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 1;
-  margin: 0;
+  margin: 8px 0;
   padding: 6px 10px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-left: 3px solid var(--caution);
   border-radius: 4px;
+}
+
+.graph__body > .notice {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1;
+  margin: 0;
 }
 
 .notice--error {

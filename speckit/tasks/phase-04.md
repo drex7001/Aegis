@@ -178,24 +178,35 @@ graph under a heading that says otherwise.
 
 ## Milestone D — Hypotheses & tasks
 
-**T47. Hypotheses UI** (GOAL.md §18, spec 09 §3; needs T43, T44, T46) — screens
+**T47. Hypotheses UI — DONE (2026-08-19)** (GOAL.md §18, spec 09 §3; needs T43, T44, T46) — screens
 over the T43 hypothesis actions: supporting/contradicting claim links and the
 **required missing-information note**; the hypothesis page always renders
 both sides (Article VIII) plus what's missing, and an empty side renders as
 "no contradicting evidence recorded" rather than being omitted.
-AC: creation without a missing-info note — **absent or blank** — is rejected,
-by the generated request model and by the `required_text_is_substantive`
-submission criterion respectively (spec 09 §3.3; the pre-authored AC named only
-the criterion, which does not fire on an absent field); a seeded hypothesis
-shows supporting and contradicting claims simultaneously (exit criterion); the
-revision history returns every version in order; all changes in audit.
+AC met: creation without a missing-info note — **absent or blank** — is
+rejected, by the generated request model and by the
+`required_text_is_substantive` criterion respectively (the pre-authored AC named
+only the criterion, which does not fire on an absent field), and the refusal is
+surfaced in the server's own words rather than translated to a generic message;
+**both columns render whether or not they hold anything**, with the empty side
+reading "no contradicting evidence recorded" — the assertion the screen exists
+for; a claim linked under both stances appears on both sides; the revision
+history shows every version's own statement; nothing on the page scores the two
+sides against each other, asserted as a negative.
 
-**T48. Tasks / leads UI** (spec 09 §4; needs T43, T46) — screens over the T43
+**T48. Tasks / leads UI — DONE (2026-08-19)** (spec 09 §4; needs T43, T46) — screens over the T43
 task/lead actions: lightweight status columns on cases; no workflow engine and
 no transition graph (plan §2 trigger untouched).
-AC: a lead moves through its statuses from the case screen; every transition
-is an audited action carrying old and new value; no new infrastructure appears
-in the diff.
+AC met: a lead moves open → in progress → done from the case screen, each move
+a `POST /v1/tasks/{id}` the server audits with its old value beside the new;
+every status is offered from every status, asserted directly, because the
+absence of a transition graph is the design rather than an omission; an
+unassigned task says "unassigned" rather than inventing an owner. No new
+infrastructure in the diff.
+
+**Landed with T47** in one change: both are panels on the case screen, over
+actions T43 already shipped, and splitting them would have meant two pull
+requests editing the same file (the P3 precedent is T37/T38).
 
 ## Milestone E — Time
 

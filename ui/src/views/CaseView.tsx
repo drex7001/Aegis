@@ -13,6 +13,8 @@ import {
 } from "../api/client";
 import { entityPath } from "../routing";
 import { CaseGraph } from "./CaseGraph";
+import { CaseHypotheses } from "./CaseHypotheses";
+import { CaseTasks } from "./CaseTasks";
 
 /**
  * One case: what it is, who is in it, what it refers to, and its own graph.
@@ -227,6 +229,10 @@ export function CaseView() {
           ))}
         </ul>
       )}
+
+      <CaseHypotheses caseId={caseId} />
+
+      <CaseTasks caseId={caseId} />
 
       <h2>Case graph</h2>
       <p className="muted">
