@@ -1,22 +1,46 @@
-"""Case routes (spec 06 Cases)."""
+"""Case routes (spec 06 §2.5, spec 09 §2.4).
+
+Two rules govern every read here and are worth stating once:
+
+* **Non-membership is 404, never 403.** `fga_check_or_404` is the only
+  acceptable gate on a case-scoped read; a 403 tells the caller the case exists.
+* **No list route returns a total.** A count over an authorization-filtered
+  collection is an existence leak (spec 06 §4 default 4), and ordering is by
+  primary key so hidden rows cannot be detected as gaps in a ranking.
+"""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from sqlalchemy import select
 
 from aegis.actions import ActionContext, ActionService
 from aegis.actions.service import CASE_MEMBER_RELATIONS
 from aegis.api.deps import (
     AuthContext,
     DbSession,
+    FGADep,
     OntologyDep,
     authorize,
     fga_check_or_404,
     get_fga,
 )
-from aegis.api.schemas import CaseIn, CaseMemberIn, CaseOut
+from aegis.api.schemas import (
+    CaseCloseIn,
+    CaseIn,
+    CaseMemberIn,
+    CaseMemberOut,
+    CaseOut,
+    CasePageOut,
+    CaseReferenceIn,
+    CaseReferenceOut,
+)
+from aegis.api.pagination import decode_cursor, encode_cursor, page_limit, split_page
+from aegis.authz.filters import member_case_ids
 from aegis.authz.outbox import delete_inline_best_effort
-from aegis.store import CaseFile, CaseMember
+from aegis.store import CaseFile, CaseMember, CaseReference
 
 router = APIRouter(tags=["cases"])
 
@@ -51,6 +75,46 @@ def open_case(
     return row
 
 
+@router.get("/cases", response_model=CasePageOut, operation_id="listCases")
+def list_cases(
+    session: DbSession,
+    cursor: Annotated[str | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1)] = 50,
+    auth: AuthContext = Depends(authorize()),
+) -> CasePageOut:
+    """The caller's own cases.
+
+    Built from canonical `case_member` rows rather than from every case filtered
+    afterwards — the list is *derived* from what the caller may see, which is
+    the same construction the object view's case list uses (spec 09 §6.5) and
+    the reason there is no timing signal to measure. `case_member` is the fact
+    and OpenFGA is its projection (ADR-014), so reading it here is not a bypass.
+
+    Ordered by `case_id`, never by activity: a ranking is a place for a hidden
+    row to leave a gap.
+    """
+    limit = page_limit(limit)
+    key = decode_cursor(cursor, "cases", 1)
+    mine = member_case_ids(session, auth.user)
+    if not mine:
+        return CasePageOut(items=[], next_cursor=None)
+    query = (
+        select(CaseFile)
+        .where(CaseFile.case_id.in_(mine))
+        .order_by(CaseFile.case_id)
+        .limit(limit + 1)
+    )
+    if key is not None:
+        query = query.where(CaseFile.case_id > str(key[0]))
+    rows = list(session.scalars(query))
+    items, next_cursor = split_page(
+        rows, limit, lambda row: encode_cursor("cases", [row.case_id])
+    )
+    return CasePageOut(
+        items=[CaseOut.model_validate(row) for row in items], next_cursor=next_cursor
+    )
+
+
 @router.get("/cases/{case_id}", response_model=CaseOut, operation_id="getCase")
 def get_case(
     case_id: str,
@@ -65,6 +129,134 @@ def get_case(
 
         raise HTTPException(404, "not found")
     return case
+
+
+@router.post(
+    "/cases/{case_id}/close", response_model=CaseOut, operation_id="closeCase"
+)
+def close_case(
+    case_id: str,
+    body: CaseCloseIn,
+    session: DbSession,
+    ontology: OntologyDep,
+    fga=Depends(get_fga),
+    auth: AuthContext = Depends(authorize("supervisor")),
+) -> CaseFile:
+    """Close a case. Never deletes: `status` moves and `closed_at` is set."""
+    fga_check_or_404(fga, auth.user, "can_approve", f"case:{case_id}")
+    row = ActionService(session, ontology).close_case(
+        ActionContext(actor=auth.user.sub, purpose=auth.purpose, roles=auth.user.roles),
+        case_id=case_id,
+        reason=body.reason,
+    )
+    session.commit()
+    return row
+
+
+@router.get(
+    "/cases/{case_id}/members",
+    response_model=list[CaseMemberOut],
+    operation_id="listCaseMembers",
+)
+def list_members(
+    case_id: str,
+    session: DbSession,
+    fga=Depends(get_fga),
+    auth: AuthContext = Depends(authorize()),
+) -> list[CaseMember]:
+    fga_check_or_404(fga, auth.user, "can_view", f"case:{case_id}")
+    return list(
+        session.scalars(
+            select(CaseMember)
+            .where(CaseMember.case_id == case_id)
+            .order_by(CaseMember.user_id)
+        )
+    )
+
+
+@router.get(
+    "/cases/{case_id}/references",
+    response_model=list[CaseReferenceOut],
+    operation_id="listCaseReferences",
+)
+def list_references(
+    case_id: str,
+    session: DbSession,
+    fga=Depends(get_fga),
+    auth: AuthContext = Depends(authorize()),
+) -> list[CaseReference]:
+    """What this investigation refers to — attached, not detached.
+
+    A reference grants nothing (ADR-044), so this returns the links; whether
+    the caller can read a target is answered by that target's own route, which
+    applies `claim_filters` like every other read.
+    """
+    fga_check_or_404(fga, auth.user, "can_view", f"case:{case_id}")
+    return list(
+        session.scalars(
+            select(CaseReference)
+            .where(
+                CaseReference.case_id == case_id,
+                CaseReference.detached_at.is_(None),
+            )
+            .order_by(CaseReference.target_type, CaseReference.target_id)
+        )
+    )
+
+
+@router.post(
+    "/cases/{case_id}/references",
+    response_model=CaseReferenceOut,
+    status_code=201,
+    operation_id="linkCaseReference",
+)
+def link_reference(
+    case_id: str,
+    body: CaseReferenceIn,
+    session: DbSession,
+    ontology: OntologyDep,
+    fga=Depends(get_fga),
+    auth: AuthContext = Depends(authorize("analyst", "investigator")),
+) -> CaseReference:
+    fga_check_or_404(fga, auth.user, "can_edit", f"case:{case_id}")
+    row = ActionService(session, ontology).link_case_reference(
+        ActionContext(actor=auth.user.sub, purpose=auth.purpose, roles=auth.user.roles),
+        case_id=case_id,
+        target_type=body.target_type,
+        target_id=body.target_id,
+        note=body.note,
+    )
+    session.commit()
+    return row
+
+
+@router.delete(
+    "/cases/{case_id}/references/{target_type}/{target_id}",
+    response_model=CaseReferenceOut,
+    operation_id="unlinkCaseReference",
+)
+def unlink_reference(
+    case_id: str,
+    target_type: str,
+    target_id: str,
+    reason: Annotated[str, Query(min_length=1)],
+    session: DbSession,
+    ontology: OntologyDep,
+    fga=Depends(get_fga),
+    auth: AuthContext = Depends(authorize("analyst", "investigator")),
+) -> CaseReference:
+    """Detach a reference. Tombstoned, never deleted — somebody once thought
+    these two were connected, and that is a fact the case may need to explain."""
+    fga_check_or_404(fga, auth.user, "can_edit", f"case:{case_id}")
+    row = ActionService(session, ontology).unlink_case_reference(
+        ActionContext(actor=auth.user.sub, purpose=auth.purpose, roles=auth.user.roles),
+        case_id=case_id,
+        target_type=target_type,
+        target_id=target_id,
+        reason=reason,
+    )
+    session.commit()
+    return row
 
 
 @router.post(

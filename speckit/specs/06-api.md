@@ -123,9 +123,34 @@ one audit shape.
 | Route | R | F | Notes / filters | Limits | Tests |
 |---|---|---|---|---|---|
 | `POST /v1/cases` | analyst, investigator | — | **P** | — | `test_authz.py` |
+| `GET /v1/cases` | — | per row | **Only the caller's own cases** — derived from canonical `case_member`, not filtered afterwards. Cursor; **no total** (§4 default 4); ordered by `case_id`, never by activity, so a hidden row leaves no gap in a ranking | cursor | `test_investigation_routes.py` |
 | `GET /v1/cases/{id}` | — | `can_view` | 404 for non-members — **no case-existence leak** | — | `test_authz.py`, matrix suite |
+| `POST /v1/cases/{id}/close` | supervisor | `can_approve` | audited; sets `status='closed'` + `closed_at`. Never deletes, and a closed case cannot be closed again | — | `test_investigation_model.py` |
 | `POST /v1/cases/{id}/members` | supervisor | `can_approve` | creates or replaces; replacement queues + inline-deletes the old FGA tuple after commit (ADR-014) | — | `test_authz_openfga.py` |
 | `DELETE /v1/cases/{id}/members/{user_id}` | supervisor | `can_approve` | canonical removal + outbox delete; inline best-effort FGA delete after commit | — | `test_revocation.py`, `test_authz_openfga.py` |
+| `GET /v1/cases/{id}/members` | — | `can_view` | members of a case you can view; 404 otherwise | — | `test_investigation_routes.py` |
+| `GET /v1/cases/{id}/references` | — | `can_view` | attached references only (detached rows are tombstoned, not deleted) | — | `test_investigation_routes.py` |
+| `POST /v1/cases/{id}/references` | analyst, investigator | `can_edit` | **ADR-044**: "this investigation refers to that". Grants **no** read access to the target and never touches `claim.case_id`, which is the immutable recording scope `claim_filters` reads | — | `test_investigation_model.py` |
+| `DELETE /v1/cases/{id}/references/{target_type}/{target_id}` | analyst, investigator | `can_edit` | tombstone + `reason`; re-linking clears it rather than inserting a second row | — | `test_investigation_model.py` |
+
+### 2.5.1 Hypotheses & tasks (P4 — spec 09 §3–§5)
+
+Neither resource has authorization of its own: both belong to exactly one case,
+and `can_view`/`can_edit` derive from it in the FGA model. **A non-member gets
+404 from every route below, writes included** — a 403 on a write discloses the
+case just as surely as one on a read.
+
+| Route | R | F | Notes / filters | Limits | Tests |
+|---|---|---|---|---|---|
+| `POST /v1/hypotheses` | analyst, investigator | `can_edit` on the case | writes the hypothesis and its first revision in one transaction. `missing_info` is required **and** must be non-blank (`required_text_is_substantive`, spec 09 §3.3) | — | `test_investigation_routes.py` |
+| `GET /v1/hypotheses?case={id}` | — | `can_view` | case is required; there is no global hypothesis list | — | `test_investigation_routes.py` |
+| `GET /v1/hypotheses/{id}` | — | `can_view` via its case | current revision + full history + `supporting`/`contradicting`. Both arrays are **always present**, empty or not: Article VIII is a rendering obligation, and a client cannot render "no contradicting evidence recorded" from an omitted field | — | `test_investigation_routes.py` |
+| `POST /v1/hypotheses/{id}/revisions` | analyst, investigator | `can_edit` | a revision is a **snapshot, not a diff** — unsupplied fields carry forward | — | `test_investigation_model.py` |
+| `POST /v1/hypotheses/{id}/claims` | analyst, investigator | `can_edit` | stance `supports`/`contradicts`. The same claim may be linked under **both** (spec 09 §3.2). Linking grants no access to the claim | — | `test_investigation_model.py` |
+| `DELETE /v1/hypotheses/{id}/claims/{claim_id}/{stance}` | analyst, investigator | `can_edit` | tombstone + `reason` | — | `test_investigation_model.py` |
+| `POST /v1/tasks` | analyst, investigator | `can_edit` on the case | `kind` is `task` or `lead`; unassigned is a real state | — | `test_investigation_routes.py` |
+| `GET /v1/tasks?case={id}` | — | `can_view` | case-scoped, key-ordered | — | `test_investigation_routes.py` |
+| `POST /v1/tasks/{id}` | analyst, investigator | `can_edit` | **no transition graph** — any status may follow any other, and the audit row carries the old value beside the new one. `closed_at` follows the status rather than the caller | — | `test_investigation_model.py` |
 
 ### 2.6 Graph, projections & analytics
 

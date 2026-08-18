@@ -59,6 +59,11 @@ TRUNCATE_DOMAIN_TABLES = (
     "identity_negative_constraint, er_candidate, identity_decision, "
     "identity_revision, identity_membership, mention, evidence_item, "
     "custody_event, derivative, source_record, source, case_member, case_file, "
+    # The investigation plane (T43). CASCADE would reach these through
+    # `case_file` anyway; naming them keeps the list readable as an inventory
+    # rather than as a set of roots someone has to trace.
+    "case_reference, hypothesis_claim, hypothesis_revision, hypothesis, "
+    "investigation_task, "
     "entity, authz_outbox CASCADE"
 )
 

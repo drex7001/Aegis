@@ -334,6 +334,15 @@ Hand-written, like every other platform type — the FGA-stub generator (P3
 carryover, P7 owner) exists for *domain* object types and still has nothing to
 emit.
 
+**What runs at request time is a check on the parent case.** A route loads the
+row, reads its `case_id`, and asks `can_view`/`can_edit` on `case:{id}` — which
+is exactly what the derivations above compute, so no tuple is written per
+hypothesis or task and none is needed. The types are declared for the same
+reason `compartment` has been declared since P1: when a direct check becomes
+meaningful (P7 sealing, per-resource compartments), the model is already there
+and already means this. Stated because a declared-but-unqueried type is easy to
+mistake for enforcement that is happening.
+
 Every new route appends a row to `tests/contract/test_authorization_matrix.py`,
 whose assertion is exact equality: a route added without a matrix row fails the
 fast suite. That is the mechanism, not a convention.

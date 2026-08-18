@@ -266,9 +266,171 @@ class CaseOut(BaseModel):
     closed_at: datetime | None
 
 
+class CasePageOut(BaseModel):
+    """Only the cases the caller can view. No total: a count is an existence
+    leak (spec 06 §4 default 4, spec 09 §2.4)."""
+
+    items: list[CaseOut]
+    next_cursor: str | None = None
+
+
+class CaseCloseIn(BaseModel):
+    reason: str = Field(min_length=1)
+
+
 class CaseMemberIn(BaseModel):
     user_id: str = Field(min_length=1)
     role: str
+
+
+class CaseMemberOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    case_id: str
+    user_id: str
+    role: str
+
+
+# ── investigation: references, hypotheses, tasks (spec 09) ──────────────────
+
+
+class CaseReferenceIn(BaseModel):
+    target_type: Literal["claim", "entity", "evidence_item"]
+    target_id: str = Field(min_length=1)
+    note: str | None = None
+
+
+class CaseReferenceOut(BaseModel):
+    """A reference the caller can *resolve* — targets they cannot read are
+    absent, not marked (ADR-044, spec 09 §6.5)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    case_id: str
+    target_type: str
+    target_id: str
+    note: str | None
+    linked_by: str
+    linked_at: datetime
+
+
+class HypothesisIn(BaseModel):
+    case_id: str = Field(min_length=1)
+    statement: str = Field(min_length=1)
+    #: GOAL.md §18: a hypothesis states what would change it. `min_length` here
+    #: rejects the empty string; the `required_text_is_substantive` submission
+    #: criterion rejects a string of spaces, which this cannot.
+    missing_info: str = Field(min_length=1)
+    handling_code: str = "open"
+
+
+class HypothesisRevisionIn(BaseModel):
+    note: str = Field(min_length=1)
+    statement: str | None = None
+    status: Literal["open", "supported", "refuted", "withdrawn"] | None = None
+    missing_info: str | None = None
+
+
+class HypothesisRevisionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    hypothesis_id: str
+    version: int
+    statement: str
+    status: str
+    missing_info: str
+    note: str | None
+    authored_by: str
+    authored_at: datetime
+
+
+class HypothesisClaimIn(BaseModel):
+    claim_id: str = Field(min_length=1)
+    stance: Literal["supports", "contradicts"]
+    note: str | None = None
+
+
+class HypothesisClaimOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    claim_id: str
+    stance: str
+    note: str | None
+    linked_by: str
+    linked_at: datetime
+
+
+class HypothesisOut(BaseModel):
+    """A hypothesis with both sides and its whole history.
+
+    ``supporting`` and ``contradicting`` are **always present**, empty or not.
+    Article VIII is a rendering obligation, and a client cannot render "no
+    contradicting evidence recorded" from a field that was omitted (spec 09 §3.5).
+    """
+
+    hypothesis_id: str
+    case_id: str
+    opened_by: str
+    opened_at: datetime
+    handling_code: str
+    current: HypothesisRevisionOut
+    revisions: list[HypothesisRevisionOut]
+    supporting: list[HypothesisClaimOut]
+    contradicting: list[HypothesisClaimOut]
+
+
+class HypothesisSummaryOut(BaseModel):
+    hypothesis_id: str
+    case_id: str
+    statement: str
+    status: str
+    version: int
+    opened_by: str
+    opened_at: datetime
+
+
+class HypothesisListOut(BaseModel):
+    items: list[HypothesisSummaryOut]
+
+
+class TaskIn(BaseModel):
+    case_id: str = Field(min_length=1)
+    title: str = Field(min_length=1)
+    kind: Literal["task", "lead"] = "task"
+    detail: str | None = None
+    owner: str | None = None
+    due_date: date | None = None
+    hypothesis_id: str | None = None
+
+
+class TaskUpdateIn(BaseModel):
+    status: Literal["open", "in_progress", "blocked", "done", "dropped"] | None = None
+    owner: str | None = None
+    due_date: date | None = None
+    detail: str | None = None
+    note: str | None = None
+
+
+class TaskOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    task_id: str
+    case_id: str
+    kind: str
+    title: str
+    detail: str | None
+    status: str
+    owner: str | None
+    due_date: date | None
+    hypothesis_id: str | None
+    created_by: str
+    created_at: datetime
+    updated_at: datetime
+    closed_at: datetime | None
+
+
+class TaskListOut(BaseModel):
+    items: list[TaskOut]
 
 
 class EvidenceIn(BaseModel):

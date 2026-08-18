@@ -1,12 +1,12 @@
 {
-  "compatibility": "patch",
-  "content_hash": "28aeb346f714cb982ca39cccbb83ebfcd99dc95fcc8c5a5ca4ceb6ad64fe0596",
+  "compatibility": "minor",
+  "content_hash": "52ac92ad9cd3a9cb7bc74305dc3341025628a86a166e11180ac1775164e9f7bb",
   "modules": {
     "criminal_network": "1.2.1",
-    "platform": "1.2.1"
+    "platform": "1.3.0"
   },
-  "previous_content_hash": "86bf9b247d25db0e80db00689abd6af3974a03193e103b8356ab5ac68db7698f",
-  "previous_version": "1.6.0",
-  "proposal": "005-display-labels",
-  "version": "1.6.1"
+  "previous_content_hash": "28aeb346f714cb982ca39cccbb83ebfcd99dc95fcc8c5a5ca4ceb6ad64fe0596",
+  "previous_version": "1.6.1",
+  "proposal": "006-investigation-actions",
+  "version": "1.7.0"
 }

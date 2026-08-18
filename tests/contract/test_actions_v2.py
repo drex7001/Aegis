@@ -67,9 +67,15 @@ def test_the_committed_ontology_only_names_registered_things() -> None:
 
 
 def test_every_action_declares_parameters_and_at_least_one_criterion() -> None:
-    """T34 migrated all thirteen; a fourteenth must not arrive undeclared."""
+    """T34 migrated all thirteen; T43 added nine. None may arrive undeclared.
+
+    The count is a tripwire rather than the invariant — the loop below is the
+    rule. It is here so a new action cannot be added without a reviewer seeing
+    the number move, which is what caught nothing and is meant to keep catching
+    nothing.
+    """
     ont = load(ONTOLOGY_PATH)
-    assert len(ont.actions) == 13
+    assert len(ont.actions) == 22
     for name, action in ont.actions.items():
         assert action.parameters, f"{name} declares no parameters"
         assert "actor_holds_action_role" in action.submission_criteria, name

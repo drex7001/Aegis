@@ -35,6 +35,7 @@ from aegis.api.routes import (
     entities,
     evidence,
     graph,
+    hypotheses,
     identity,
     ingest,
     ontology as ontology_routes,
@@ -43,6 +44,7 @@ from aegis.api.routes import (
     review,
     search,
     sources,
+    tasks,
 )
 from aegis.api.routes import claims as claims_routes
 from aegis.api.security import SecurityHeadersMiddleware
@@ -180,6 +182,8 @@ def create_app() -> FastAPI:
         review.router,
         evidence.router,
         cases.router,
+        hypotheses.router,
+        tasks.router,
         audit.router,
         provenance.router,
         graph.router,
@@ -191,7 +195,7 @@ def create_app() -> FastAPI:
     ):
         # Every `/v1` route can answer 401 and 429 — the token is checked before
         # routing and the limiter runs before the gate validates it — so they
-        # are declared once here rather than repeated on 37 operations
+        # are declared once here rather than repeated on every operation
         # (spec 06 §7.2). Route-level `responses` override on conflict.
         app.include_router(router, prefix="/v1")
 

@@ -5,7 +5,7 @@
  * Regenerate with `aegis ontology generate`; CI fails on drift.
  */
 
-export const ONTOLOGY_VERSION = "1.6.1" as const;
+export const ONTOLOGY_VERSION = "1.7.0" as const;
 export const ONTOLOGY_NAMESPACE = "aegis.lk" as const;
 
 /** Ordered low to high — the index is the clearance level (spec 03). */
@@ -14,7 +14,7 @@ export const SOURCE_TYPES = ["algorithmic", "commission_report", "court_record",
 
 export const MODULES = {
   "criminal_network": { version: "1.2.1", namespace: "aegis.lk/criminal-network", enabled: true },
-  "platform": { version: "1.2.1", namespace: "aegis.lk/platform", enabled: true },
+  "platform": { version: "1.3.0", namespace: "aegis.lk/platform", enabled: true },
 } as const;
 
 /**

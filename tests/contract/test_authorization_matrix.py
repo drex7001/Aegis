@@ -17,9 +17,31 @@ EXPECTED = {
     "queryAudit": ({"auditor"}, True),
     "verifyAudit": ({"auditor", "admin"}, False),
     "openCase": ({"analyst", "investigator"}, True),
+    "listCases": (set(), False),
     "getCase": (set(), False),
+    "closeCase": ({"supervisor"}, False),
     "addCaseMember": ({"supervisor"}, False),
     "removeCaseMember": ({"supervisor"}, False),
+    "listCaseMembers": (set(), False),
+    # References grant nothing (ADR-044), so linking is an ordinary case-scoped
+    # write: the authorization is cheap precisely because the operation is
+    # powerless. The FGA relation (`can_edit`) is what scopes it, and that is
+    # exercised in the integration suite.
+    "listCaseReferences": (set(), False),
+    "linkCaseReference": ({"analyst", "investigator"}, False),
+    "unlinkCaseReference": ({"analyst", "investigator"}, False),
+    # Hypotheses and tasks have no authorization of their own: every one of
+    # these resolves through its case (spec 09 §5), and a non-member gets 404
+    # from writes as well as reads.
+    "openHypothesis": ({"analyst", "investigator"}, False),
+    "listHypotheses": (set(), False),
+    "getHypothesis": (set(), False),
+    "reviseHypothesis": ({"analyst", "investigator"}, False),
+    "linkHypothesisClaim": ({"analyst", "investigator"}, False),
+    "unlinkHypothesisClaim": ({"analyst", "investigator"}, False),
+    "openTask": ({"analyst", "investigator"}, False),
+    "listTasks": (set(), False),
+    "updateTask": ({"analyst", "investigator"}, False),
     "createClaim": ({"analyst", "investigator"}, False),
     "getClaim": (set(), False),
     "claimProvenance": (set(), False),

@@ -96,6 +96,56 @@
           "can_transfer": { "directly_related_user_types": [] }
         }
       }
+    },
+    {
+      "type": "hypothesis",
+      "relations": {
+        "case": { "this": {} },
+        "can_view": {
+          "tupleToUserset": {
+            "tupleset": { "relation": "case" },
+            "computedUserset": { "relation": "can_view" }
+          }
+        },
+        "can_edit": {
+          "tupleToUserset": {
+            "tupleset": { "relation": "case" },
+            "computedUserset": { "relation": "can_edit" }
+          }
+        }
+      },
+      "metadata": {
+        "relations": {
+          "case": { "directly_related_user_types": [{ "type": "case" }] },
+          "can_view": { "directly_related_user_types": [] },
+          "can_edit": { "directly_related_user_types": [] }
+        }
+      }
+    },
+    {
+      "type": "investigation_task",
+      "relations": {
+        "case": { "this": {} },
+        "can_view": {
+          "tupleToUserset": {
+            "tupleset": { "relation": "case" },
+            "computedUserset": { "relation": "can_view" }
+          }
+        },
+        "can_edit": {
+          "tupleToUserset": {
+            "tupleset": { "relation": "case" },
+            "computedUserset": { "relation": "can_edit" }
+          }
+        }
+      },
+      "metadata": {
+        "relations": {
+          "case": { "directly_related_user_types": [{ "type": "case" }] },
+          "can_view": { "directly_related_user_types": [] },
+          "can_edit": { "directly_related_user_types": [] }
+        }
+      }
     }
   ]
 }

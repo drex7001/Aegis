@@ -45,7 +45,20 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List Cases
+         * @description The caller's own cases.
+         *
+         *     Built from canonical `case_member` rows rather than from every case filtered
+         *     afterwards — the list is *derived* from what the caller may see, which is
+         *     the same construction the object view's case list uses (spec 09 §6.5) and
+         *     the reason there is no timing signal to measure. `case_member` is the fact
+         *     and OpenFGA is its projection (ADR-014), so reading it here is not a bypass.
+         *
+         *     Ordered by `case_id`, never by activity: a ranking is a place for a hidden
+         *     row to leave a gap.
+         */
+        get: operations["listCases"];
         put?: never;
         /** Open Case */
         post: operations["openCase"];
@@ -72,7 +85,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/cases/{case_id}/members": {
+    "/v1/cases/{case_id}/close": {
         parameters: {
             query?: never;
             header?: never;
@@ -80,6 +93,27 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
+        put?: never;
+        /**
+         * Close Case
+         * @description Close a case. Never deletes: `status` moves and `closed_at` is set.
+         */
+        post: operations["closeCase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/cases/{case_id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Members */
+        get: operations["listCaseMembers"];
         put?: never;
         /** Add Member */
         post: operations["addCaseMember"];
@@ -101,6 +135,52 @@ export interface paths {
         post?: never;
         /** Remove Member */
         delete: operations["removeCaseMember"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/cases/{case_id}/references": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List References
+         * @description What this investigation refers to — attached, not detached.
+         *
+         *     A reference grants nothing (ADR-044), so this returns the links; whether
+         *     the caller can read a target is answered by that target's own route, which
+         *     applies `claim_filters` like every other read.
+         */
+        get: operations["listCaseReferences"];
+        put?: never;
+        /** Link Reference */
+        post: operations["linkCaseReference"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/cases/{case_id}/references/{target_type}/{target_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Unlink Reference
+         * @description Detach a reference. Tombstoned, never deleted — somebody once thought
+         *     these two were connected, and that is a fact the case may need to explain.
+         */
+        delete: operations["unlinkCaseReference"];
         options?: never;
         head?: never;
         patch?: never;
@@ -359,6 +439,95 @@ export interface paths {
          *     graded by its position on the path (Article IX).
          */
         post: operations["graphPaths"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/hypotheses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Hypotheses
+         * @description Scoped to one case, always. There is no global hypothesis list.
+         */
+        get: operations["listHypotheses"];
+        put?: never;
+        /** Open Hypothesis */
+        post: operations["openHypothesis"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/hypotheses/{hypothesis_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Hypothesis */
+        get: operations["getHypothesis"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/hypotheses/{hypothesis_id}/claims": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Link Claim */
+        post: operations["linkHypothesisClaim"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/hypotheses/{hypothesis_id}/claims/{claim_id}/{stance}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Unlink Claim */
+        delete: operations["unlinkHypothesisClaim"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/hypotheses/{hypothesis_id}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revise Hypothesis */
+        post: operations["reviseHypothesis"];
         delete?: never;
         options?: never;
         head?: never;
@@ -714,6 +883,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Tasks
+         * @description Scoped to one case, always — the case is the resource being authorized.
+         */
+        get: operations["listTasks"];
+        put?: never;
+        /** Open Task */
+        post: operations["openTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tasks/{task_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Update Task */
+        post: operations["updateTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -900,6 +1107,11 @@ export interface components {
             /** Score */
             score: number | null;
         };
+        /** CaseCloseIn */
+        CaseCloseIn: {
+            /** Reason */
+            reason: string;
+        };
         /** CaseIn */
         CaseIn: {
             /**
@@ -914,6 +1126,15 @@ export interface components {
         };
         /** CaseMemberIn */
         CaseMemberIn: {
+            /** Role */
+            role: string;
+            /** User Id */
+            user_id: string;
+        };
+        /** CaseMemberOut */
+        CaseMemberOut: {
+            /** Case Id */
+            case_id: string;
             /** Role */
             role: string;
             /** User Id */
@@ -940,6 +1161,51 @@ export interface components {
             status: string;
             /** Title */
             title: string;
+        };
+        /**
+         * CasePageOut
+         * @description Only the cases the caller can view. No total: a count is an existence
+         *     leak (spec 06 §4 default 4, spec 09 §2.4).
+         */
+        CasePageOut: {
+            /** Items */
+            items: components["schemas"]["CaseOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** CaseReferenceIn */
+        CaseReferenceIn: {
+            /** Note */
+            note?: string | null;
+            /** Target Id */
+            target_id: string;
+            /**
+             * Target Type
+             * @enum {string}
+             */
+            target_type: "claim" | "entity" | "evidence_item";
+        };
+        /**
+         * CaseReferenceOut
+         * @description A reference the caller can *resolve* — targets they cannot read are
+         *     absent, not marked (ADR-044, spec 09 §6.5).
+         */
+        CaseReferenceOut: {
+            /** Case Id */
+            case_id: string;
+            /**
+             * Linked At
+             * Format: date-time
+             */
+            linked_at: string;
+            /** Linked By */
+            linked_by: string;
+            /** Note */
+            note: string | null;
+            /** Target Id */
+            target_id: string;
+            /** Target Type */
+            target_type: string;
         };
         /** ClaimIn */
         ClaimIn: {
@@ -1418,6 +1684,136 @@ export interface components {
             /** Truncated */
             truncated: boolean;
         };
+        /** HypothesisClaimIn */
+        HypothesisClaimIn: {
+            /** Claim Id */
+            claim_id: string;
+            /** Note */
+            note?: string | null;
+            /**
+             * Stance
+             * @enum {string}
+             */
+            stance: "supports" | "contradicts";
+        };
+        /** HypothesisClaimOut */
+        HypothesisClaimOut: {
+            /** Claim Id */
+            claim_id: string;
+            /**
+             * Linked At
+             * Format: date-time
+             */
+            linked_at: string;
+            /** Linked By */
+            linked_by: string;
+            /** Note */
+            note: string | null;
+            /** Stance */
+            stance: string;
+        };
+        /** HypothesisIn */
+        HypothesisIn: {
+            /** Case Id */
+            case_id: string;
+            /**
+             * Handling Code
+             * @default open
+             */
+            handling_code?: string;
+            /** Missing Info */
+            missing_info: string;
+            /** Statement */
+            statement: string;
+        };
+        /** HypothesisListOut */
+        HypothesisListOut: {
+            /** Items */
+            items: components["schemas"]["HypothesisSummaryOut"][];
+        };
+        /**
+         * HypothesisOut
+         * @description A hypothesis with both sides and its whole history.
+         *
+         *     ``supporting`` and ``contradicting`` are **always present**, empty or not.
+         *     Article VIII is a rendering obligation, and a client cannot render "no
+         *     contradicting evidence recorded" from a field that was omitted (spec 09 §3.5).
+         */
+        HypothesisOut: {
+            /** Case Id */
+            case_id: string;
+            /** Contradicting */
+            contradicting: components["schemas"]["HypothesisClaimOut"][];
+            current: components["schemas"]["HypothesisRevisionOut"];
+            /** Handling Code */
+            handling_code: string;
+            /** Hypothesis Id */
+            hypothesis_id: string;
+            /**
+             * Opened At
+             * Format: date-time
+             */
+            opened_at: string;
+            /** Opened By */
+            opened_by: string;
+            /** Revisions */
+            revisions: components["schemas"]["HypothesisRevisionOut"][];
+            /** Supporting */
+            supporting: components["schemas"]["HypothesisClaimOut"][];
+        };
+        /** HypothesisRevisionIn */
+        HypothesisRevisionIn: {
+            /** Missing Info */
+            missing_info?: string | null;
+            /** Note */
+            note: string;
+            /** Statement */
+            statement?: string | null;
+            /** Status */
+            status?: ("open" | "supported" | "refuted" | "withdrawn") | null;
+        };
+        /** HypothesisRevisionOut */
+        HypothesisRevisionOut: {
+            /**
+             * Authored At
+             * Format: date-time
+             */
+            authored_at: string;
+            /** Authored By */
+            authored_by: string;
+            /** Hypothesis Id */
+            hypothesis_id: string;
+            /** Missing Info */
+            missing_info: string;
+            /** Note */
+            note: string | null;
+            /** Statement */
+            statement: string;
+            /** Status */
+            status: string;
+            /** Version */
+            version: number;
+        };
+        /** HypothesisSummaryOut */
+        HypothesisSummaryOut: {
+            /** Case Id */
+            case_id: string;
+            /** Hypothesis Id */
+            hypothesis_id: string;
+            /**
+             * Opened At
+             * Format: date-time
+             */
+            opened_at: string;
+            /** Opened By */
+            opened_by: string;
+            /** Statement */
+            statement: string;
+            /** Status */
+            status: string;
+            /** Version */
+            version: number;
+        };
         /**
          * IdentityDecisionOut
          * @description A human's identity decision: who, when, why, and which revision.
@@ -1883,6 +2279,80 @@ export interface components {
             /** Next Cursor */
             next_cursor?: string | null;
         };
+        /** TaskIn */
+        TaskIn: {
+            /** Case Id */
+            case_id: string;
+            /** Detail */
+            detail?: string | null;
+            /** Due Date */
+            due_date?: string | null;
+            /** Hypothesis Id */
+            hypothesis_id?: string | null;
+            /**
+             * Kind
+             * @default task
+             * @enum {string}
+             */
+            kind?: "task" | "lead";
+            /** Owner */
+            owner?: string | null;
+            /** Title */
+            title: string;
+        };
+        /** TaskListOut */
+        TaskListOut: {
+            /** Items */
+            items: components["schemas"]["TaskOut"][];
+        };
+        /** TaskOut */
+        TaskOut: {
+            /** Case Id */
+            case_id: string;
+            /** Closed At */
+            closed_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /** Detail */
+            detail: string | null;
+            /** Due Date */
+            due_date: string | null;
+            /** Hypothesis Id */
+            hypothesis_id: string | null;
+            /** Kind */
+            kind: string;
+            /** Owner */
+            owner: string | null;
+            /** Status */
+            status: string;
+            /** Task Id */
+            task_id: string;
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** TaskUpdateIn */
+        TaskUpdateIn: {
+            /** Detail */
+            detail?: string | null;
+            /** Due Date */
+            due_date?: string | null;
+            /** Note */
+            note?: string | null;
+            /** Owner */
+            owner?: string | null;
+            /** Status */
+            status?: ("open" | "in_progress" | "blocked" | "done" | "dropped") | null;
+        };
         /**
          * ValidationError
          * @description One field-level failure from request-model validation.
@@ -2089,6 +2559,58 @@ export interface operations {
             };
         };
     };
+    listCases: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CasePageOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     openCase: {
         parameters: {
             query?: {
@@ -2173,6 +2695,141 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CaseOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    closeCase: {
+        parameters: {
+            query?: {
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CaseCloseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Authenticated, but the role gate refused. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    listCaseMembers: {
+        parameters: {
+            query?: {
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseMemberOut"][];
                 };
             };
             /** @description No credentials, or a token that does not verify. */
@@ -2310,6 +2967,214 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Authenticated, but the role gate refused. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    listCaseReferences: {
+        parameters: {
+            query?: {
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseReferenceOut"][];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    linkCaseReference: {
+        parameters: {
+            query?: {
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CaseReferenceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseReferenceOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Authenticated, but the role gate refused. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    unlinkCaseReference: {
+        parameters: {
+            query: {
+                reason: string;
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+                target_type: string;
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseReferenceOut"];
+                };
             };
             /** @description No credentials, or a token that does not verify. */
             401: {
@@ -3162,6 +4027,402 @@ export interface operations {
             };
             /** @description No credentials, or a token that does not verify. */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    listHypotheses: {
+        parameters: {
+            query: {
+                case: string;
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HypothesisListOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    openHypothesis: {
+        parameters: {
+            query?: {
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HypothesisIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HypothesisRevisionOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Authenticated, but the role gate refused. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    getHypothesis: {
+        parameters: {
+            query?: {
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path: {
+                hypothesis_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HypothesisOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    linkHypothesisClaim: {
+        parameters: {
+            query?: {
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path: {
+                hypothesis_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HypothesisClaimIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HypothesisClaimOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Authenticated, but the role gate refused. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    unlinkHypothesisClaim: {
+        parameters: {
+            query: {
+                reason: string;
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path: {
+                hypothesis_id: string;
+                claim_id: string;
+                stance: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HypothesisClaimOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Authenticated, but the role gate refused. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    reviseHypothesis: {
+        parameters: {
+            query?: {
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path: {
+                hypothesis_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HypothesisRevisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HypothesisRevisionOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Authenticated, but the role gate refused. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4). */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4370,6 +5631,194 @@ export interface operations {
             };
             /** @description Authenticated, but the role gate refused. */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    listTasks: {
+        parameters: {
+            query: {
+                case: string;
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskListOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    openTask: {
+        parameters: {
+            query?: {
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Authenticated, but the role gate refused. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    updateTask: {
+        parameters: {
+            query?: {
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskUpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Authenticated, but the role gate refused. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4). */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
