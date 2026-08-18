@@ -42,6 +42,14 @@ LOCAL_TYPES = {
     "ProvenancePanelProps",
     "EntitySearchProps",
     "GraphCanvasProps",
+    # T45. None of these describes a payload: `Drill` says which drill-down is
+    # open, `DrillHandler` is a callback signature, and `Extent`/`TimedClaim`
+    # are the axis arithmetic — millisecond bounds computed from a claim's
+    # declared times, which the server neither sends nor could.
+    "Drill",
+    "DrillHandler",
+    "Extent",
+    "TimedClaim",
 }
 
 

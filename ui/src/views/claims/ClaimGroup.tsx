@@ -26,12 +26,24 @@ export function predicateLabel(predicate: string): string {
  * *values* differ while reading what each source was and how each was graded.
  * A vertical list makes that a memory exercise.
  */
+/**
+ * Opening a claim's own evidence (T45).
+ *
+ * Optional, so the P2 provenance panel — which is already *inside* a provenance
+ * surface — renders exactly as it did. The object view passes it, because there
+ * a claim card is a summary and "where did this come from" is a further
+ * question.
+ */
+export type DrillHandler = (entry: ClaimProvenance) => void;
+
 export function PredicateGroup({
   predicate,
   claims,
+  onDrill,
 }: {
   predicate: string;
   claims: ClaimProvenance[];
+  onDrill?: DrillHandler;
 }) {
   const contested = claims.some((entry) => entry.contradicted_by.length > 0);
   return (
@@ -55,7 +67,12 @@ export function PredicateGroup({
       )}
       <div className={contested ? "compare" : "stack"}>
         {claims.map((entry) => (
-          <ClaimCard key={entry.claim.claim_id} entry={entry} compare={contested} />
+          <ClaimCard
+            key={entry.claim.claim_id}
+            entry={entry}
+            compare={contested}
+            onDrill={onDrill}
+          />
         ))}
       </div>
     </section>
@@ -87,9 +104,11 @@ export function ClaimGroups({ claims }: { claims: ClaimProvenance[] }) {
 export function ClaimCard({
   entry,
   compare,
+  onDrill,
 }: {
   entry: ClaimProvenance;
   compare: boolean;
+  onDrill?: DrillHandler;
 }) {
   const { claim, grading, source, record } = entry;
   return (
@@ -118,6 +137,16 @@ export function ClaimCard({
         <p className="claim__retracted">
           Retracted — {claim.retraction_reason ?? "no reason recorded"}
         </p>
+      )}
+      {onDrill && (
+        <button
+          type="button"
+          className="claim__drill"
+          onClick={() => onDrill(entry)}
+          data-testid={`drill-${claim.claim_id}`}
+        >
+          Where did this come from?
+        </button>
       )}
     </article>
   );

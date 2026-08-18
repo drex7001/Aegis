@@ -61,11 +61,25 @@ export const PERSON = {
     // Two properties that disagree — the conflict case.
     born_on: [
       claim({
-        claim: { claim_id: "clm_dob_a", predicate: "born_on", object_value: "1979-04-02" },
+        claim: {
+          claim_id: "clm_dob_a",
+          predicate: "born_on",
+          object_value: "1979-04-02",
+          // An instant: the source stated a date.
+          event_time_earliest: "1979-04-02T00:00:00Z",
+          event_time_latest: "1979-04-02T00:00:00Z",
+        },
         contradicted_by: ["clm_dob_b"],
       }),
       claim({
-        claim: { claim_id: "clm_dob_b", predicate: "born_on", object_value: "1981-11-17" },
+        claim: {
+          claim_id: "clm_dob_b",
+          predicate: "born_on",
+          object_value: "1981-11-17",
+          // An interval: the source said "some time in 1981".
+          event_time_earliest: "1981-01-01T00:00:00Z",
+          event_time_latest: "1981-12-31T00:00:00Z",
+        },
         contradicted_by: ["clm_dob_a"],
         source: { source_id: "src_2", name: "Fictional Registry", source_type: "court_record" },
       }),

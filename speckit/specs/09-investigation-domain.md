@@ -515,6 +515,16 @@ things that make it honest:
 a missing pair renders as "time not stated" and never as `recorded_at`. The
 recording time is a different fact and appears in its own column.
 
+Landed at T45 in the object view's strip (`views/claims/TimelineStrip.tsx`),
+which T49 grows into the full timeline. Three consequences of the rule, worth
+stating because each is a thing the strip deliberately does *not* do: an
+interval is never collapsed to its midpoint, an instant is drawn as a hairline
+rather than a proportional bar so it cannot read as a very short interval, and
+an untimed claim is listed below the axis with the reason rather than dropped.
+`valid_from`/`valid_to` are the fallback when no event time is stated — a
+validity window is also a statement about the world — but `recorded_at` never
+is.
+
 ---
 
 ## 8. Test obligations

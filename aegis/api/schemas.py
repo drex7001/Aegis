@@ -49,6 +49,13 @@ class ClaimOut(BaseModel):
     credibility_normalized: str
     verification_status: str
     analytic_confidence: str | None
+    #: When the *world* event happened, as an interval. Two fields rather than
+    #: one because a source that says "some time in 2019" has stated a range,
+    #: and collapsing it to a point would invent precision nobody asserted
+    #: (spec 02 time model). Both null means the time was never stated — which
+    #: is a different fact from `recorded_at`, and must never be rendered as it.
+    event_time_earliest: datetime | None
+    event_time_latest: datetime | None
     valid_from: date | None
     valid_to: date | None
     recorded_at: datetime

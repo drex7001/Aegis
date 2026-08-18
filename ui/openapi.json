@@ -1007,6 +1007,30 @@
             ],
             "title": "Credibility Scheme"
           },
+          "event_time_earliest": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Time Earliest"
+          },
+          "event_time_latest": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Time Latest"
+          },
           "excerpt": {
             "anyOf": [
               {
@@ -1141,6 +1165,8 @@
           "credibility_normalized",
           "verification_status",
           "analytic_confidence",
+          "event_time_earliest",
+          "event_time_latest",
           "valid_from",
           "valid_to",
           "recorded_at",
