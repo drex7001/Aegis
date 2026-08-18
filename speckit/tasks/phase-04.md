@@ -154,16 +154,27 @@ columns existed and no response exposed them).
 
 ## Milestone C — Cases
 
-**T46. ⛓ Case UI + membership** (spec 09 §2; needs T42, T43) — screens over the
+**T46. ⛓ Case UI + membership — DONE (2026-08-19)** (spec 09 §2; needs T42, T43) — screens over the
 routes T43 landed: the case switcher in the rail's reserved slot, create/join/
 manage, close, and the `case_reference` link/unlink pair. **Referencing is not
 re-scoping** (ADR-044) and the UI must not imply otherwise. Case-scoped graph
 view (embedded Cytoscape reusing the projection API with a case filter).
-AC: the Phase-1 authz matrix extends to the UI — a non-member sees nothing
-about a case via any screen or endpoint it calls (exit criterion); membership
-changes are audited actions; the case graph never renders out-of-case data; a
-reference to a claim the caller cannot read is simply absent, and grants
-nothing.
+AC met: the case switcher fills the slot T42 reserved; a non-member sees
+nothing about a case through any screen or the endpoints it calls — the case
+list is empty, the detail reads as absence rather than refusal, and the case
+graph answers 404 identically for a hidden case and a nonexistent one
+(`tests/integration/test_case_graph.py`, 6 cases); membership changes go through
+the audited `assign_case_member`; **the case graph never renders out-of-case
+data, and never overstates the case's evidence** — `case_id` is threaded into
+`claim_filters` rather than applied to the result, so an edge supported by one
+case claim and one open claim renders with a tally of one in the case graph and
+two in the open one; the reference list says in the operator's own words that a
+reference grants no access and does not move a claim into the case (ADR-044).
+
+`POST /v1/graph/expand` gained an optional `case_id`. Additive, and a
+*narrowing* one: an unauthorized case id is refused with 404 rather than
+ignored, because an ignored filter would return the caller's whole readable
+graph under a heading that says otherwise.
 
 ## Milestone D — Hypotheses & tasks
 

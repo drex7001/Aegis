@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import { stubGraphRoute, stubIdentityProvider } from "./oidc-stub";
-import { ONTOLOGY_VERSION, stubVocabulary } from "./workspace-stub";
+import { ONTOLOGY_VERSION, stubCases, stubVocabulary } from "./workspace-stub";
 
 /**
  * T42's acceptance criteria as browser journeys.
@@ -22,6 +22,7 @@ import { ONTOLOGY_VERSION, stubVocabulary } from "./workspace-stub";
 test.beforeEach(async ({ page }) => {
   await stubIdentityProvider(page);
   await stubGraphRoute(page);
+  await stubCases(page);
 });
 
 test("the rail lists every declared object type and interface", async ({ page }) => {
@@ -162,7 +163,11 @@ test("the descriptor screens call no endpoint of their own", async ({ page }) =>
   await page.getByTestId("nav-interfaces").getByRole("link", { name: "Party" }).click();
   await expect(page.getByTestId("interface-label")).toHaveText("Party");
 
-  // The version check is the only permitted call: everything these screens
-  // render is compiled in (ADR-043).
-  expect([...new Set(apiCalls)]).toEqual(["/v1/ontology/vocabulary"]);
+  // Two calls, neither belonging to these screens: the version check and the
+  // rail's case list (T46). Everything the screens themselves render is
+  // compiled in (ADR-043).
+  expect([...new Set(apiCalls)].sort()).toEqual([
+    "/v1/cases",
+    "/v1/ontology/vocabulary",
+  ]);
 });

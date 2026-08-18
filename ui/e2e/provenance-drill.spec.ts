@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { stubGraphRoute, stubIdentityProvider } from "./oidc-stub";
 import { PERSON, stubEntityRoutes } from "./object-view-stub";
-import { ONTOLOGY_VERSION, stubVocabulary } from "./workspace-stub";
+import { ONTOLOGY_VERSION, stubCases, stubVocabulary } from "./workspace-stub";
 
 /**
  * T45: every value and every link opens its evidence, and the timeline says
@@ -40,6 +40,7 @@ test.beforeEach(async ({ page }) => {
   await stubIdentityProvider(page);
   await stubGraphRoute(page);
   await stubVocabulary(page, { version: ONTOLOGY_VERSION });
+  await stubCases(page);
   await stubEntityRoutes(page);
   await page.route("**/v1/claims/*/provenance", (route) =>
     route.fulfill({ contentType: "application/json", body: JSON.stringify(CLAIM_PROVENANCE) }),
@@ -133,7 +134,10 @@ test("the drill-downs add no endpoint the P2 screens did not already have", asyn
   await page.getByTestId("drill-clm_member").click();
   await expect(page.getByTestId("drawer-identity-line")).toBeVisible();
 
+  // The two drill routes are T45's whole surface. `/v1/cases` and
+  // `/v1/ontology/vocabulary` belong to the shell's rail and version banner.
   expect([...new Set(calls)].sort()).toEqual([
+    "/v1/cases",
     "/v1/claims/clm_dob_a/provenance",
     "/v1/entities/ent_person",
     "/v1/entities/ent_person/cases",

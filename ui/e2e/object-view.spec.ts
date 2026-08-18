@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { stubGraphRoute, stubIdentityProvider } from "./oidc-stub";
 import { stubEntityRoutes } from "./object-view-stub";
-import { ONTOLOGY_VERSION, stubVocabulary } from "./workspace-stub";
+import { ONTOLOGY_VERSION, stubCases, stubVocabulary } from "./workspace-stub";
 
 /**
  * T44's acceptance criteria as browser journeys.
@@ -21,6 +21,7 @@ test.beforeEach(async ({ page }) => {
   await stubIdentityProvider(page);
   await stubGraphRoute(page);
   await stubVocabulary(page, { version: ONTOLOGY_VERSION });
+  await stubCases(page);
 });
 
 test("a person renders with properties, links and sources", async ({ page }) => {
@@ -146,9 +147,12 @@ test("the object view reads no endpoint the P2 screens do not already have", asy
   await page.goto("/entities/ent_person");
   await expect(page.getByTestId("object-view-title")).toBeVisible();
 
-  // `/cases` is the one addition T44 makes, and it exists because H-18 requires
-  // the list to be built server-side from readable rows.
+  // `/v1/entities/{id}/cases` is the one addition T44 makes, and it exists
+  // because H-18 requires the list to be built server-side from readable rows.
+  // `/v1/cases` and `/v1/ontology/vocabulary` are the shell's, not this
+  // screen's — the rail and the version banner call them on every page.
   expect([...new Set(calls)].sort()).toEqual([
+    "/v1/cases",
     "/v1/entities/ent_person",
     "/v1/entities/ent_person/cases",
     "/v1/ontology/vocabulary",

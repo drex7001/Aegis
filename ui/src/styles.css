@@ -343,6 +343,51 @@ button:hover {
   padding: 2px 8px;
 }
 
+/* ── cases (T46) ─────────────────────────────────────────────────────────── */
+
+.rail__link--all {
+  font-style: italic;
+}
+
+.case-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+
+.case-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.case-form input,
+.case-form select {
+  font: inherit;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  min-width: 220px;
+}
+
+.reference__detach {
+  margin-left: 8px;
+  font-size: 11px;
+  padding: 1px 6px;
+}
+
+.case-graph {
+  height: 420px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
 .drawer {
   position: fixed;
   top: 0;

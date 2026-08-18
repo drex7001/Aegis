@@ -4,6 +4,8 @@ import { AuthGuard } from "./auth/AuthGuard";
 import { SigninCallback } from "./auth/SigninCallback";
 import { Shell } from "./layout/Shell";
 import { ROUTES } from "./routing";
+import { CaseView } from "./views/CaseView";
+import { CasesView } from "./views/CasesView";
 import { GraphView } from "./views/GraphView";
 import { InterfaceView } from "./views/InterfaceView";
 import { ObjectTypeView } from "./views/ObjectTypeView";
@@ -30,6 +32,8 @@ export function App() {
           <Route path={ROUTES.graph} element={<GraphView />} />
           <Route path={ROUTES.sources} element={<SourcesView />} />
           <Route path={ROUTES.review} element={<ReviewView />} />
+          <Route path={ROUTES.cases} element={<CasesView />} />
+          <Route path={ROUTES.case} element={<CaseView />} />
           <Route path={ROUTES.entity} element={<ObjectView />} />
           <Route path={ROUTES.objectType} element={<ObjectTypeView />} />
           <Route path={ROUTES.interface} element={<InterfaceView />} />

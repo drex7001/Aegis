@@ -18,7 +18,14 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
-from aegis.api.deps import AuthContext, DbSession, OntologyDep, authorize
+from aegis.api.deps import (
+    AuthContext,
+    DbSession,
+    OntologyDep,
+    authorize,
+    fga_check_or_404,
+    get_fga,
+)
 from aegis.api.schemas import (
     GraphExpandIn,
     GraphPathsIn,
@@ -27,6 +34,7 @@ from aegis.api.schemas import (
 )
 from aegis.authz.filters import claim_filters
 from aegis.queries import graph as graph_query
+from aegis.store import Claim
 
 router = APIRouter(tags=["graph"])
 
@@ -40,6 +48,7 @@ def expand_graph(
     body: GraphExpandIn,
     session: DbSession,
     ontology: OntologyDep,
+    fga=Depends(get_fga),
     auth: AuthContext = Depends(authorize()),
 ) -> GraphViewOut:
     """Breadth-first expansion from seeds, or the bounded overview without them.
@@ -48,11 +57,24 @@ def expand_graph(
     category filters and time windows — not a resource address, and putting a
     hundred entity ids in a query string is how URL-length limits become silent
     truncation of an authorization-relevant input.
+
+    ``case_id`` narrows to the evidence that case recorded. It is threaded in as
+    an extra **claim filter** rather than applied to the result, which is what
+    makes "the case graph never renders out-of-case data" a property of the
+    query: edge visibility and every support summary are computed from the same
+    narrowed set (spec 09 §2.4).
     """
+    filters = list(claim_filters(session, auth.user, ontology))
+    if body.case_id is not None:
+        # 404-not-403, like every other case-scoped read: asking must not
+        # confirm that a case exists.
+        fga_check_or_404(fga, auth.user, "can_view", f"case:{body.case_id}")
+        filters.append(Claim.case_id == body.case_id)
+
     view = graph_query.expand(
         session,
         ontology,
-        filters=claim_filters(session, auth.user, ontology),
+        filters=filters,
         seed_ids=body.seed_ids,
         max_hops=body.max_hops,
         categories=body.categories,

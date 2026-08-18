@@ -1922,6 +1922,17 @@
       "GraphExpandIn": {
         "description": "A bounded traversal request (specs/06 §2.6).\n\nEvery bound is clamped rather than rejected (specs/06 §4): a client asking\nfor six hops gets three and is told the result was truncated, which is more\nuseful than a 422 that teaches nothing about the limit.",
         "properties": {
+          "case_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Id"
+          },
           "categories": {
             "items": {
               "type": "string"
@@ -6937,7 +6948,7 @@
     },
     "/v1/graph/expand": {
       "post": {
-        "description": "Breadth-first expansion from seeds, or the bounded overview without them.\n\nPOST rather than GET because the request is a query object — seed sets,\ncategory filters and time windows — not a resource address, and putting a\nhundred entity ids in a query string is how URL-length limits become silent\ntruncation of an authorization-relevant input.",
+        "description": "Breadth-first expansion from seeds, or the bounded overview without them.\n\nPOST rather than GET because the request is a query object — seed sets,\ncategory filters and time windows — not a resource address, and putting a\nhundred entity ids in a query string is how URL-length limits become silent\ntruncation of an authorization-relevant input.\n\n``case_id`` narrows to the evidence that case recorded. It is threaded in as\nan extra **claim filter** rather than applied to the result, which is what\nmakes \"the case graph never renders out-of-case data\" a property of the\nquery: edge visibility and every support summary are computed from the same\nnarrowed set (spec 09 §2.4).",
         "operationId": "expandGraph",
         "parameters": [
           {

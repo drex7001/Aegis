@@ -2,6 +2,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "react-oidc-context";
 
 import { ROUTES } from "../routing";
+import { CaseSwitcher } from "./CaseSwitcher";
 import { OntologyNav } from "./OntologyNav";
 import { VersionBanner } from "./VersionBanner";
 
@@ -11,13 +12,14 @@ import { VersionBanner } from "./VersionBanner";
  *
  * P2 shipped the top bar alone and said why the rail was absent — "a nav bar
  * full of dead links would be a promise the product does not keep". That rule
- * still governs what is here. The rail lists the workspace views that exist and
- * the ontology's own types and interfaces, each with a screen behind it. The
- * **case switcher** spec 07 §4 draws above the rail is not here yet: cases have
- * no list route until T46, and an empty switcher would be the dead link the
- * rule forbids. It slots into `rail__cases` when T46 lands.
+ * still governs what is here: the case switcher, the workspace views that
+ * exist, and the ontology's own types and interfaces, each with a screen behind
+ * it.
  *
  * The ontology section is generated, not written (ADR-043) — see `OntologyNav`.
+ * The case switcher arrived at T46, when `GET /v1/cases` gave it something to
+ * switch between; until then the slot was empty rather than filled with a
+ * control that led nowhere.
  */
 
 // Ordered as the work flows: land a record, review what was proposed from it,
@@ -58,8 +60,7 @@ export function Shell() {
 
       <div className="shell__body">
         <nav className="rail" aria-label="Workspace">
-          {/* T46 mounts the case switcher here. */}
-          <div className="rail__cases" />
+          <CaseSwitcher />
           <div className="rail__group">
             <h2 className="rail__heading">Workspace</h2>
             <ul className="rail__list" data-testid="nav-workspace">
