@@ -45,6 +45,26 @@ class AssignCaseMemberRequest(BaseModel):
     user_id: str
 
 
+class CloseCaseRequest(BaseModel):
+    """Declared parameters of the `close_case` action."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    case_id: str
+    reason: str
+
+
+class LinkCaseReferenceRequest(BaseModel):
+    """Declared parameters of the `link_case_reference` action."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    case_id: str
+    target_id: str
+    target_type: str
+    note: str | None = None
+
+
 class LinkClaimsRequest(BaseModel):
     """Declared parameters of the `link_claims` action."""
 
@@ -53,6 +73,17 @@ class LinkClaimsRequest(BaseModel):
     from_claim: str
     relation: str
     to_claim: str
+
+
+class LinkHypothesisClaimRequest(BaseModel):
+    """Declared parameters of the `link_hypothesis_claim` action."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    claim_id: str
+    hypothesis_id: str
+    stance: str
+    note: str | None = None
 
 
 class OpenCaseRequest(BaseModel):
@@ -64,6 +95,33 @@ class OpenCaseRequest(BaseModel):
     title: str
     case_id: str | None = None
     handling_code: str = 'open'
+
+
+class OpenHypothesisRequest(BaseModel):
+    """Declared parameters of the `open_hypothesis` action."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    case_id: str
+    missing_info: str
+    statement: str
+    handling_code: str = 'open'
+    hypothesis_id: str | None = None
+
+
+class OpenTaskRequest(BaseModel):
+    """Declared parameters of the `open_task` action."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    case_id: str
+    title: str
+    detail: str | None = None
+    due_date: date | None = None
+    hypothesis_id: str | None = None
+    kind: str = 'task'
+    owner: str | None = None
+    task_id: str | None = None
 
 
 class RecordClaimRequest(BaseModel):
@@ -155,6 +213,18 @@ class ReviewSuggestionRequest(BaseModel):
     note: str | None = None
 
 
+class ReviseHypothesisRequest(BaseModel):
+    """Declared parameters of the `revise_hypothesis` action."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    hypothesis_id: str
+    note: str
+    missing_info: str | None = None
+    statement: str | None = None
+    status: str | None = None
+
+
 class SealRecordRequest(BaseModel):
     """Declared parameters of the `seal_record` action."""
 
@@ -196,21 +266,65 @@ class TransferCustodyRequest(BaseModel):
     note: str | None = None
 
 
+class UnlinkCaseReferenceRequest(BaseModel):
+    """Declared parameters of the `unlink_case_reference` action."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    case_id: str
+    reason: str
+    target_id: str
+    target_type: str
+
+
+class UnlinkHypothesisClaimRequest(BaseModel):
+    """Declared parameters of the `unlink_hypothesis_claim` action."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    claim_id: str
+    hypothesis_id: str
+    reason: str
+    stance: str
+
+
+class UpdateTaskRequest(BaseModel):
+    """Declared parameters of the `update_task` action."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    task_id: str
+    detail: str | None = None
+    due_date: date | None = None
+    note: str | None = None
+    owner: str | None = None
+    status: str | None = None
+
+
 #: action name -> generated request model.
 REQUEST_MODELS: dict[str, type[BaseModel]] = {
     "adjudicate_identity": AdjudicateIdentityRequest,
     "assign_case_member": AssignCaseMemberRequest,
+    "close_case": CloseCaseRequest,
+    "link_case_reference": LinkCaseReferenceRequest,
     "link_claims": LinkClaimsRequest,
+    "link_hypothesis_claim": LinkHypothesisClaimRequest,
     "open_case": OpenCaseRequest,
+    "open_hypothesis": OpenHypothesisRequest,
+    "open_task": OpenTaskRequest,
     "record_claim": RecordClaimRequest,
     "register_evidence": RegisterEvidenceRequest,
     "release_quarantine": ReleaseQuarantineRequest,
     "remove_case_member": RemoveCaseMemberRequest,
     "retract_claim": RetractClaimRequest,
     "review_suggestion": ReviewSuggestionRequest,
+    "revise_hypothesis": ReviseHypothesisRequest,
     "seal_record": SealRecordRequest,
     "submit_suggestion": SubmitSuggestionRequest,
     "transfer_custody": TransferCustodyRequest,
+    "unlink_case_reference": UnlinkCaseReferenceRequest,
+    "unlink_hypothesis_claim": UnlinkHypothesisClaimRequest,
+    "update_task": UpdateTaskRequest,
 }
 
-__all__ = ['AdjudicateIdentityRequest', 'AssignCaseMemberRequest', 'LinkClaimsRequest', 'OpenCaseRequest', 'REQUEST_MODELS', 'RecordClaimRequest', 'RegisterEvidenceRequest', 'ReleaseQuarantineRequest', 'RemoveCaseMemberRequest', 'RetractClaimRequest', 'ReviewSuggestionRequest', 'SealRecordRequest', 'SubmitSuggestionRequest', 'TransferCustodyRequest']
+__all__ = ['AdjudicateIdentityRequest', 'AssignCaseMemberRequest', 'CloseCaseRequest', 'LinkCaseReferenceRequest', 'LinkClaimsRequest', 'LinkHypothesisClaimRequest', 'OpenCaseRequest', 'OpenHypothesisRequest', 'OpenTaskRequest', 'REQUEST_MODELS', 'RecordClaimRequest', 'RegisterEvidenceRequest', 'ReleaseQuarantineRequest', 'RemoveCaseMemberRequest', 'RetractClaimRequest', 'ReviewSuggestionRequest', 'ReviseHypothesisRequest', 'SealRecordRequest', 'SubmitSuggestionRequest', 'TransferCustodyRequest', 'UnlinkCaseReferenceRequest', 'UnlinkHypothesisClaimRequest', 'UpdateTaskRequest']

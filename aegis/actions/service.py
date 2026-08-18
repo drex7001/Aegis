@@ -45,11 +45,16 @@ from aegis.store import (
     AuthzOutbox,
     CaseFile,
     CaseMember,
+    CaseReference,
     Claim,
     ClaimRelation,
     CustodyEvent,
     Entity,
     EvidenceItem,
+    Hypothesis,
+    HypothesisClaim,
+    HypothesisRevision,
+    InvestigationTask,
     Mention,
     ReviewQueue,
     SourceRecord,
@@ -63,6 +68,9 @@ ANCHOR_REQUIRED_ASSERTIONS = frozenset({"observed", "reported"})
 #: adjudicator and no extractor recorded an offset for them (spec 04 §1).
 ANCHOR_EXEMPT_COLLECTION_METHODS = frozenset({"curated", "manual", None})
 CLAIM_RELATIONS = frozenset({"corroborates", "contradicts"})
+#: Task statuses that mean the work has stopped, so `closed_at` is set. Leaving
+#: them clears it again: a reopened task with a closing time reads as finished.
+_TERMINAL_TASK_STATUSES = frozenset({"done", "dropped"})
 CASE_MEMBER_RELATIONS = {
     "analyst": "analyst",
     "investigator": "investigator",
@@ -1505,6 +1513,521 @@ class ActionService:
                 detail={"old_role": old_role, "user_id": user_id},
             )
         return row
+
+
+    # ── the investigation's operational plane (T43, spec 09) ────────────────
+
+    def close_case(self, context: ActionContext, *, case_id: str, reason: str) -> CaseFile:
+        self._require_action(
+            "close_case", context, parameters={"case_id": case_id, "reason": reason}
+        )
+        with self._transaction():
+            case = self._case(case_id, "close_case.case_id")
+            if case.status != "open":
+                raise ActionValidationError(
+                    "case_file.status", f"case is {case.status}, not open"
+                )
+            case.status = "closed"
+            case.closed_at = _utcnow()
+            self.session.flush()
+            self._audit(
+                context,
+                action="close_case",
+                resource_type="case_file",
+                resource_id=case_id,
+                case_id=case_id,
+                detail={"reason": reason},
+            )
+        return case
+
+    #: `target_type` -> the table the actions layer checks existence against.
+    #: A polymorphic reference cannot carry a foreign key, so this is where the
+    #: target is confirmed to be real (spec 09 §2.3).
+    _REFERENCE_TARGETS: dict[str, type] = {
+        "claim": Claim,
+        "entity": Entity,
+        "evidence_item": EvidenceItem,
+    }
+
+    def link_case_reference(
+        self,
+        context: ActionContext,
+        *,
+        case_id: str,
+        target_type: str,
+        target_id: str,
+        note: str | None = None,
+    ) -> CaseReference:
+        """Record that this investigation refers to something. Grants nothing.
+
+        Emphatically **not** a change of scope: `claim.case_id` is what
+        `claim_filters` reads and it is never reassigned (ADR-044). A member of
+        this case who cannot read the target still cannot read it — the
+        reference resolves to nothing on the way out.
+        """
+        self._require_action(
+            "link_case_reference",
+            context,
+            parameters={
+                "case_id": case_id,
+                "target_type": target_type,
+                "target_id": target_id,
+                "note": note,
+            },
+        )
+        with self._transaction():
+            self._case(case_id, "link_case_reference.case_id")
+            model = self._REFERENCE_TARGETS[target_type]
+            if self.session.get(model, target_id) is None:
+                raise ActionValidationError(
+                    f"case_reference.{target_type}", f"{target_id!r} does not exist"
+                )
+            row = self.session.get(CaseReference, (case_id, target_type, target_id))
+            if row is None:
+                row = CaseReference(
+                    case_id=case_id,
+                    target_type=target_type,
+                    target_id=target_id,
+                    note=note,
+                    linked_by=context.actor,
+                )
+                self.session.add(row)
+            elif row.detached_at is None:
+                raise ActionValidationError(
+                    "case_reference", "this case already refers to that target"
+                )
+            else:
+                # Re-linking clears the tombstone rather than inserting a second
+                # row: the primary key is the identity of the reference, and the
+                # audit carries the history of it being taken off and put back.
+                row.detached_at = None
+                row.note = note
+                row.linked_by = context.actor
+                row.linked_at = _utcnow()
+            self.session.flush()
+            self._audit(
+                context,
+                action="link_case_reference",
+                resource_type="case_reference",
+                resource_id=f"{case_id}:{target_type}:{target_id}",
+                case_id=case_id,
+                detail={"target_type": target_type, "target_id": target_id, "note": note},
+            )
+        return row
+
+    def unlink_case_reference(
+        self,
+        context: ActionContext,
+        *,
+        case_id: str,
+        target_type: str,
+        target_id: str,
+        reason: str,
+    ) -> CaseReference:
+        self._require_action(
+            "unlink_case_reference",
+            context,
+            parameters={
+                "case_id": case_id,
+                "target_type": target_type,
+                "target_id": target_id,
+                "reason": reason,
+            },
+        )
+        with self._transaction():
+            row = self.session.get(CaseReference, (case_id, target_type, target_id))
+            if row is None or row.detached_at is not None:
+                raise ActionValidationError("case_reference", "no such reference")
+            # Tombstone, never DELETE: removing the row would take with it the
+            # fact that somebody once thought the two were connected.
+            row.detached_at = _utcnow()
+            self.session.flush()
+            self._audit(
+                context,
+                action="unlink_case_reference",
+                resource_type="case_reference",
+                resource_id=f"{case_id}:{target_type}:{target_id}",
+                case_id=case_id,
+                detail={"target_type": target_type, "target_id": target_id, "reason": reason},
+            )
+        return row
+
+    def open_hypothesis(
+        self,
+        context: ActionContext,
+        *,
+        case_id: str,
+        statement: str,
+        missing_info: str,
+        hypothesis_id: str | None = None,
+        handling_code: str = "open",
+    ) -> HypothesisRevision:
+        """Open a hypothesis and write its first revision.
+
+        Returns the **revision**, not the hypothesis: the hypothesis row holds
+        only what cannot change, and everything a caller wants to read back is
+        on the revision (spec 09 §3.1).
+        """
+        validated = self._require_action(
+            "open_hypothesis",
+            context,
+            parameters={
+                "case_id": case_id,
+                "statement": statement,
+                "missing_info": missing_info,
+                "hypothesis_id": hypothesis_id,
+                "handling_code": handling_code,
+            },
+        )
+        self._handling(validated["handling_code"])
+        if not statement.strip():
+            raise ActionValidationError("hypothesis.statement", "must not be empty")
+        with self._transaction():
+            self._case(case_id, "open_hypothesis.case_id")
+            row = Hypothesis(
+                hypothesis_id=validated["hypothesis_id"] or new_id("hyp"),
+                case_id=case_id,
+                opened_by=context.actor,
+                handling_code=validated["handling_code"],
+            )
+            self.session.add(row)
+            revision = HypothesisRevision(
+                hypothesis_id=row.hypothesis_id,
+                version=1,
+                statement=statement,
+                status="open",
+                missing_info=missing_info,
+                # No note on the first revision: a hypothesis needs no
+                # justification for existing, only for changing.
+                note=None,
+                authored_by=context.actor,
+            )
+            self.session.add(revision)
+            self.session.flush()
+            self._audit(
+                context,
+                action="open_hypothesis",
+                resource_type="hypothesis",
+                resource_id=row.hypothesis_id,
+                case_id=case_id,
+                detail={"statement": statement, "handling_code": row.handling_code},
+            )
+        return revision
+
+    def revise_hypothesis(
+        self,
+        context: ActionContext,
+        *,
+        hypothesis_id: str,
+        note: str,
+        statement: str | None = None,
+        status: str | None = None,
+        missing_info: str | None = None,
+    ) -> HypothesisRevision:
+        """Append a revision. A revision is a snapshot, never a diff.
+
+        What is not supplied is carried forward from the current revision, so
+        one row answers "what did this say" without replaying the ones before it.
+        """
+        self._require_action(
+            "revise_hypothesis",
+            context,
+            parameters={
+                "hypothesis_id": hypothesis_id,
+                "note": note,
+                "statement": statement,
+                "status": status,
+                "missing_info": missing_info,
+            },
+        )
+        with self._transaction():
+            hypothesis = self.session.get(Hypothesis, hypothesis_id)
+            if hypothesis is None:
+                raise ActionValidationError("hypothesis", "does not exist")
+            current = self._current_revision(hypothesis_id)
+            if statement is not None and not statement.strip():
+                raise ActionValidationError("hypothesis.statement", "must not be empty")
+            if missing_info is not None and not missing_info.strip():
+                raise ActionValidationError(
+                    "hypothesis.missing_info", "must not be blank; a blank note is not a note"
+                )
+            revision = HypothesisRevision(
+                hypothesis_id=hypothesis_id,
+                version=current.version + 1,
+                statement=statement if statement is not None else current.statement,
+                status=status if status is not None else current.status,
+                missing_info=(
+                    missing_info if missing_info is not None else current.missing_info
+                ),
+                note=note,
+                authored_by=context.actor,
+            )
+            self.session.add(revision)
+            self.session.flush()
+            self._audit(
+                context,
+                action="revise_hypothesis",
+                resource_type="hypothesis",
+                resource_id=hypothesis_id,
+                case_id=hypothesis.case_id,
+                detail={
+                    "version": revision.version,
+                    "old_status": current.status,
+                    "status": revision.status,
+                    "note": note,
+                },
+            )
+        return revision
+
+    def link_hypothesis_claim(
+        self,
+        context: ActionContext,
+        *,
+        hypothesis_id: str,
+        claim_id: str,
+        stance: str,
+        note: str | None = None,
+    ) -> HypothesisClaim:
+        """Attach a claim to a hypothesis as supporting or contradicting it.
+
+        Grants no access to the claim (ADR-044, same rule as a case reference):
+        the evidence basis is read through `claim_filters` like everything else,
+        so a member who cannot see a linked claim gets a shorter list.
+        """
+        self._require_action(
+            "link_hypothesis_claim",
+            context,
+            parameters={
+                "hypothesis_id": hypothesis_id,
+                "claim_id": claim_id,
+                "stance": stance,
+                "note": note,
+            },
+        )
+        with self._transaction():
+            hypothesis = self.session.get(Hypothesis, hypothesis_id)
+            if hypothesis is None:
+                raise ActionValidationError("hypothesis", "does not exist")
+            if self.session.get(Claim, claim_id) is None:
+                raise ActionValidationError("hypothesis_claim.claim_id", "claim does not exist")
+            row = self.session.get(HypothesisClaim, (hypothesis_id, claim_id, stance))
+            if row is None:
+                row = HypothesisClaim(
+                    hypothesis_id=hypothesis_id,
+                    claim_id=claim_id,
+                    stance=stance,
+                    note=note,
+                    linked_by=context.actor,
+                )
+                self.session.add(row)
+            elif row.detached_at is None:
+                raise ActionValidationError(
+                    "hypothesis_claim", f"already linked as {stance!r}"
+                )
+            else:
+                row.detached_at = None
+                row.note = note
+                row.linked_by = context.actor
+                row.linked_at = _utcnow()
+            self.session.flush()
+            self._audit(
+                context,
+                action="link_hypothesis_claim",
+                resource_type="hypothesis_claim",
+                resource_id=f"{hypothesis_id}:{claim_id}:{stance}",
+                case_id=hypothesis.case_id,
+                detail={"claim_id": claim_id, "stance": stance, "note": note},
+            )
+        return row
+
+    def unlink_hypothesis_claim(
+        self,
+        context: ActionContext,
+        *,
+        hypothesis_id: str,
+        claim_id: str,
+        stance: str,
+        reason: str,
+    ) -> HypothesisClaim:
+        self._require_action(
+            "unlink_hypothesis_claim",
+            context,
+            parameters={
+                "hypothesis_id": hypothesis_id,
+                "claim_id": claim_id,
+                "stance": stance,
+                "reason": reason,
+            },
+        )
+        with self._transaction():
+            row = self.session.get(HypothesisClaim, (hypothesis_id, claim_id, stance))
+            if row is None or row.detached_at is not None:
+                raise ActionValidationError("hypothesis_claim", "no such link")
+            hypothesis = self.session.get(Hypothesis, hypothesis_id)
+            row.detached_at = _utcnow()
+            self.session.flush()
+            self._audit(
+                context,
+                action="unlink_hypothesis_claim",
+                resource_type="hypothesis_claim",
+                resource_id=f"{hypothesis_id}:{claim_id}:{stance}",
+                case_id=hypothesis.case_id if hypothesis is not None else None,
+                detail={"claim_id": claim_id, "stance": stance, "reason": reason},
+            )
+        return row
+
+    def open_task(
+        self,
+        context: ActionContext,
+        *,
+        case_id: str,
+        title: str,
+        kind: str = "task",
+        detail: str | None = None,
+        owner: str | None = None,
+        due_date: date | None = None,
+        hypothesis_id: str | None = None,
+        task_id: str | None = None,
+    ) -> InvestigationTask:
+        validated = self._require_action(
+            "open_task",
+            context,
+            parameters={
+                "case_id": case_id,
+                "title": title,
+                "kind": kind,
+                "detail": detail,
+                "owner": owner,
+                "due_date": due_date,
+                "hypothesis_id": hypothesis_id,
+                "task_id": task_id,
+            },
+        )
+        with self._transaction():
+            self._case(case_id, "open_task.case_id")
+            if hypothesis_id is not None:
+                hypothesis = self.session.get(Hypothesis, hypothesis_id)
+                if hypothesis is None:
+                    raise ActionValidationError(
+                        "investigation_task.hypothesis_id", "hypothesis does not exist"
+                    )
+                if hypothesis.case_id != case_id:
+                    # A lead pursuing another case's hypothesis would be a
+                    # reference across an authorization boundary wearing the
+                    # shape of a foreign key.
+                    raise ActionValidationError(
+                        "investigation_task.hypothesis_id",
+                        "hypothesis belongs to a different case",
+                    )
+            row = InvestigationTask(
+                task_id=validated["task_id"] or new_id("tsk"),
+                case_id=case_id,
+                kind=validated["kind"],
+                title=title,
+                detail=detail,
+                status="open",
+                owner=owner,
+                due_date=due_date,
+                hypothesis_id=hypothesis_id,
+                created_by=context.actor,
+            )
+            self.session.add(row)
+            self.session.flush()
+            self._audit(
+                context,
+                action="open_task",
+                resource_type="investigation_task",
+                resource_id=row.task_id,
+                case_id=case_id,
+                detail={"kind": row.kind, "title": title, "owner": owner},
+            )
+        return row
+
+    def update_task(
+        self,
+        context: ActionContext,
+        *,
+        task_id: str,
+        status: str | None = None,
+        owner: str | None = None,
+        due_date: date | None = None,
+        detail: str | None = None,
+        note: str | None = None,
+    ) -> InvestigationTask:
+        """Move a task. Any status may follow any other; every move is audited.
+
+        No transition graph: a state machine here would be a rule with no
+        rule-maker, and plan §2's workflow-engine trigger stays untouched. What
+        makes the history answerable is that the audit row carries the old value
+        beside the new one.
+        """
+        self._require_action(
+            "update_task",
+            context,
+            parameters={
+                "task_id": task_id,
+                "status": status,
+                "owner": owner,
+                "due_date": due_date,
+                "detail": detail,
+                "note": note,
+            },
+        )
+        with self._transaction():
+            row = self.session.get(InvestigationTask, task_id)
+            if row is None:
+                raise ActionValidationError("investigation_task", "does not exist")
+            before = {"status": row.status, "owner": row.owner}
+            if status is not None:
+                row.status = status
+                # `closed_at` follows the status rather than being set by the
+                # caller, so a task that reopens does not keep a closing time.
+                row.closed_at = _utcnow() if status in _TERMINAL_TASK_STATUSES else None
+            if owner is not None:
+                row.owner = owner
+            if due_date is not None:
+                row.due_date = due_date
+            if detail is not None:
+                row.detail = detail
+            row.updated_at = _utcnow()
+            self.session.flush()
+            self._audit(
+                context,
+                action="update_task",
+                resource_type="investigation_task",
+                resource_id=task_id,
+                case_id=row.case_id,
+                detail={
+                    "old_status": before["status"],
+                    "status": row.status,
+                    "old_owner": before["owner"],
+                    "owner": row.owner,
+                    "note": note,
+                },
+            )
+        return row
+
+    # ── shared helpers for the investigation actions ────────────────────────
+
+    def _case(self, case_id: str, path: str) -> CaseFile:
+        case = self.session.get(CaseFile, case_id)
+        if case is None:
+            raise ActionValidationError(path, f"case {case_id!r} does not exist")
+        return case
+
+    def _current_revision(self, hypothesis_id: str) -> HypothesisRevision:
+        revision = self.session.scalars(
+            select(HypothesisRevision)
+            .where(HypothesisRevision.hypothesis_id == hypothesis_id)
+            .order_by(HypothesisRevision.version.desc())
+            .limit(1)
+        ).first()
+        if revision is None:
+            # Unreachable: `open_hypothesis` writes both rows in one
+            # transaction. Asserted rather than branched on, so a future path
+            # that creates one without the other fails loudly.
+            raise ActionValidationError("hypothesis", "has no revision")
+        return revision
 
 
 def _service(session: Session, ontology: Ontology | None) -> ActionService:

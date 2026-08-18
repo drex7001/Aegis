@@ -12,11 +12,14 @@
 module:
   name: platform
   namespace: aegis.lk/platform
-  version: 1.2.1
+  version: 1.3.0
   label: Platform governance vocabulary
   # No imports: platform is the root of the composition. Everything else
   # imports it, which is why a cycle here would be a contradiction.
   #
+  # 1.3.0 (T43): additive — nine investigation actions (case close and
+  #               references, hypotheses, tasks/leads) and the fourth
+  #               submission criterion. No existing action changed.
   # 1.2.1 (T42): patch — `alias` is labelled "Aliases". Display only; the
   #               property's name, type and cardinality are untouched.
   # 1.2.0 (T34): additive — action parameters, submission criteria, side
@@ -273,6 +276,123 @@ actions:
     parameters:
       record_id: {type: ref, to: source_record, required: true}
       note:      {type: text, required: true}
+    submission_criteria: [actor_holds_action_role]
+
+  close_case:
+    roles: [supervisor]
+    audit: true
+    parameters:
+      case_id: {type: ref, to: case, required: true}
+      reason:  {type: text, required: true}
+    submission_criteria: [actor_holds_action_role, required_text_is_substantive]
+
+  # "This investigation refers to that" — and nothing more (ADR-044). The link
+  # grants no read access to its target, which is why an ordinary case-scoped
+  # write is the right gate: the operation is powerless, so its authorization
+  # is cheap. Re-scoping a recorded claim is a different operation and does
+  # not exist.
+  link_case_reference:
+    roles: [analyst, investigator]
+    audit: true
+    parameters:
+      case_id:     {type: ref, to: case, required: true}
+      target_type: {type: enum, values: [claim, entity, evidence_item], required: true}
+      target_id:   {type: identifier, required: true}
+      note:        {type: text}
+    submission_criteria: [actor_holds_action_role, actor_is_case_member]
+
+  unlink_case_reference:
+    roles: [analyst, investigator]
+    audit: true
+    parameters:
+      case_id:     {type: ref, to: case, required: true}
+      target_type: {type: enum, values: [claim, entity, evidence_item], required: true}
+      target_id:   {type: identifier, required: true}
+      reason:      {type: text, required: true}
+    submission_criteria: [actor_holds_action_role, actor_is_case_member, required_text_is_substantive]
+
+  # ── the investigation's own reasoning (spec 09 §3) ───────────────────────
+  #
+  # A hypothesis is an assertion about *our reasoning*, never about the world:
+  # it has no source record, it is never graded, and no projection may render
+  # it. That is why it is an action here rather than a claim.
+  open_hypothesis:
+    roles: [analyst, investigator]
+    audit: true
+    parameters:
+      case_id:       {type: ref, to: case, required: true}
+      statement:     {type: text, required: true}
+      # GOAL.md §18: a hypothesis states what would change it. Required here,
+      # NOT NULL in the table, and non-blank by the criterion below — a note
+      # that is only whitespace is not a note.
+      missing_info:  {type: text, required: true}
+      hypothesis_id: {type: identifier}
+      handling_code: {type: handling_code, default: open}
+    submission_criteria: [actor_holds_action_role, actor_is_case_member, required_text_is_substantive]
+
+  revise_hypothesis:
+    roles: [analyst, investigator]
+    audit: true
+    # Every revision is a complete snapshot: what is not supplied is carried
+    # forward, so one row answers "what did this say" without replaying the
+    # ones before it.
+    parameters:
+      hypothesis_id: {type: ref, to: hypothesis, required: true}
+      note:          {type: text, required: true}
+      statement:     {type: text}
+      status:        {type: enum, values: [open, supported, refuted, withdrawn]}
+      missing_info:  {type: text}
+    submission_criteria: [actor_holds_action_role, required_text_is_substantive]
+
+  link_hypothesis_claim:
+    roles: [analyst, investigator]
+    audit: true
+    parameters:
+      hypothesis_id: {type: ref, to: hypothesis, required: true}
+      claim_id:      {type: ref, to: claim, required: true}
+      stance:        {type: enum, values: [supports, contradicts], required: true}
+      note:          {type: text}
+    submission_criteria: [actor_holds_action_role]
+
+  unlink_hypothesis_claim:
+    roles: [analyst, investigator]
+    audit: true
+    parameters:
+      hypothesis_id: {type: ref, to: hypothesis, required: true}
+      claim_id:      {type: ref, to: claim, required: true}
+      stance:        {type: enum, values: [supports, contradicts], required: true}
+      reason:        {type: text, required: true}
+    submission_criteria: [actor_holds_action_role, required_text_is_substantive]
+
+  # ── tasks and leads (spec 09 §4) ─────────────────────────────────────────
+  #
+  # No transition graph and no approval chain: plan §2's workflow-engine
+  # trigger stays untouched. Every change is audited with its old and new
+  # value, which is what makes the history answerable.
+  open_task:
+    roles: [analyst, investigator]
+    audit: true
+    parameters:
+      case_id:       {type: ref, to: case, required: true}
+      title:         {type: text, required: true}
+      kind:          {type: enum, values: [task, lead], default: task}
+      detail:        {type: text}
+      owner:         {type: text}
+      due_date:      {type: date}
+      hypothesis_id: {type: ref, to: hypothesis}
+      task_id:       {type: identifier}
+    submission_criteria: [actor_holds_action_role, actor_is_case_member, required_text_is_substantive]
+
+  update_task:
+    roles: [analyst, investigator]
+    audit: true
+    parameters:
+      task_id:  {type: ref, to: investigation_task, required: true}
+      status:   {type: enum, values: [open, in_progress, blocked, done, dropped]}
+      owner:    {type: text}
+      due_date: {type: date}
+      detail:   {type: text}
+      note:     {type: text}
     submission_criteria: [actor_holds_action_role]
 
   seal_record:                                          # Phase 7

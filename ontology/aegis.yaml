@@ -16,7 +16,12 @@
 # (requires migration + copy in ontology/history/). The composition's class is
 # the strongest class among its modules' changes plus its own manifest changes.
 
-version: 1.6.1   # patch: display labels on `person.nic`, `phone_number.number`
+version: 1.7.0   # minor: nine investigation actions and a fourth submission
+                 # criterion (T43, proposal 006).  Additive — cases,
+                 # hypotheses and tasks are the operational plane spec 09
+                 # defines, and no existing action, role or parameter moved.
+                 #
+                 # 1.6.1: patch — display labels on `person.nic`, `phone_number.number`
                  # and `has_nic` (T42, proposal 005).  Spec 01 §4 classes
                  # display hints as a patch, and nothing else moved: no name was
                  # added, removed or retyped, and every claim stamped 1.6.0
@@ -71,8 +76,8 @@ namespace: aegis.lk
 # missing, when the proposal file does not exist, or when the diff against the
 # previous released artifact is stronger than the class declared here.
 release:
-  proposal: 005-display-labels
-  compatibility: patch
+  proposal: 006-investigation-actions
+  compatibility: minor
 
 composition:
   # Platform first by convention, not by requirement — the loader resolves
@@ -80,7 +85,7 @@ composition:
   # vocabulary every domain module imports.
   - module: platform
     path: modules/platform.yaml
-    version: "1.2.1"
+    version: "1.3.0"
 
   # The first domain module. A second domain is added by appending an entry
   # here and writing its file; no code under `aegis/` changes (Article XIV,

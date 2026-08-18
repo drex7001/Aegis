@@ -570,6 +570,194 @@ class CaseMember(Base):
     role: Mapped[str] = mapped_column(Text, nullable=False)
 
 
+class CaseReference(Base):
+    """"This investigation refers to that" — and nothing more (ADR-044, spec 09 §2.3).
+
+    Deliberately **not** an authorization edge. ``claim.case_id`` is the claim's
+    immutable recording scope and the field ``claim_filters`` reads; a reference
+    grants no access to its target, which is why linking is an ordinary
+    case-scoped write rather than a privileged one. Reference lists are built
+    from targets the caller can already read, so a reference to something
+    invisible is simply absent.
+
+    Unlinking writes ``detached_at``. A row that is deleted takes with it the
+    fact that somebody once thought the two were connected, which is exactly the
+    kind of thing an investigation later wants to explain.
+    """
+
+    __tablename__ = "case_reference"
+    __table_args__ = (
+        CheckConstraint(
+            "target_type IN ('claim', 'entity', 'evidence_item')",
+            name="ck_case_reference_target_type",
+        ),
+        Index("ix_case_reference_target", "target_type", "target_id"),
+    )
+
+    case_id: Mapped[str] = mapped_column(ForeignKey("case_file.case_id"), primary_key=True)
+    # No foreign key: the target is one of three tables, and a polymorphic
+    # reference cannot carry one. Existence is checked by the actions layer
+    # against the table `target_type` names.
+    target_type: Mapped[str] = mapped_column(Text, primary_key=True)
+    target_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    note: Mapped[str | None] = mapped_column(Text)
+    linked_by: Mapped[str] = mapped_column(Text, nullable=False)
+    linked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+    detached_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Hypothesis(Base):
+    """What an analyst currently believes — never evidence (spec 09 §1, §3).
+
+    A hypothesis is an assertion about **our own reasoning**, not about the
+    world. It has no source record, it is never graded, and it may never reach a
+    projection; confusing it with a claim is how "association is not guilt"
+    (Article IX) fails in practice.
+
+    This row holds only what cannot change. Current state is the latest
+    :class:`HypothesisRevision`, so "what did this say before, and who changed
+    it" is one query rather than an excavation of audit payloads — the same
+    split the identity ledger uses (ADR-028).
+    """
+
+    __tablename__ = "hypothesis"
+    __table_args__ = (Index("ix_hypothesis_case_id", "case_id"),)
+
+    hypothesis_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    # Always case-scoped: there is no global hypothesis (spec 09 §3.1).
+    case_id: Mapped[str] = mapped_column(ForeignKey("case_file.case_id"), nullable=False)
+    opened_by: Mapped[str] = mapped_column(Text, nullable=False)
+    opened_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+    handling_code: Mapped[str] = mapped_column(
+        Text, nullable=False, server_default=text("'open'")
+    )
+
+
+class HypothesisRevision(Base):
+    """One complete state of a hypothesis. Append-only; the latest is current.
+
+    A revision is a **snapshot, never a diff**: a revision that only moves the
+    status still records the statement and missing-information note that were
+    current, so reading any single row answers "what did this say" without
+    replaying the ones before it.
+    """
+
+    __tablename__ = "hypothesis_revision"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('open', 'supported', 'refuted', 'withdrawn')",
+            name="ck_hypothesis_revision_status",
+        ),
+        # GOAL.md §18: a hypothesis states what would change it. Enforced as a
+        # column constraint *and* by the `required_text_is_substantive`
+        # submission criterion, because NOT NULL does not reject "   ".
+        CheckConstraint(
+            "length(btrim(missing_info)) > 0", name="ck_hypothesis_revision_missing_info"
+        ),
+    )
+
+    hypothesis_id: Mapped[str] = mapped_column(
+        ForeignKey("hypothesis.hypothesis_id"), primary_key=True
+    )
+    version: Mapped[int] = mapped_column(Integer, primary_key=True)
+    statement: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(Text, nullable=False)
+    missing_info: Mapped[str] = mapped_column(Text, nullable=False)
+    #: Why this revision exists. Required from `revise_hypothesis`, absent on
+    #: the first revision, which needs no justification for existing.
+    note: Mapped[str | None] = mapped_column(Text)
+    authored_by: Mapped[str] = mapped_column(Text, nullable=False)
+    authored_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+
+
+class HypothesisClaim(Base):
+    """The evidence basis: which claims cut which way (spec 09 §3.2).
+
+    ``stance`` is ``supports``/``contradicts`` rather than
+    :class:`ClaimRelation`'s ``corroborates``/``contradicts`` on purpose. A claim
+    corroborating a claim is a statement about two observations of the world; a
+    claim supporting a hypothesis is a statement about our reasoning, and only
+    one of those may ever reach a projection.
+
+    The same claim may appear under **both** stances — recorded by two analysts,
+    or by one who thinks it cuts both ways. The primary key admits that on
+    purpose (Article VIII).
+    """
+
+    __tablename__ = "hypothesis_claim"
+    __table_args__ = (
+        CheckConstraint(
+            "stance IN ('supports', 'contradicts')", name="ck_hypothesis_claim_stance"
+        ),
+        Index("ix_hypothesis_claim_claim_id", "claim_id"),
+    )
+
+    hypothesis_id: Mapped[str] = mapped_column(
+        ForeignKey("hypothesis.hypothesis_id"), primary_key=True
+    )
+    claim_id: Mapped[str] = mapped_column(ForeignKey("claim.claim_id"), primary_key=True)
+    stance: Mapped[str] = mapped_column(Text, primary_key=True)
+    note: Mapped[str | None] = mapped_column(Text)
+    linked_by: Mapped[str] = mapped_column(Text, nullable=False)
+    linked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+    detached_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class InvestigationTask(Base):
+    """Work to do and lines of enquiry, on one table (spec 09 §4).
+
+    A *task* is work; a *lead* is a line of enquiry worth pursuing. One table and
+    one ``kind``, because the only difference is the word — two tables would be
+    two schemas kept in step for a label.
+
+    **No transition graph.** Any status may follow any other, and each change is
+    an audited action carrying the old and new value. A state machine here would
+    be a rule with no rule-maker, and plan §2's workflow-engine trigger stays
+    untouched.
+    """
+
+    __tablename__ = "investigation_task"
+    __table_args__ = (
+        CheckConstraint("kind IN ('task', 'lead')", name="ck_investigation_task_kind"),
+        CheckConstraint(
+            "status IN ('open', 'in_progress', 'blocked', 'done', 'dropped')",
+            name="ck_investigation_task_status",
+        ),
+        Index("ix_investigation_task_case_id", "case_id"),
+    )
+
+    task_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    case_id: Mapped[str] = mapped_column(ForeignKey("case_file.case_id"), nullable=False)
+    kind: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'task'"))
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    detail: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'open'"))
+    #: Nullable: unassigned is a real state, and inventing an owner to avoid a
+    #: null would make the queue look attended when it is not.
+    owner: Mapped[str | None] = mapped_column(Text)
+    due_date: Mapped[date | None] = mapped_column(Date)
+    #: A lead may pursue a hypothesis; a task need not.
+    hypothesis_id: Mapped[str | None] = mapped_column(
+        ForeignKey("hypothesis.hypothesis_id")
+    )
+    created_by: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class AuthzOutbox(Base):
     __tablename__ = "authz_outbox"
     __table_args__ = (

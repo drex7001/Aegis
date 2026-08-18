@@ -223,6 +223,12 @@ REF_TARGETS = frozenset(
         "suggestion",
         "mention",
         "user",
+        # The investigation's operational plane (T43, spec 09). Platform
+        # concepts, not domain ones: a `border-cargo` deployment gets the same
+        # cases, hypotheses and tasks, so naming them here is not a domain name
+        # entering the core (Article XIV).
+        "hypothesis",
+        "investigation_task",
     }
 )
 

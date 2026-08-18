@@ -4,10 +4,14 @@ Each criterion is a named predicate over (actor, supplied parameters, target
 state) that the actions layer evaluates *before* the write. A failure is an
 audited denial, not a silent 403 (§6.4).
 
-Phase 3 registers exactly three, and each makes an **existing** policy
-declarative rather than inventing a new one — T34 closes the gap ADR-040 found
-(the ontology's `roles` list fired for one action out of thirteen), it does not
+Phase 3 registered three, and each makes an **existing** policy declarative
+rather than inventing a new one — T34 closes the gap ADR-040 found (the
+ontology's `roles` list fired for one action out of thirteen), it does not
 tighten what analysts may do.
+
+Phase 4 adds the fourth, `required_text_is_substantive`, for the opposite
+reason: a rule that had no mechanism at all. GOAL.md §18 requires a hypothesis
+to say what would change it, and `required: true` accepts a string of spaces.
 
 **Who a criterion applies to.** Two of the three key off `context.roles` being
 non-empty, which is the platform's signal for "an authenticated person is
@@ -122,6 +126,38 @@ def actor_is_case_member(request: CriterionInput) -> CriterionResult:
     )
 
 
+def required_text_is_substantive(request: CriterionInput) -> CriterionResult:
+    """A required free-text parameter must contain something other than space.
+
+    `required: true` rejects an **absent** field; it does not reject `""` or
+    `"   "`, because both are strings. For most parameters that gap is
+    theoretical. For `open_hypothesis.missing_info` it is the whole rule:
+    GOAL.md §18 requires a hypothesis to state what would change it, and a
+    hypothesis whose missing-information note is a space is the vibe the Phase 4
+    charter's risk table names.
+
+    Declared per action rather than applied to all of them, so no Phase 1–3
+    write changes behaviour. It reads the action's own declaration — every
+    `{type: text, required: true}` parameter — so an action that gains one is
+    covered without editing this function.
+    """
+    if not request.human_caller:
+        return PASSED
+    offenders = sorted(
+        name
+        for name, parameter in request.spec.parameters.items()
+        if parameter.type == "text"
+        and parameter.required
+        and not str(request.parameters.get(name) or "").strip()
+    )
+    if not offenders:
+        return PASSED
+    return CriterionResult(
+        False,
+        f"{offenders} must contain more than whitespace; a blank note is not a note",
+    )
+
+
 def second_approver_present(request: CriterionInput) -> CriterionResult:
     """Where `dual_control_for` fires, a distinct second actor signed off."""
     required = set(request.spec.dual_control_for or ()) & set(request.dual_control_flags)
@@ -145,6 +181,7 @@ def second_approver_present(request: CriterionInput) -> CriterionResult:
 CRITERIA: dict[str, Criterion] = {
     "actor_holds_action_role": actor_holds_action_role,
     "actor_is_case_member": actor_is_case_member,
+    "required_text_is_substantive": required_text_is_substantive,
     "second_approver_present": second_approver_present,
 }
 

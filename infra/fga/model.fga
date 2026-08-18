@@ -31,3 +31,20 @@ type evidence_item
     define custodian: [user]
     define can_view: can_view from case
     define can_transfer: custodian or can_approve from case
+
+# The investigation's operational plane (T43, spec 09 §5). Neither type has any
+# authorization of its own: both belong to exactly one case, and the case is the
+# resource — the same derivation `evidence_item` already uses. Hand-written like
+# every other platform type; the FGA-stub generator (P3 carryover, P7) exists
+# for *domain* object types and still has nothing to emit.
+type hypothesis
+  relations
+    define case: [case]
+    define can_view: can_view from case
+    define can_edit: can_edit from case
+
+type investigation_task
+  relations
+    define case: [case]
+    define can_view: can_view from case
+    define can_edit: can_edit from case

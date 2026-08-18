@@ -79,7 +79,7 @@ items are declared in the realm and in spec 03 §1.1–1.3 with
 Ontology `1.6.0 → 1.6.1` (patch, proposal 005) for the four display labels the
 generator's humanization gets wrong.
 
-**T43. Investigation-model implementation** (spec 09 §2–§5; needs T41) —
+**T43. Investigation-model implementation — DONE (2026-08-19)** (spec 09 §2–§5; needs T41) —
 storage/actions/routes for hypotheses (`hypothesis` + append-only
 `hypothesis_revision` + `hypothesis_claim`, missing-info note required) and
 tasks/leads (`investigation_task`: owner, status, dates) per spec 09; the
@@ -88,10 +88,26 @@ module; `hypothesis` and `investigation_task` added to `REF_TARGETS`; the
 `hypothesis`/`investigation_task` FGA types deriving `can_view`/`can_edit` from
 their case; the fourth submission criterion `required_text_is_substantive`
 (spec 09 §3.3); authz matrix rows added.
-AC: hypothesis and task lifecycles round-trip through the API with audit;
-matrix tests cover their allow/deny cases; a non-member gets 404 from every new
-route, read **and** write; a whitespace-only missing-info note is denied and the
-denial is audited; no UI yet (Milestone D renders them).
+AC met: hypothesis, task and reference lifecycles round-trip through the API
+with audit (`tests/integration/test_investigation_routes.py`, 9 cases); the
+authorization matrix gained 15 rows and still asserts exact equality; a
+non-member gets **404 from all 15 new routes, writes included**, and a hidden
+hypothesis is byte-identical to a nonexistent one; a whitespace-only
+missing-info note is refused by the criterion, audited as a denial that
+survives the caller's rollback, and refused again by a CHECK constraint if
+anything writes the table directly.
+`tests/integration/test_investigation_model.py` (21) covers the actions layer
+and `tests/contract/test_investigation_contract.py` (13) the declarations —
+including that no investigation action declares a side effect, because a
+`refresh_projection` here is the first step to a suspicion becoming an edge.
+Ontology `1.6.1 → 1.7.0` (minor, proposal 006); migration `0010`. No UI
+(Milestone D renders them).
+
+**Scope note.** Spec 09 §2.4's case routes (`GET /v1/cases`, close, members,
+references) landed **here** rather than at T46. H-17's whole point is that the
+model and API are specified and accepted before any screen, and splitting the
+case routes from the hypothesis routes would have put half the operational
+plane behind a UI task. T46 is now purely the case UI.
 
 ## Milestone B — Object views
 
@@ -120,13 +136,11 @@ endpoint); the strip's items match the claim time model.
 
 ## Milestone C — Cases
 
-**T46. ⛓ Case UI + membership** (spec 09 §2; needs T42) — create/join/manage
-cases via the existing FGA-scoped actions, plus the routes spec 09 §2.4 adds:
-`GET /v1/cases` (only viewable cases, key-ordered, no count),
-`POST /v1/cases/{id}/close`, `GET /v1/cases/{id}/members`, and the
-`case_reference` link/unlink pair. **Referencing is not re-scoping** (ADR-044):
-`claim.case_id` and `evidence_item.case_id` are never reassigned. Case-scoped
-graph view (embedded Cytoscape reusing the projection API with a case filter).
+**T46. ⛓ Case UI + membership** (spec 09 §2; needs T42, T43) — screens over the
+routes T43 landed: the case switcher in the rail's reserved slot, create/join/
+manage, close, and the `case_reference` link/unlink pair. **Referencing is not
+re-scoping** (ADR-044) and the UI must not imply otherwise. Case-scoped graph
+view (embedded Cytoscape reusing the projection API with a case filter).
 AC: the Phase-1 authz matrix extends to the UI — a non-member sees nothing
 about a case via any screen or endpoint it calls (exit criterion); membership
 changes are audited actions; the case graph never renders out-of-case data; a

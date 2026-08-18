@@ -119,7 +119,31 @@ type evidence_item
     define custodian: [user]
     define can_view: can_view from case
     define can_transfer: custodian or can_approve from case
+
+type hypothesis                          # T43; spec 09 §5
+  relations
+    define case: [case]
+    define can_view: can_view from case
+    define can_edit: can_edit from case
+
+type investigation_task
+  relations
+    define case: [case]
+    define can_view: can_view from case
+    define can_edit: can_edit from case
 ```
+
+- **Hypotheses and tasks have no authorization of their own.** Each belongs to
+  exactly one case and derives both permissions from it, exactly as
+  `evidence_item` does — there is no direct user grant, so a hypothesis cannot
+  be shared past its case. Their routes answer **404 for a non-member on writes
+  as well as reads**: a 403 on a write discloses that the case exists just as
+  surely as one on a read (spec 09 §5 rule 1).
+- A **case reference** (`case_reference`, ADR-044) has no FGA type because it
+  confers nothing. `claim.case_id` remains the claim's immutable recording
+  scope and the only case field `claim_filters` consults; referring to a claim
+  from a case never re-scopes it, and reference lists are built from targets
+  the caller can already read.
 
 - Postgres is the **source of truth**; FGA tuples are a projection of `case_member` /
   evidence rows (ADR-014, Article XIII). Mutating actions write the row and an

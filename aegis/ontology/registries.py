@@ -17,14 +17,16 @@ agree in both directions, so neither can drift.
 from __future__ import annotations
 
 #: Predicates the actions layer evaluates before a write (spec 08 §6.3).
-#: Phase 3 registers exactly three, each making an *existing* policy
-#: declarative rather than inventing a new one. P7's `target_not_sealed` and
+#: Phase 3 registered three, each making an *existing* policy declarative rather
+#: than inventing a new one. Phase 4 adds the fourth for a rule that had no
+#: mechanism at all (spec 09 §3.3). P7's `target_not_sealed` and
 #: `within_legal_authority` are added by the phase that implements them.
 SUBMISSION_CRITERIA = frozenset(
     {
         "actor_holds_action_role",
         "actor_is_case_member",
         "second_approver_present",
+        "required_text_is_substantive",
     }
 )
 
