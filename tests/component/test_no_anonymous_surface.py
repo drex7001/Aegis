@@ -134,18 +134,29 @@ def test_nothing_new_is_mounted(app) -> None:
 
     Phase 4 added screens, not mounts — a second mount would be a second way to
     serve bytes without a gate, and it would not show up in any route walk.
+
+    **Zero is a legitimate outcome.** `ui/dist` is a build artefact, so a
+    Python-only checkout serves the API with no workspace at all; asserting
+    exactly one passes on a developer machine and fails in CI, which is how the
+    first version of this test found out.
     """
     mounts = [route for route in app.routes if route.__class__.__name__ == "Mount"]
-    assert len(mounts) == 1
-    assert mounts[0].path == ""
+    assert [mount.name for mount in mounts] in ([], ["workspace"])
+    for mount in mounts:
+        assert mount.path == ""
 
 
 def test_the_reserved_api_prefix_still_404s(client: TestClient) -> None:
     """`/api` is retired, not unused (ADR-026).
 
-    It must keep answering 404 rather than falling through to the workspace's
-    HTML, or a caller of a deleted anonymous route gets a cheerful 200.
+    Two assertions, because the live 404 proves less than it looks like in a
+    checkout with no `ui/dist`: with no mount, *everything* 404s. The reservation
+    itself is what has to hold — it is the reason the workspace's SPA fallback
+    does not turn a call to a deleted anonymous route into a cheerful 200.
     """
+    from aegis.api.workspace import RESERVED_PREFIXES
+
+    assert "api" in RESERVED_PREFIXES
     for path in ("/api/graph", "/api/stats", "/api/query/anything"):
         assert client.get(path).status_code == 404, path
 
