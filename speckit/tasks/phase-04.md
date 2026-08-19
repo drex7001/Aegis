@@ -4,7 +4,9 @@ Ordered; each task lists acceptance criteria (AC). Tasks marked ⛓ block everyt
 after them; narrower dependencies are noted in the task text. Reference specs in
 parentheses. Numbering continues from Phase 3 (T40).
 
-> **Status: ACTIVE — opened 2026-08-17 with T41's re-validation.** Authored
+> **Status: COMPLETE 2026-08-19 — all five gate criteria checked**
+> (`../reviews/phase-04-exit-review.md`). Opened 2026-08-17 with T41's
+> re-validation. Authored
 > 2026-07-17 ahead of phase start; the charter was amended 2026-07-18
 > (ADR-032/ADR-033: the workspace exists from P2 and grows here; the legacy
 > explorer is already gone; the investigation-domain model is specced before
@@ -302,12 +304,15 @@ been losing `WWW-Authenticate: Bearer` — RFC 7235 §3.1, and the only field
 telling a client how to authenticate. Nothing failed; it stopped being correct
 HTTP. Fixed with a regression test in `test_error_envelope.py`.
 
-**T53. Phase exit review** — walk the charter's gate criteria (non-deferrable,
+**T53. Phase exit review — DONE (2026-08-19)** — walk the charter's gate criteria (non-deferrable,
 ADR-025); update speckit docs where reality diverged; append ADRs; write
 `../reviews/phase-04-exit-review.md`; tag `phase-4-workspace` per the git
 workflow.
-AC: every gate criterion checked; non-blocking deliverables carried over with
-owner + target phase recorded.
+AC met: all five checked with their evidence; three ADRs (043–045) and five
+defects recorded, one of them a 401 that had been losing its
+`WWW-Authenticate` header since T36; eight carryovers carried with an owner, a
+target phase and a dependency impact. Release 0.3.0 → 0.4.0; tag
+`phase-4-workspace`.
 
 ## Explicit non-goals for Phase 4
 

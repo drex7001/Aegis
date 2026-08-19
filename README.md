@@ -60,10 +60,15 @@ of it (Article XIV, executable), and ontology changes flow through proposals
 with compatibility gates. Verdict and evidence:
 [`speckit/reviews/phase-03-exit-review.md`](speckit/reviews/phase-03-exit-review.md).
 
-**Active phase: Phase 4 — investigation workspace v2 & object views**, opened
-2026-08-17 with T41's re-validation of its pre-authored plan and
-[`speckit/specs/09-investigation-domain.md`](speckit/specs/09-investigation-domain.md).
-See [`speckit/tasks/phase-04.md`](speckit/tasks/phase-04.md). The full
+**Phase 4 — investigation workspace v2 & object views — is complete**
+(2026-08-19). Work happens inside access-scoped cases, every value on a screen
+traces to its claims, a hypothesis records what would change the analyst's mind
+as a required field, and `?asOf=` returns a claim-recording snapshot stamped
+with the identity revision that produced it. Verdict and evidence:
+[`speckit/reviews/phase-04-exit-review.md`](speckit/reviews/phase-04-exit-review.md).
+
+**Next phase: Phase 5 — events, geospatial & time.** It begins with T54's
+re-validation. The full
 roadmap to production is [`speckit/roadmap.md`](speckit/roadmap.md); the
 external-review disposition is
 [`speckit/reviews/2026-07-18-external-review-disposition.md`](speckit/reviews/2026-07-18-external-review-disposition.md).

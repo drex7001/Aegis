@@ -27,7 +27,7 @@ external-review disposition (`reviews/2026-07-18-external-review-disposition.md`
 ```
 Milestone I    Governed foundation      P0 governance ▸ P1 claim store + RBAC     [COMPLETE]
 Milestone II   MVP                      P2 identity, provenance & workspace       [COMPLETE — ★ MVP]
-Milestone III  Ontology platform        P3 modules & contracts [COMPLETE] ▸ P4 workspace v2 & object views [ACTIVE]
+Milestone III  Ontology platform        P3 modules & contracts [COMPLETE] ▸ P4 workspace v2 & object views [COMPLETE]
 Milestone IV   Intelligence domain      P5 events, geo & time ▸ P6 search, object sets & analytics
 Milestone V    Trust boundaries & AI    P7 sharing & governance ▸ P8 controlled AI & reasoning
 Milestone VI   Production               P9 production certification & scale-out
@@ -186,7 +186,7 @@ to API validation and the TS client with zero hand-written domain code; the
 second-domain fixture loads with no core change; CI fails on codegen drift and
 on a bump without proposal + history.
 
-### Phase 4 — Investigation workspace v2 & object views *(ACTIVE from 2026-08-17 · GOAL.md §18, §29–30 · effort: M/L · ADR-043…045)*
+### Phase 4 — Investigation workspace v2 & object views *(COMPLETE 2026-08-19 · GOAL.md §18, §29–30 · effort: M/L · ADR-043…045)*
 
 **Goal.** Work happens inside access-scoped cases; the P2 workspace grows
 object views, hypotheses, and time — it is **not** a new UI. Charter:
@@ -364,7 +364,7 @@ Items may be completed any time; none may be waived.
 | Claims, grading, provenance, evidence, audit, review queue | **Implemented** P1–P2 |
 | Reversible identity, ER, multilingual matching | **Implemented** P2 |
 | Ontology modules, interfaces, typed clients | **Implemented** P3 |
-| Investigation workspace, object views, hypotheses, as-of (narrowed) | **Scheduled** P4 |
+| Investigation workspace, object views, hypotheses, as-of (narrowed) | **Implemented** P4 |
 | Events, geospatial, timeline, map privacy | **Scheduled** P5 |
 | Search, object sets, analytics, watchlists/alert triage | **Scheduled** P6 |
 | Compartments, sealing, disclosure packages, break-glass, legal authority, retention enforcement | **Scheduled** P7 |
