@@ -35,13 +35,32 @@ def member_case_ids(session: Session, user: UserContext) -> list[str]:
 def property_sensitivity(ontology: Ontology, predicate: str) -> str | None:
     """Resolve the ontology field sensitivity represented by a claim predicate.
 
-    Most property predicates use the property name directly (for example
-    ``aliases``).  Identifier predicates are deliberately verbs (``has_nic``,
-    ``reachable_on``); for those the ontology still gives us a domain-neutral
-    mapping because each declared subject type has one identifier property.
-    If a future module makes that ambiguous we fail closed at the stricter
-    declared sensitivity rather than guessing a field name.
+    **Declared first (ADR-047).** A predicate may name the property it carries,
+    and where it does that is the answer — no guessing, and the answer survives
+    a rename. This is what makes geometry's clearance a statement rather than a
+    coincidence: ``has_geometry`` matches no property called ``has_geometry``,
+    so under the heuristic below it would silently have had none.
+
+    **Then the heuristic**, kept for every predicate that does not declare a
+    property. Most property predicates use the property name directly (for
+    example ``aliases``). Identifier predicates are deliberately verbs
+    (``has_nic``, ``reachable_on``); for those the ontology still gives us a
+    domain-neutral mapping because each declared subject type has one identifier
+    property. If a future module makes that ambiguous we fail closed at the
+    stricter declared sensitivity rather than guessing a field name.
+
+    Deleting the heuristic would drop the sensitivity of every predicate relying
+    on it the moment this landed — a governance regression shipped as a cleanup —
+    so it goes when every shipped predicate declares its property, and not before.
     """
+    declared = {
+        prop.sensitivity
+        for prop in ontology.property_specs_for(predicate)
+        if prop.sensitivity is not None
+    }
+    if declared:
+        return max(declared, key=ontology.handling_rank)
+
     direct = {
         spec.sensitivity
         for object_type in ontology.object_types.values()

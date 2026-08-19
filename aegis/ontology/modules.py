@@ -52,7 +52,6 @@ NAME_KEYED_SECTIONS = (
     "interfaces",
     "object_types",
     "predicates",
-    "event_types",
     "actions",
 )
 
