@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import pytest
 import sqlalchemy as sa
+import yaml
 from alembic.config import Config
 from sqlalchemy.orm import Session
 
@@ -116,7 +117,14 @@ def test_a_person_may_control_an_organization(world, ontology) -> None:
     # label change: what matters is that a claim records the version of the
     # whole composition, not the version of whichever module owns its predicate.
     assert stored.ontology_version == ontology.version
-    assert stored.ontology_version != ontology.modules["criminal_network"].version
+    # Where that version comes from, asserted against the manifest itself rather
+    # than against a module's version being different. The inequality this
+    # replaces held only by coincidence, and the coincidence ended at T55 when
+    # `criminal_network` also reached 2.0.0 — at which point a test meant to
+    # prove the two are *independent* was failing because they had agreed.
+    manifest = yaml.safe_load(ONTOLOGY_PATH.read_text(encoding="utf-8"))
+    assert stored.ontology_version == manifest["version"]
+    assert "composition" in manifest, "the stamp must come from the manifest, not a module"
 
 
 def test_an_organization_may_control_an_organization(world) -> None:

@@ -30,8 +30,12 @@ VOCABULARY_SECTIONS = (
     "interfaces",
     "shared_properties",
     "categories",
-    "event_types",
 )
+# `event_types` was listed here until P5 T55. It is not removed from the *diff*
+# by deleting the row — an artifact released while the section existed still
+# carries it, and losing a key from it would still be breaking. It is removed
+# because the section no longer exists to lose a key from: event types are
+# object types (spec 10 §3.1), so `object_types` already covers them.
 
 #: Ordered weakest to strongest. A declared class must be at least as strong as
 #: the computed one — over-declaring is allowed (a cautious author may call an

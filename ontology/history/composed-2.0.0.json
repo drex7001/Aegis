@@ -1,0 +1,1814 @@
+{
+  "modules": [
+    {
+      "enabled": true,
+      "imports": {
+        "platform": ">=1.4.0,<2.0.0"
+      },
+      "name": "criminal_network",
+      "namespace": "aegis.lk/criminal-network",
+      "version": "2.0.0"
+    },
+    {
+      "enabled": true,
+      "imports": {},
+      "name": "platform",
+      "namespace": "aegis.lk/platform",
+      "version": "1.4.0"
+    }
+  ],
+  "namespace": "aegis.lk",
+  "ontology": {
+    "actions": {
+      "adjudicate_identity": {
+        "audit": true,
+        "dual_control_for": [
+          "protected_person"
+        ],
+        "parameters": {
+          "candidate_id": {
+            "type": "identifier"
+          },
+          "entity_id": {
+            "to": "entity",
+            "type": "ref"
+          },
+          "evidence_basis": {
+            "type": "text"
+          },
+          "mention_a": {
+            "to": "mention",
+            "type": "ref"
+          },
+          "mention_b": {
+            "to": "mention",
+            "type": "ref"
+          },
+          "mention_ids": {
+            "many": true,
+            "to": "mention",
+            "type": "ref"
+          },
+          "mode": {
+            "required": true,
+            "type": "enum",
+            "values": [
+              "confirm_match",
+              "reject_match",
+              "split_entity",
+              "mark_unresolved"
+            ]
+          },
+          "note": {
+            "required": true,
+            "type": "text"
+          },
+          "parent_revision_id": {
+            "required": true,
+            "type": "int"
+          },
+          "protected_person": {
+            "default": false,
+            "type": "bool"
+          },
+          "target_entity_id": {
+            "to": "entity",
+            "type": "ref"
+          }
+        },
+        "roles": [
+          "analyst"
+        ],
+        "side_effects": [
+          {
+            "refresh_projection": "edge_projection"
+          }
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role",
+          "second_approver_present"
+        ]
+      },
+      "assign_case_member": {
+        "audit": true,
+        "parameters": {
+          "case_id": {
+            "required": true,
+            "to": "case",
+            "type": "ref"
+          },
+          "role": {
+            "required": true,
+            "type": "enum",
+            "values": [
+              "supervisor",
+              "investigator",
+              "analyst",
+              "auditor"
+            ]
+          },
+          "user_id": {
+            "required": true,
+            "to": "user",
+            "type": "ref"
+          }
+        },
+        "roles": [
+          "supervisor"
+        ],
+        "side_effects": [
+          {
+            "notify": "case_supervisors"
+          }
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role"
+        ]
+      },
+      "close_case": {
+        "audit": true,
+        "parameters": {
+          "case_id": {
+            "required": true,
+            "to": "case",
+            "type": "ref"
+          },
+          "reason": {
+            "required": true,
+            "type": "text"
+          }
+        },
+        "roles": [
+          "supervisor"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role",
+          "required_text_is_substantive"
+        ]
+      },
+      "link_case_reference": {
+        "audit": true,
+        "parameters": {
+          "case_id": {
+            "required": true,
+            "to": "case",
+            "type": "ref"
+          },
+          "note": {
+            "type": "text"
+          },
+          "target_id": {
+            "required": true,
+            "type": "identifier"
+          },
+          "target_type": {
+            "required": true,
+            "type": "enum",
+            "values": [
+              "claim",
+              "entity",
+              "evidence_item"
+            ]
+          }
+        },
+        "roles": [
+          "analyst",
+          "investigator"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role",
+          "actor_is_case_member"
+        ]
+      },
+      "link_claims": {
+        "audit": true,
+        "parameters": {
+          "from_claim": {
+            "required": true,
+            "to": "claim",
+            "type": "ref"
+          },
+          "relation": {
+            "required": true,
+            "type": "enum",
+            "values": [
+              "corroborates",
+              "contradicts"
+            ]
+          },
+          "to_claim": {
+            "required": true,
+            "to": "claim",
+            "type": "ref"
+          }
+        },
+        "roles": [
+          "analyst"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role"
+        ]
+      },
+      "link_hypothesis_claim": {
+        "audit": true,
+        "parameters": {
+          "claim_id": {
+            "required": true,
+            "to": "claim",
+            "type": "ref"
+          },
+          "hypothesis_id": {
+            "required": true,
+            "to": "hypothesis",
+            "type": "ref"
+          },
+          "note": {
+            "type": "text"
+          },
+          "stance": {
+            "required": true,
+            "type": "enum",
+            "values": [
+              "supports",
+              "contradicts"
+            ]
+          }
+        },
+        "roles": [
+          "analyst",
+          "investigator"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role"
+        ]
+      },
+      "open_case": {
+        "audit": true,
+        "parameters": {
+          "case_id": {
+            "type": "identifier"
+          },
+          "handling_code": {
+            "default": "open",
+            "type": "handling_code"
+          },
+          "purpose": {
+            "required": true,
+            "type": "text"
+          },
+          "title": {
+            "required": true,
+            "type": "text"
+          }
+        },
+        "roles": [
+          "analyst",
+          "investigator"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role"
+        ]
+      },
+      "open_hypothesis": {
+        "audit": true,
+        "parameters": {
+          "case_id": {
+            "required": true,
+            "to": "case",
+            "type": "ref"
+          },
+          "handling_code": {
+            "default": "open",
+            "type": "handling_code"
+          },
+          "hypothesis_id": {
+            "type": "identifier"
+          },
+          "missing_info": {
+            "required": true,
+            "type": "text"
+          },
+          "statement": {
+            "required": true,
+            "type": "text"
+          }
+        },
+        "roles": [
+          "analyst",
+          "investigator"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role",
+          "actor_is_case_member",
+          "required_text_is_substantive"
+        ]
+      },
+      "open_task": {
+        "audit": true,
+        "parameters": {
+          "case_id": {
+            "required": true,
+            "to": "case",
+            "type": "ref"
+          },
+          "detail": {
+            "type": "text"
+          },
+          "due_date": {
+            "type": "date"
+          },
+          "hypothesis_id": {
+            "to": "hypothesis",
+            "type": "ref"
+          },
+          "kind": {
+            "default": "task",
+            "type": "enum",
+            "values": [
+              "task",
+              "lead"
+            ]
+          },
+          "owner": {
+            "type": "text"
+          },
+          "task_id": {
+            "type": "identifier"
+          },
+          "title": {
+            "required": true,
+            "type": "text"
+          }
+        },
+        "roles": [
+          "analyst",
+          "investigator"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role",
+          "actor_is_case_member",
+          "required_text_is_substantive"
+        ]
+      },
+      "record_claim": {
+        "audit": true,
+        "parameters": {
+          "analytic_confidence": {
+            "dimension": "analytic_confidence",
+            "type": "grade"
+          },
+          "assertion_type": {
+            "default": "reported",
+            "type": "assertion_type"
+          },
+          "case_id": {
+            "to": "case",
+            "type": "ref"
+          },
+          "claim_id": {
+            "type": "identifier"
+          },
+          "collection_method": {
+            "type": "enum",
+            "values": [
+              "extracted",
+              "curated",
+              "manual",
+              "imported"
+            ]
+          },
+          "credibility_normalized": {
+            "default": "cannot_judge",
+            "dimension": "credibility",
+            "type": "grade"
+          },
+          "credibility_original": {
+            "type": "text"
+          },
+          "credibility_scheme": {
+            "type": "grading_scheme"
+          },
+          "event_time_earliest": {
+            "type": "timestamp"
+          },
+          "event_time_latest": {
+            "type": "timestamp"
+          },
+          "excerpt": {
+            "type": "text"
+          },
+          "handling_code": {
+            "default": "open",
+            "type": "handling_code"
+          },
+          "jurisdiction": {
+            "type": "text"
+          },
+          "location_text": {
+            "type": "text"
+          },
+          "object_entity_type": {
+            "type": "object_type"
+          },
+          "object_id": {
+            "to": "entity",
+            "type": "ref"
+          },
+          "object_mention_id": {
+            "to": "mention",
+            "type": "ref"
+          },
+          "object_value": {
+            "type": "literal"
+          },
+          "predicate": {
+            "required": true,
+            "type": "predicate"
+          },
+          "record_id": {
+            "required": true,
+            "to": "source_record",
+            "type": "ref"
+          },
+          "subject_entity_type": {
+            "type": "object_type"
+          },
+          "subject_id": {
+            "to": "entity",
+            "type": "ref"
+          },
+          "subject_mention_id": {
+            "to": "mention",
+            "type": "ref"
+          },
+          "supersedes": {
+            "to": "claim",
+            "type": "ref"
+          },
+          "valid_from": {
+            "type": "date"
+          },
+          "valid_to": {
+            "type": "date"
+          },
+          "verification_status": {
+            "default": "unverified",
+            "dimension": "verification",
+            "type": "grade"
+          }
+        },
+        "roles": [
+          "analyst",
+          "investigator"
+        ],
+        "side_effects": [
+          {
+            "refresh_projection": "edge_projection"
+          }
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role",
+          "actor_is_case_member"
+        ]
+      },
+      "record_event": {
+        "audit": true,
+        "parameters": {
+          "analytic_confidence": {
+            "dimension": "analytic_confidence",
+            "type": "grade"
+          },
+          "assertion_type": {
+            "default": "reported",
+            "type": "assertion_type"
+          },
+          "case_id": {
+            "to": "case",
+            "type": "ref"
+          },
+          "credibility_normalized": {
+            "default": "cannot_judge",
+            "dimension": "credibility",
+            "type": "grade"
+          },
+          "event_id": {
+            "type": "identifier"
+          },
+          "event_time_earliest": {
+            "type": "timestamp"
+          },
+          "event_time_latest": {
+            "type": "timestamp"
+          },
+          "event_type": {
+            "required": true,
+            "type": "object_type"
+          },
+          "excerpt": {
+            "type": "text"
+          },
+          "handling_code": {
+            "default": "open",
+            "type": "handling_code"
+          },
+          "label": {
+            "type": "text"
+          },
+          "participants": {
+            "payload_schema": "event_participants",
+            "type": "json"
+          },
+          "places": {
+            "payload_schema": "event_places",
+            "type": "json"
+          },
+          "record_id": {
+            "required": true,
+            "to": "source_record",
+            "type": "ref"
+          },
+          "summary": {
+            "required": true,
+            "type": "text"
+          },
+          "verification_status": {
+            "default": "unverified",
+            "dimension": "verification",
+            "type": "grade"
+          }
+        },
+        "roles": [
+          "analyst",
+          "investigator"
+        ],
+        "side_effects": [
+          {
+            "refresh_projection": "edge_projection"
+          }
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role",
+          "actor_is_case_member",
+          "required_text_is_substantive"
+        ]
+      },
+      "register_evidence": {
+        "audit": true,
+        "parameters": {
+          "acquired_at": {
+            "type": "timestamp"
+          },
+          "acquired_by": {
+            "type": "text"
+          },
+          "case_id": {
+            "to": "case",
+            "type": "ref"
+          },
+          "content_hash": {
+            "type": "text"
+          },
+          "description": {
+            "required": true,
+            "type": "text"
+          },
+          "evidence_id": {
+            "type": "identifier"
+          },
+          "handling_code": {
+            "default": "restricted",
+            "type": "handling_code"
+          },
+          "legal_basis": {
+            "type": "text"
+          },
+          "record_id": {
+            "to": "source_record",
+            "type": "ref"
+          },
+          "storage_uri": {
+            "type": "text"
+          }
+        },
+        "roles": [
+          "analyst",
+          "investigator",
+          "evidence_officer"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role",
+          "actor_is_case_member"
+        ]
+      },
+      "release_quarantine": {
+        "audit": true,
+        "parameters": {
+          "note": {
+            "required": true,
+            "type": "text"
+          },
+          "record_id": {
+            "required": true,
+            "to": "source_record",
+            "type": "ref"
+          }
+        },
+        "roles": [
+          "supervisor"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role"
+        ]
+      },
+      "remove_case_member": {
+        "audit": true,
+        "parameters": {
+          "case_id": {
+            "required": true,
+            "to": "case",
+            "type": "ref"
+          },
+          "user_id": {
+            "required": true,
+            "to": "user",
+            "type": "ref"
+          }
+        },
+        "roles": [
+          "supervisor"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role"
+        ]
+      },
+      "retract_claim": {
+        "audit": true,
+        "parameters": {
+          "claim_id": {
+            "required": true,
+            "to": "claim",
+            "type": "ref"
+          },
+          "reason": {
+            "required": true,
+            "type": "text"
+          }
+        },
+        "roles": [
+          "analyst",
+          "supervisor"
+        ],
+        "side_effects": [
+          {
+            "refresh_projection": "edge_projection"
+          }
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role"
+        ]
+      },
+      "review_suggestion": {
+        "audit": true,
+        "parameters": {
+          "decision": {
+            "required": true,
+            "type": "enum",
+            "values": [
+              "accepted",
+              "rejected"
+            ]
+          },
+          "edits": {
+            "payload_schema": "suggestion_payload",
+            "type": "json"
+          },
+          "note": {
+            "type": "text"
+          },
+          "suggestion_id": {
+            "required": true,
+            "to": "suggestion",
+            "type": "ref"
+          }
+        },
+        "roles": [
+          "analyst"
+        ],
+        "side_effects": [
+          {
+            "refresh_projection": "edge_projection"
+          }
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role"
+        ]
+      },
+      "revise_hypothesis": {
+        "audit": true,
+        "parameters": {
+          "hypothesis_id": {
+            "required": true,
+            "to": "hypothesis",
+            "type": "ref"
+          },
+          "missing_info": {
+            "type": "text"
+          },
+          "note": {
+            "required": true,
+            "type": "text"
+          },
+          "statement": {
+            "type": "text"
+          },
+          "status": {
+            "type": "enum",
+            "values": [
+              "open",
+              "supported",
+              "refuted",
+              "withdrawn"
+            ]
+          }
+        },
+        "roles": [
+          "analyst",
+          "investigator"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role",
+          "required_text_is_substantive"
+        ]
+      },
+      "seal_record": {
+        "audit": true,
+        "parameters": {
+          "reason": {
+            "required": true,
+            "type": "text"
+          },
+          "resource_id": {
+            "required": true,
+            "type": "identifier"
+          }
+        },
+        "roles": [
+          "supervisor"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role"
+        ]
+      },
+      "submit_suggestion": {
+        "audit": true,
+        "parameters": {
+          "case_id": {
+            "to": "case",
+            "type": "ref"
+          },
+          "expires_at": {
+            "type": "timestamp"
+          },
+          "idempotency_key": {
+            "type": "text"
+          },
+          "payload": {
+            "payload_schema": "suggestion_payload",
+            "required": true,
+            "type": "json"
+          },
+          "producer": {
+            "required": true,
+            "type": "text"
+          },
+          "producer_meta": {
+            "payload_schema": "suggestion_payload",
+            "type": "json"
+          },
+          "producer_version": {
+            "default": "unversioned",
+            "type": "text"
+          },
+          "record_id": {
+            "to": "source_record",
+            "type": "ref"
+          },
+          "suggestion_id": {
+            "type": "identifier"
+          },
+          "suggestion_kind": {
+            "default": "claim_draft",
+            "type": "enum",
+            "values": [
+              "claim_draft",
+              "identity_candidate",
+              "claim_relation"
+            ]
+          },
+          "supersedes": {
+            "to": "suggestion",
+            "type": "ref"
+          }
+        },
+        "roles": [
+          "analyst",
+          "investigator"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role"
+        ]
+      },
+      "transfer_custody": {
+        "audit": true,
+        "parameters": {
+          "evidence_id": {
+            "required": true,
+            "to": "evidence_item",
+            "type": "ref"
+          },
+          "from_actor": {
+            "type": "text"
+          },
+          "hash_checked": {
+            "default": false,
+            "type": "bool"
+          },
+          "note": {
+            "type": "text"
+          },
+          "occurred_at": {
+            "required": true,
+            "type": "timestamp"
+          },
+          "purpose": {
+            "required": true,
+            "type": "text"
+          },
+          "to_actor": {
+            "required": true,
+            "type": "text"
+          }
+        },
+        "roles": [
+          "evidence_officer",
+          "investigator"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role"
+        ]
+      },
+      "unlink_case_reference": {
+        "audit": true,
+        "parameters": {
+          "case_id": {
+            "required": true,
+            "to": "case",
+            "type": "ref"
+          },
+          "reason": {
+            "required": true,
+            "type": "text"
+          },
+          "target_id": {
+            "required": true,
+            "type": "identifier"
+          },
+          "target_type": {
+            "required": true,
+            "type": "enum",
+            "values": [
+              "claim",
+              "entity",
+              "evidence_item"
+            ]
+          }
+        },
+        "roles": [
+          "analyst",
+          "investigator"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role",
+          "actor_is_case_member",
+          "required_text_is_substantive"
+        ]
+      },
+      "unlink_hypothesis_claim": {
+        "audit": true,
+        "parameters": {
+          "claim_id": {
+            "required": true,
+            "to": "claim",
+            "type": "ref"
+          },
+          "hypothesis_id": {
+            "required": true,
+            "to": "hypothesis",
+            "type": "ref"
+          },
+          "reason": {
+            "required": true,
+            "type": "text"
+          },
+          "stance": {
+            "required": true,
+            "type": "enum",
+            "values": [
+              "supports",
+              "contradicts"
+            ]
+          }
+        },
+        "roles": [
+          "analyst",
+          "investigator"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role",
+          "required_text_is_substantive"
+        ]
+      },
+      "update_task": {
+        "audit": true,
+        "parameters": {
+          "detail": {
+            "type": "text"
+          },
+          "due_date": {
+            "type": "date"
+          },
+          "note": {
+            "type": "text"
+          },
+          "owner": {
+            "type": "text"
+          },
+          "status": {
+            "type": "enum",
+            "values": [
+              "open",
+              "in_progress",
+              "blocked",
+              "done",
+              "dropped"
+            ]
+          },
+          "task_id": {
+            "required": true,
+            "to": "investigation_task",
+            "type": "ref"
+          }
+        },
+        "roles": [
+          "analyst",
+          "investigator"
+        ],
+        "submission_criteria": [
+          "actor_holds_action_role"
+        ]
+      }
+    },
+    "categories": {
+      "financial": {
+        "color": "#00897b",
+        "label": "Financial/enterprise"
+      },
+      "geospatial": {
+        "color": "#2e7d32",
+        "label": "Geospatial"
+      },
+      "ideological": {
+        "color": "#7c4dff",
+        "label": "Ideological"
+      },
+      "kinship": {
+        "color": "#6d4c41",
+        "label": "Kinship/personal"
+      },
+      "occurrence": {
+        "color": "#455a64",
+        "label": "Occurrence"
+      },
+      "prison_co_location": {
+        "color": "#ef6c00",
+        "label": "Prison co-location"
+      },
+      "transnational": {
+        "color": "#3949ab",
+        "label": "Transnational"
+      }
+    },
+    "grading": {
+      "analytic_confidence": [
+        "low",
+        "moderate",
+        "high"
+      ],
+      "credibility": {
+        "normalized": [
+          "confirmed",
+          "probably_true",
+          "possibly_true",
+          "doubtful",
+          "improbable",
+          "cannot_judge"
+        ]
+      },
+      "reliability": {
+        "normalized": [
+          "reliable",
+          "generally_reliable",
+          "unknown",
+          "unreliable"
+        ]
+      },
+      "schemes": {
+        "admiralty": {
+          "A": {
+            "reliability": "reliable"
+          },
+          "B": {
+            "reliability": "generally_reliable"
+          },
+          "C": {
+            "reliability": "generally_reliable"
+          },
+          "F": {
+            "reliability": "unknown"
+          }
+        }
+      },
+      "verification": [
+        "unverified",
+        "partially_corroborated",
+        "corroborated",
+        "record_confirmed",
+        "refuted"
+      ]
+    },
+    "handling_codes": [
+      "open",
+      "restricted",
+      "sensitive"
+    ],
+    "interfaces": {
+      "event": {
+        "label": "Event",
+        "properties": [
+          "summary"
+        ]
+      },
+      "identifiable": {
+        "label": "Identifiable",
+        "properties": [
+          "registered_identifier"
+        ]
+      },
+      "party": {
+        "label": "Party",
+        "properties": [
+          "alias"
+        ]
+      },
+      "place": {
+        "label": "Place",
+        "properties": [
+          "geometry"
+        ]
+      }
+    },
+    "object_types": {
+      "arrest": {
+        "display": {
+          "title": "summary"
+        },
+        "implements": [
+          "event"
+        ],
+        "label": "Arrest",
+        "properties": {
+          "notes": {
+            "shared": "notes"
+          },
+          "summary": {
+            "shared": "summary"
+          }
+        }
+      },
+      "location": {
+        "display": {
+          "title": "name"
+        },
+        "implements": [
+          "place"
+        ],
+        "label": "Location",
+        "properties": {
+          "geometry": {
+            "shared": "geometry"
+          },
+          "name": {
+            "required": true,
+            "type": "text"
+          },
+          "notes": {
+            "shared": "notes"
+          }
+        }
+      },
+      "meeting": {
+        "display": {
+          "title": "summary"
+        },
+        "implements": [
+          "event"
+        ],
+        "label": "Meeting",
+        "properties": {
+          "notes": {
+            "shared": "notes"
+          },
+          "summary": {
+            "shared": "summary"
+          }
+        }
+      },
+      "observation": {
+        "display": {
+          "title": "summary"
+        },
+        "implements": [
+          "event"
+        ],
+        "label": "Observation",
+        "properties": {
+          "notes": {
+            "shared": "notes"
+          },
+          "summary": {
+            "shared": "summary"
+          }
+        }
+      },
+      "organization": {
+        "display": {
+          "subtitle": "aliases",
+          "title": "name"
+        },
+        "implements": [
+          "party"
+        ],
+        "label": "Organization",
+        "properties": {
+          "aliases": {
+            "shared": "alias"
+          },
+          "name": {
+            "required": true,
+            "type": "text"
+          },
+          "notes": {
+            "shared": "notes"
+          }
+        }
+      },
+      "person": {
+        "display": {
+          "subtitle": "aliases",
+          "title": "name"
+        },
+        "implements": [
+          "party",
+          "identifiable"
+        ],
+        "label": "Person",
+        "properties": {
+          "aliases": {
+            "shared": "alias"
+          },
+          "date_of_birth": {
+            "conflicts": "preserve",
+            "type": "date"
+          },
+          "name": {
+            "required": true,
+            "type": "text"
+          },
+          "nic": {
+            "label": "NIC",
+            "shared": "registered_identifier"
+          },
+          "notes": {
+            "shared": "notes"
+          }
+        }
+      },
+      "phone_number": {
+        "display": {
+          "title": "number"
+        },
+        "implements": [
+          "identifiable"
+        ],
+        "label": "Phone number",
+        "properties": {
+          "number": {
+            "label": "Number",
+            "required": true,
+            "shared": "registered_identifier"
+          }
+        }
+      },
+      "travel": {
+        "display": {
+          "title": "summary"
+        },
+        "implements": [
+          "event"
+        ],
+        "label": "Travel",
+        "properties": {
+          "notes": {
+            "shared": "notes"
+          },
+          "summary": {
+            "shared": "summary"
+          }
+        }
+      },
+      "vehicle": {
+        "display": {
+          "subtitle": "registration",
+          "title": "description"
+        },
+        "label": "Vehicle",
+        "properties": {
+          "description": {
+            "required": true,
+            "type": "text"
+          },
+          "registration": {
+            "type": "identifier"
+          }
+        }
+      }
+    },
+    "predicates": {
+      "affiliated_with": {
+        "category": "ideological",
+        "object": [
+          "organization",
+          "literal"
+        ],
+        "subject": [
+          "person"
+        ]
+      },
+      "allied_with": {
+        "category": "financial",
+        "object": [
+          "person"
+        ],
+        "subject": [
+          "person"
+        ],
+        "symmetric": true
+      },
+      "assessed_as_criminal_organization": {
+        "category": "ideological",
+        "object": "literal",
+        "subject": [
+          "organization"
+        ]
+      },
+      "born_on": {
+        "object": "literal",
+        "subject": [
+          "person"
+        ]
+      },
+      "close_associate_of": {
+        "category": "financial",
+        "object": [
+          "person"
+        ],
+        "subject": [
+          "person"
+        ],
+        "symmetric": true
+      },
+      "co_arrested_with": {
+        "category": "transnational",
+        "object": [
+          "person"
+        ],
+        "subject": [
+          "person"
+        ],
+        "symmetric": true
+      },
+      "co_attacker_with": {
+        "category": "ideological",
+        "object": [
+          "person"
+        ],
+        "subject": [
+          "person"
+        ],
+        "symmetric": true
+      },
+      "co_located_in_prison_with": {
+        "category": "prison_co_location",
+        "computed": true,
+        "object": [
+          "person"
+        ],
+        "subject": [
+          "person"
+        ],
+        "symmetric": true
+      },
+      "communicated_with": {
+        "category": "transnational",
+        "object": [
+          "person"
+        ],
+        "subject": [
+          "person"
+        ],
+        "symmetric": true
+      },
+      "conspired_against": {
+        "category": "financial",
+        "object": [
+          "person"
+        ],
+        "subject": [
+          "person"
+        ]
+      },
+      "conspired_with": {
+        "category": "ideological",
+        "object": [
+          "person"
+        ],
+        "subject": [
+          "person"
+        ],
+        "symmetric": true
+      },
+      "controls": {
+        "category": "financial",
+        "object": [
+          "organization"
+        ],
+        "subject": [
+          "party"
+        ]
+      },
+      "financed_and_supplied_materiel_to": {
+        "category": "financial",
+        "object": [
+          "organization"
+        ],
+        "subject": [
+          "person"
+        ]
+      },
+      "foreign_contact_of": {
+        "category": "transnational",
+        "object": [
+          "organization"
+        ],
+        "subject": [
+          "person"
+        ]
+      },
+      "founded": {
+        "category": "ideological",
+        "object": [
+          "organization"
+        ],
+        "subject": [
+          "person"
+        ]
+      },
+      "has_arrestee": {
+        "category": "occurrence",
+        "label": "Arrestee",
+        "object": [
+          "person"
+        ],
+        "subject": [
+          "arrest"
+        ]
+      },
+      "has_arresting_officer": {
+        "category": "occurrence",
+        "label": "Arresting officer",
+        "object": [
+          "party"
+        ],
+        "subject": [
+          "arrest"
+        ]
+      },
+      "has_attendee": {
+        "category": "occurrence",
+        "label": "Attendee",
+        "object": [
+          "party"
+        ],
+        "subject": [
+          "meeting",
+          "observation"
+        ]
+      },
+      "has_geometry": {
+        "category": "geospatial",
+        "label": "Geometry",
+        "object": "literal",
+        "property": "geometry",
+        "subject": [
+          "place"
+        ]
+      },
+      "has_nic": {
+        "identifier": true,
+        "label": "Has NIC",
+        "object": "literal",
+        "property": "nic",
+        "subject": [
+          "person"
+        ]
+      },
+      "has_observer": {
+        "category": "occurrence",
+        "label": "Observer",
+        "object": [
+          "party"
+        ],
+        "subject": [
+          "observation"
+        ]
+      },
+      "has_participant": {
+        "category": "occurrence",
+        "label": "Participant",
+        "object": [
+          "party"
+        ],
+        "subject": [
+          "event"
+        ]
+      },
+      "has_traveller": {
+        "category": "occurrence",
+        "label": "Traveller",
+        "object": [
+          "person"
+        ],
+        "subject": [
+          "travel"
+        ]
+      },
+      "helped_establish_operations_of": {
+        "category": "transnational",
+        "object": [
+          "person"
+        ],
+        "subject": [
+          "person"
+        ]
+      },
+      "killed_family_of": {
+        "category": "financial",
+        "object": [
+          "person"
+        ],
+        "subject": [
+          "person"
+        ]
+      },
+      "known_as": {
+        "object": "literal",
+        "subject": [
+          "person",
+          "organization"
+        ]
+      },
+      "masterminded_attack_with": {
+        "category": "ideological",
+        "object": [
+          "person"
+        ],
+        "subject": [
+          "person"
+        ],
+        "symmetric": true
+      },
+      "member_of": {
+        "category": "ideological",
+        "object": [
+          "organization"
+        ],
+        "subject": [
+          "person"
+        ]
+      },
+      "ordered_killing_of": {
+        "category": "financial",
+        "object": [
+          "person"
+        ],
+        "subject": [
+          "person"
+        ]
+      },
+      "partnered_with": {
+        "category": "financial",
+        "object": [
+          "person"
+        ],
+        "subject": [
+          "person"
+        ],
+        "symmetric": true
+      },
+      "pledged_allegiance_to": {
+        "category": "ideological",
+        "object": [
+          "organization"
+        ],
+        "subject": [
+          "person",
+          "organization"
+        ]
+      },
+      "provided_military_training_to": {
+        "category": "ideological",
+        "object": [
+          "organization",
+          "person"
+        ],
+        "subject": [
+          "person"
+        ]
+      },
+      "reachable_on": {
+        "identifier": true,
+        "object": "literal",
+        "property": "number",
+        "subject": [
+          "phone_number"
+        ]
+      },
+      "registered_as": {
+        "identifier": true,
+        "object": "literal",
+        "property": "registration",
+        "subject": [
+          "vehicle"
+        ]
+      },
+      "rival_of": {
+        "category": "financial",
+        "object": [
+          "person"
+        ],
+        "subject": [
+          "person"
+        ],
+        "symmetric": true
+      },
+      "sibling_of": {
+        "category": "kinship",
+        "object": [
+          "person"
+        ],
+        "subject": [
+          "person"
+        ],
+        "symmetric": true
+      },
+      "splinter_affiliate_of": {
+        "category": "ideological",
+        "object": [
+          "organization"
+        ],
+        "subject": [
+          "organization"
+        ]
+      },
+      "spouse_of": {
+        "category": "kinship",
+        "object": [
+          "person"
+        ],
+        "subject": [
+          "person"
+        ],
+        "symmetric": true
+      },
+      "successor_leader_of": {
+        "category": "ideological",
+        "object": [
+          "organization"
+        ],
+        "subject": [
+          "person"
+        ]
+      },
+      "summarized_as": {
+        "category": "occurrence",
+        "label": "Summary",
+        "object": "literal",
+        "property": "summary",
+        "subject": [
+          "event"
+        ]
+      },
+      "tipped_off_police_on": {
+        "category": "financial",
+        "object": [
+          "person"
+        ],
+        "subject": [
+          "person"
+        ]
+      },
+      "took_place_at": {
+        "category": "geospatial",
+        "label": "Took place at",
+        "object": [
+          "place"
+        ],
+        "subject": [
+          "meeting",
+          "arrest",
+          "observation"
+        ]
+      },
+      "trafficked_narcotics_with": {
+        "category": "transnational",
+        "object": [
+          "person"
+        ],
+        "subject": [
+          "person"
+        ],
+        "symmetric": true
+      },
+      "travelled_from": {
+        "category": "geospatial",
+        "label": "Departed from",
+        "object": [
+          "place"
+        ],
+        "subject": [
+          "travel"
+        ]
+      },
+      "travelled_to": {
+        "category": "geospatial",
+        "label": "Arrived at",
+        "object": [
+          "place"
+        ],
+        "subject": [
+          "travel"
+        ]
+      }
+    },
+    "shared_properties": {
+      "alias": {
+        "label": "Aliases",
+        "many": true,
+        "type": "text"
+      },
+      "geometry": {
+        "label": "Geometry",
+        "type": "geo"
+      },
+      "notes": {
+        "label": "Notes",
+        "type": "text"
+      },
+      "registered_identifier": {
+        "label": "Registered identifier",
+        "sensitivity": "restricted",
+        "type": "identifier"
+      },
+      "summary": {
+        "label": "Summary",
+        "type": "text"
+      }
+    },
+    "source_types": [
+      "open_source",
+      "court_record",
+      "commission_report",
+      "government_system",
+      "human",
+      "sensor",
+      "investigator",
+      "algorithmic"
+    ]
+  },
+  "owners": {
+    "adjudicate_identity": "platform",
+    "affiliated_with": "criminal_network",
+    "alias": "platform",
+    "allied_with": "criminal_network",
+    "arrest": "criminal_network",
+    "assessed_as_criminal_organization": "criminal_network",
+    "assign_case_member": "platform",
+    "born_on": "criminal_network",
+    "close_associate_of": "criminal_network",
+    "close_case": "platform",
+    "co_arrested_with": "criminal_network",
+    "co_attacker_with": "criminal_network",
+    "co_located_in_prison_with": "criminal_network",
+    "communicated_with": "criminal_network",
+    "conspired_against": "criminal_network",
+    "conspired_with": "criminal_network",
+    "controls": "criminal_network",
+    "event": "platform",
+    "financed_and_supplied_materiel_to": "criminal_network",
+    "financial": "criminal_network",
+    "foreign_contact_of": "criminal_network",
+    "founded": "criminal_network",
+    "geometry": "platform",
+    "geospatial": "criminal_network",
+    "has_arrestee": "criminal_network",
+    "has_arresting_officer": "criminal_network",
+    "has_attendee": "criminal_network",
+    "has_geometry": "criminal_network",
+    "has_nic": "criminal_network",
+    "has_observer": "criminal_network",
+    "has_participant": "criminal_network",
+    "has_traveller": "criminal_network",
+    "helped_establish_operations_of": "criminal_network",
+    "identifiable": "platform",
+    "ideological": "criminal_network",
+    "killed_family_of": "criminal_network",
+    "kinship": "criminal_network",
+    "known_as": "criminal_network",
+    "link_case_reference": "platform",
+    "link_claims": "platform",
+    "link_hypothesis_claim": "platform",
+    "location": "criminal_network",
+    "masterminded_attack_with": "criminal_network",
+    "meeting": "criminal_network",
+    "member_of": "criminal_network",
+    "notes": "platform",
+    "observation": "criminal_network",
+    "occurrence": "criminal_network",
+    "open_case": "platform",
+    "open_hypothesis": "platform",
+    "open_task": "platform",
+    "ordered_killing_of": "criminal_network",
+    "organization": "criminal_network",
+    "partnered_with": "criminal_network",
+    "party": "platform",
+    "person": "criminal_network",
+    "phone_number": "criminal_network",
+    "place": "platform",
+    "pledged_allegiance_to": "criminal_network",
+    "prison_co_location": "criminal_network",
+    "provided_military_training_to": "criminal_network",
+    "reachable_on": "criminal_network",
+    "record_claim": "platform",
+    "record_event": "platform",
+    "register_evidence": "platform",
+    "registered_as": "criminal_network",
+    "registered_identifier": "platform",
+    "release_quarantine": "platform",
+    "remove_case_member": "platform",
+    "retract_claim": "platform",
+    "review_suggestion": "platform",
+    "revise_hypothesis": "platform",
+    "rival_of": "criminal_network",
+    "seal_record": "platform",
+    "sibling_of": "criminal_network",
+    "splinter_affiliate_of": "criminal_network",
+    "spouse_of": "criminal_network",
+    "submit_suggestion": "platform",
+    "successor_leader_of": "criminal_network",
+    "summarized_as": "criminal_network",
+    "summary": "platform",
+    "tipped_off_police_on": "criminal_network",
+    "took_place_at": "criminal_network",
+    "trafficked_narcotics_with": "criminal_network",
+    "transfer_custody": "platform",
+    "transnational": "criminal_network",
+    "travel": "criminal_network",
+    "travelled_from": "criminal_network",
+    "travelled_to": "criminal_network",
+    "unlink_case_reference": "platform",
+    "unlink_hypothesis_claim": "platform",
+    "update_task": "platform",
+    "vehicle": "criminal_network"
+  },
+  "version": "2.0.0"
+}

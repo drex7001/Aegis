@@ -16,7 +16,7 @@ composition:
     # Exact, like every manifest pin. It has to be edited on each platform
     # bump, and that is the tripwire working: a second domain is re-read
     # against the platform module every time the platform module moves.
-    version: "1.3.0"
+    version: "1.4.0"
 
   - module: border_cargo
     path: border-cargo.yaml

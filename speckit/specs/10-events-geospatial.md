@@ -757,8 +757,13 @@ actions:
       case_id:             {type: ref, to: case}
     submission_criteria: [actor_holds_action_role, actor_is_case_member, required_text_is_substantive]
     side_effects:
-      - refresh_projection: location_geometry_projection
+      - refresh_projection: edge_projection
 ```
+
+*(Corrected at T55: this section first named `location_geometry_projection`
+here. `record_event` writes participation and place claims, which are edges;
+geometry claims are written through `record_claim`, so the geometry
+projection's refresh is declared there, at T56, beside the table it names.)*
 
 `participants` is `[{role: <predicate>, entity_id, mention_id?}]` and `places`
 is `[{role: <predicate>, entity_id}]`; both schemas are code-owned and

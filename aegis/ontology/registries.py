@@ -36,8 +36,57 @@ SUBMISSION_CRITERIA = frozenset(
 #: first action that genuinely needs one.
 SIDE_EFFECTS = frozenset({"refresh_projection", "notify"})
 
-#: Schemas a `json` parameter may name. Exactly one exists, deliberately:
-#: `submit_suggestion.payload` is per-kind and code-owned (ADR-031 §1), and
-#: requiring a registered schema id is what stops `json` becoming an escape
-#: hatch around the closed suggestion-kind list.
-PAYLOAD_SCHEMAS = frozenset({"suggestion_payload"})
+#: Schemas a `json` parameter may name. Every one is code-owned: requiring a
+#: registered schema id is what stops `json` becoming an escape hatch around a
+#: closed list. `suggestion_payload` is per-kind (ADR-031 §1); the two event
+#: schemas are `record_event`'s participant and place lists (spec 10 §12), whose
+#: elements each become an ordinary claim through the ordinary validator.
+PAYLOAD_SCHEMAS = frozenset(
+    {"suggestion_payload", "event_participants", "event_places"}
+)
+
+# ── geospatial vocabularies (spec 10 §4.2, ADR-048) ─────────────────────────
+#
+# Code-owned for the same reason `SUBMISSION_CRITERIA` is: the validator and the
+# renderer must implement each value, so a value that could be *declared* before
+# it could be *honoured* would be a promise nothing keeps (H-13). They are
+# platform vocabulary, not domain vocabulary — a second domain gets the same
+# ladder, which is why they are not in a module file.
+#
+# Both are exported to the workspace by `aegis ontology generate`, so no
+# geospatial vocabulary is typed into React either.
+
+#: Administrative granularity of a claimed geometry, ordered **coarse → fine**.
+#: Generic on purpose: `subdivision` covers a province, state or district
+#: without the platform learning any country's hierarchy.
+GEO_ADMIN_LEVELS = ("country", "subdivision", "locality", "site")
+
+#: Geometry that is not an administrative unit at all — an instrument fix, a
+#: coverage polygon, a route. Not a rung on the ladder, which is why it is not
+#: in it: asking whether it is coarser than `locality` has no answer.
+GEO_NOT_ADMINISTRATIVE = "not_administrative"
+
+#: Every value `admin_level` may take.
+GEO_ADMIN_VALUES = frozenset(GEO_ADMIN_LEVELS) | {GEO_NOT_ADMINISTRATIVE}
+
+#: How a geometry was obtained. The renderer selects its mark from this together
+#: with the admin level, the geometry type and the accuracy — never from one
+#: overloaded "precision" value, which is the H-21 finding this replaces.
+GEO_DERIVATIONS = frozenset(
+    {
+        "instrument_fix",             # GPS/technical fix with a stated accuracy
+        "source_stated_coordinates",  # the source printed coordinates
+        "address_match",              # matched to a street address
+        "admin_unit_boundary",        # the boundary polygon of a named unit
+        "admin_unit_centroid",        # the centre of a named unit — NOT a location
+        "coverage_area",              # the area something covers (a cell, a zone)
+        "analyst_estimate",           # a reasoned estimate; the reasoning is the excerpt
+    }
+)
+
+#: Derivations that describe an area rather than a position, so a radius is
+#: mandatory: a centroid without one is a pin pretending to be a city
+#: (spec 10 §4.3 rule 5).
+GEO_DERIVATIONS_REQUIRING_ACCURACY = frozenset(
+    {"admin_unit_centroid", "coverage_area"}
+)
