@@ -279,14 +279,28 @@ contract layer because the bundle is built from the shipped ontology, so a type
 added to a fixture cannot appear in it; the test says so rather than implying
 otherwise.
 
-**T52. No-unauthenticated-surface re-verification** (charter exit №5; needs
+**T52. No-unauthenticated-surface re-verification — DONE (2026-08-19)** (charter exit №5; needs
 T50 and the T41 checklist) — the legacy explorer and `/api/*` were deleted in
 P2 (T22, ADR-026); this task re-verifies through the grown P4 surface: repo
 grep for any `public_route`-style exemption, authz-matrix run across all P4
 routes/screens, the cookie-identity assertion from T42, and the analyst-needs
 checklist sign-off.
-AC: no unauthenticated read surface exists anywhere in the repo; the
-checklist sign-off is in the exit review.
+AC met: `tests/component/test_no_anonymous_surface.py` (15 cases) re-verifies
+through the grown surface — every live route carries exactly one gate (walked
+from the dependency graph, not a maintained list), seven P4 routes are
+spot-checked end to end for a 401 because a gate that exists but does not fire
+is what a graph walk cannot see, `public_route` appears nowhere in the
+repository, exactly one mount exists, `/api/*` still 404s, every client route
+sits inside `AuthGuard`, every declared route is rendered, and the client
+reaches no origin but its own and Keycloak. The checklist is
+`../reviews/phase-04-analyst-needs.md`, and it records what was **dropped** as
+well as what was met.
+
+**One defect found.** Wrapping errors in problem+json at T36 rebuilt the
+response from the exception's body and dropped its headers, so every 401 had
+been losing `WWW-Authenticate: Bearer` — RFC 7235 §3.1, and the only field
+telling a client how to authenticate. Nothing failed; it stopped being correct
+HTTP. Fixed with a regression test in `test_error_envelope.py`.
 
 **T53. Phase exit review** — walk the charter's gate criteria (non-deferrable,
 ADR-025); update speckit docs where reality diverged; append ADRs; write
