@@ -1,4 +1,4 @@
-"""Rebuildable projections: edge projection, legacy graph JSON, Cypher, search (T10/T21, Article XIII)."""
+"""Rebuildable projections: edges, geometry, legacy graph JSON, Cypher, search (T10/T21/T56, Article XIII)."""
 
 from aegis.projections.edges import (
     AGGREGATION_METHOD,
@@ -7,6 +7,10 @@ from aegis.projections.edges import (
     EdgeProjectionReport,
     is_stale,
     rebuild_edge_projection,
+)
+from aegis.projections.geometry import (
+    GeometryProjectionReport,
+    rebuild_location_geometry_projection,
 )
 from aegis.projections.graph import (
     CONFIDENCE_TAGS,
@@ -27,9 +31,11 @@ __all__ = [
     "NODE_PROPERTY_PREDICATES",
     "WEIGHTS",
     "EdgeProjectionReport",
+    "GeometryProjectionReport",
     "build_full_graph",
     "build_graph",
     "is_stale",
     "rebuild_edge_projection",
+    "rebuild_location_geometry_projection",
     "write_outputs",
 ]

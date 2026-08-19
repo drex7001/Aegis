@@ -64,6 +64,9 @@ TRUNCATE_DOMAIN_TABLES = (
     # rather than as a set of roots someone has to trace.
     "case_reference, hypothesis_claim, hypothesis_revision, hypothesis, "
     "investigation_task, "
+    # The geometry projection (T56). Reached through `claim` by CASCADE, and
+    # named here for the same reason as the row above.
+    "location_geometry_projection, "
     "entity, authz_outbox CASCADE"
 )
 
