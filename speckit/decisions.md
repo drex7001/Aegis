@@ -1614,3 +1614,195 @@ that other roles cannot (`claim_filters`) — is unchanged and already tested.
 
 **Revisit when.** An auditor is a real second user before P7, which the pilot
 gate would have to clear first anyway.
+
+---
+
+## ADR-046: An event is an entity, participation is claims — Phase 5 adds no canonical event storage
+
+**Context.** The pre-authored T56 said "migrations: event objects with
+role-typed participant links … PostGIS `geometry` column + `precision` on
+location entities". B-13 found the problem before a line was written: that model
+puts asserted geometry, precision and participant roles in mutable columns
+outside the claim store, which Article I says is where assertions live. ADR-033
+amended the charter to a claims-first boundary in July; the task text was never
+rewritten, so the first thing Phase 5 had to decide was which document it was
+implementing.
+
+**Decision.** Events are ordinary entities and everything asserted about them is
+an ordinary claim.
+
+- An **event** is a row in `entity` whose type implements the platform `event`
+  interface — `meeting`, `arrest`, `travel`, `observation`.
+- **Participation is a claim**, and the role **is the predicate**:
+  `arrest --has_arrestee--> person`. One predicate per role.
+- **Place is a claim** whose object is a `place` entity.
+- **Time is the claim envelope** — `event_time_earliest` / `event_time_latest`,
+  which have carried intervals with uncertainty since P1. No new time column and
+  no time predicate exists.
+- `record_event` creates the entity **and at least one claim in one
+  transaction**, or nothing. An entity row carries no source; an event no claim
+  asserts would be a fact with no provenance.
+
+The core finds all of this **structurally**, never by name: an event entity is
+one whose type implements `event`; a participation claim is one whose predicate
+has every subject type implementing `event` and every object type implementing
+`party`. Nothing under `aegis/` names `arrest` or `has_arrestee` (Article XIV).
+
+**Consequences.** Provenance panels, three-dimension grading, contradiction
+display, retraction, `?asOf=`/`?asOfRevision=`, case scoping, handling-code
+filtering, the audit trail and the review queue all apply to events on the day
+they ship, because none of them knows an event from a person. A parallel event
+model would have had to re-earn every one.
+
+The costs are real and accepted. Role vocabulary is predicate vocabulary, so a
+new role is an ontology proposal rather than an enum edit — which is the
+governance the project wants and the friction it implies. And two reports of one
+occurrence make two events, because no entity-resolution path reaches an entity
+with no mentions and automatic occurrence merging would be a machine making an
+identity decision (Article VII, ADR-027). The reviewer's move is to attach the
+second report's claims to the first event; `record_event` takes an `event_id`
+for exactly that.
+
+**Revisit when** a measured query genuinely cannot be served from `claim` plus
+its indexes. The answer then is another *projection*, not a canonical table; a
+canonical event table needs an Article I amendment first, which is the sentence
+the Phase 5 charter already carries.
+
+---
+
+## ADR-047: A literal-object predicate declares the property it carries
+
+**Context.** The ontology has two parallel vocabularies with no declared link
+between them: `object_types.*.properties` (what a type has) and `predicates`
+(what a claim says). `aegis/authz/filters.py::property_sensitivity` bridges them
+by matching a predicate's *name* against a property's *name*, with a fallback
+that guesses from the `identifier` flag. Spec 09 §6.4 recorded this as "a
+documented heuristic, not a contract" and moved on, correctly, because nothing
+in Phase 4 depended on it.
+
+Phase 5 has two things that do. **M-18** requires map privacy to be enforced,
+and `has_geometry` does not match a property named `geometry` under that
+heuristic — so field-level sensitivity on geometry would silently not exist.
+**Article XIV** requires the core to find geometry claims without a hardcoded
+predicate name, and a name-matching heuristic is not a mechanism to build a
+governance control on.
+
+**Decision.** `PredicateSpec` gains an optional `property: <name>` — the
+object-type property this literal-object predicate carries.
+
+```yaml
+has_geometry: {subject: [place], object: literal, property: geometry}
+has_nic:      {subject: [person], object: literal, identifier: true, property: nic}
+```
+
+Loader rule 15 (continuing spec 08 §9): a declared `property` must exist on
+**every** expanded subject type, and the predicate must allow a literal object.
+`property_sensitivity` consults the declaration first and keeps the heuristic for
+predicates that do not declare one, so nothing that works today stops working.
+The core discovers geometry claims as "predicates whose declared property has
+type `geo`" — the `geo` type slot P3 added to the DSL and nothing had yet used.
+
+**Consequences.** Field-level sensitivity becomes a statement instead of a
+coincidence, and it becomes so for the three existing identifier predicates at
+the same time, which is worth doing while the mechanism is being built. Adding an
+optional field is additive under spec 08 §7.3.
+
+The heuristic is deliberately kept rather than removed. Removing it would make
+every predicate that currently relies on it lose its sensitivity the moment this
+lands, which is a governance regression shipped as a cleanup.
+
+**Revisit when** every literal-object predicate in every shipped module declares
+its property. Then the heuristic is dead code and deleting it is a no-op that a
+test can prove.
+
+---
+
+## ADR-048: `location.precision` is removed and the composition goes to 2.0.0
+
+**Context.** T55 said: add a **required** `precision` property on `location`,
+with a **minor** bump, and "a location without `precision` fails validation".
+Three things are wrong with that, and they compound.
+
+H-21 rejects the ladder itself: `exact | centroid | area | city | country` mixes
+epistemic precision, geometric representation and administrative granularity in
+one string, so no consumer can reason about any of the three. Spec 01 §4 makes
+optional→required a **major** change, which the amended charter states in its own
+words. And the AC is unachievable at any version class: object-type properties
+are claim-derived, no write path constructs an entity with a property set, and
+`required` is enforced nowhere — so "fails validation" describes a mechanism that
+does not exist.
+
+**Decision.** `location.precision` is **removed**. The four axes H-21 asks for
+arrive as **one claim with four fields** — `geometry` (RFC 7946, WGS84 only),
+`accuracy_m`, `admin_level`, `derivation` — carried by a `has_geometry` predicate
+whose declared property has type `geo`.
+
+The composition bumps **1.7.0 → 2.0.0**. Removal is major regardless of row
+counts; the precedent is v1.0.0's removal of `merged_into`, which also had no
+rows. The major bump ships the history copy and a migration script that is a
+documented no-op, because the removed property was never claimable.
+
+The four fields travel in **one** claim rather than four, because they are one
+assertion: an accuracy radius without its geometry means nothing, and four
+independent claims could disagree in ways that have no interpretation. H-21 asks
+that they be modelled separately, not asserted separately.
+
+`admin_level` and `derivation` are **code-owned** vocabularies registered beside
+`SUBMISSION_CRITERIA` and `PAYLOAD_SCHEMAS`, for the same reason those are: the
+validator and the renderer must implement each value, so a value that could be
+declared before it could be honoured would be a promise nothing keeps (H-13).
+
+**Consequences.** A major bump is more ceremony than a phase's first ontology
+change usually carries, and it is the ceremony the rules prescribe: the release
+gate, the history copy and the migration all fire, and every claim stamped 1.7.0
+keeps meaning exactly what it meant. Nothing has to be migrated, which is the
+cheapest possible time to prove the major-bump path works end to end — the last
+one ran a year of development ago.
+
+The write-side validation rules (spec 10 §4.3) are where the honesty actually
+lives: a Point may not claim an administrative area unless its derivation is a
+stated centroid with a radius, so the renderer's "no bare pin" guarantee is
+enforced twice — once by refusing the claim, once by having no branch that would
+draw it.
+
+**Revisit when** a source supplies a coordinate system other than WGS84 that
+cannot be converted losslessly on ingest. That is a spec 10 §4.3 amendment, not a
+schema change.
+
+---
+
+## ADR-049: The map is served as authorized GeoJSON, not vector tiles
+
+**Context.** T59 said "PostGIS-backed tiles"; the charter said "evaluate MapLibre
+Martin before hand-building" (H-21). Martin was evaluated.
+
+**Decision.** Geometry is served as GeoJSON `FeatureCollection`s from ordinary
+authorized routes (`GET /v1/geo/locations`, `GET /v1/geo/events`), filtered by
+the same `claim_filters` as every other read, applied in candidate generation. No
+tile server is built and none is adopted.
+
+The reasoning is authorization, not effort. A vector tile is a cache keyed by
+z/x/y and shared across viewers. Read authorization here is per claim — handling
+code × clearance × case membership × as-of revision — so a correct tile cache
+would have to be keyed by authorization context, which is a cache of one. What
+remains is the failure mode: a mis-keyed tile serves sensitive geometry to the
+wrong viewer, silently, and no test that checks a route's response would see it.
+Martin's headline capability is auto-publishing PostGIS tables and functions,
+which is the specific thing H-21 says must not happen to canonical tables.
+
+Scale settles the rest: this corpus holds hundreds of locations, not millions of
+features.
+
+**Consequences.** The geo routes are ordinary routes. They inherit the authz
+matrix, the no-anonymous-surface sweep, cursor pagination, the problem+json
+envelope and the as-of stamp, and they are tested by the same machinery as
+everything else. `next_cursor` rides as a foreign member of the
+`FeatureCollection`, which RFC 7946 §6.1 permits.
+
+Article XII is satisfied by adopting *nothing*: the smallest correct thing here
+is the API surface that already exists.
+
+**Revisit when** a bbox query returns more than 5 000 features or p95 exceeds
+500 ms over the real corpus. Then Martin is evaluated again against a **private
+per-authorization cache** — never a shared one — and the measurement is recorded
+with the decision.

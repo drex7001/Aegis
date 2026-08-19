@@ -8,7 +8,9 @@ aggregation); §3.2 (review queue) rewritten 2026-07-18 by T17c under ADR-031
 (typed suggestion envelope). Where this text conflicts with those ADRs,
 the ADRs win.** · **§1 seams, §2, §3, §3.2 and §8 are implemented by migration
 `0007_identity_ledger.py` (T17). §7 is still the Phase-1 view — T21 replaces
-it.** · Constitutional basis: Articles I, III, IV, V, VIII, X, XIII
+it.** · **§9 (events, participation, geometry) added 2026-08-19 by T54 under
+ADR-046…ADR-049; spec 10 is authoritative for that model.** · Constitutional
+basis: Articles I, III, IV, V, VIII, X, XIII
 
 DDL below is illustrative Postgres 16; Alembic migrations are authoritative. IDs are
 ULIDs with type prefixes (`ent_`, `clm_`, `src_`, `rec_`, `evd_`, `cas_`) — sortable,
@@ -698,3 +700,54 @@ identical rows *and* identical ids).
 - `source_record(ingest_key)` unique (exists), `(content_hash)`.
 - `audit_log(at)`, `audit_log(actor, at)`.
 - `authz_outbox(processed_at) WHERE processed_at IS NULL` (dispatcher scan, ADR-014).
+
+## 9. Events, participation and geometry (Phase 5 addendum — spec 10)
+
+Added 2026-08-19 by T54. Spec 10 is authoritative for the model; this section
+records what it means **for this document's tables**. The short version is that
+it means almost nothing, and that is the result B-13 asked for.
+
+### 9.1 No new canonical tables
+
+An **event** is a row in `entity` whose `entity_type` implements the platform
+`event` interface (`meeting`, `arrest`, `travel`, `observation`). **Participation**
+is a row in `claim` whose subject is the event and whose predicate names the
+role. **Where** is a row in `claim` whose object is a `place` entity. **When** is
+`claim.event_time_earliest` / `event_time_latest`, unchanged since P1. **What
+shape, how accurately, at what granularity, derived how** is one `claim` whose
+`object_value` carries a four-field object (spec 10 §4.2).
+
+So `entity`, `claim` and `claim_relation` are untouched: no new column, no new
+constraint, no new nullable seam. The Article I invariant that every assertion
+traces to a `source_record` covers events for free, because there is no other
+place an event assertion can live.
+
+### 9.2 One new projection table
+
+`location_geometry_projection` (spec 10 §6.1) — one row per geometry claim,
+carrying `geom geometry(Geometry, 4326)`, the derived `geometry_kind`, the three
+asserted axes, `is_valid`/`invalid_reason`, and copies of every governance column
+the claim carries so one filter serves both. GIST index on `geom`.
+
+It is a cache under Article XIII: `aegis projections rebuild` drops and rebuilds
+it, and nothing else writes to it. The `CREATE EXTENSION postgis` that the
+Phase 5 charter believed migration `0001` had already run lands with this table —
+`0001` is an empty baseline marker and `0002` creates only `pg_trgm`.
+
+### 9.3 `claim.location_text` is not upgraded, and not removed
+
+§3's comment reads `location_text TEXT, -- Phase 5 upgrades to location entity
+refs`. It is not upgraded. `location_text` is the **source's own words** for
+where something happened, and resolving those words to a `location` entity is an
+analyst act that produces a `took_place_at` claim with its own grading — not a
+column rewrite that would destroy the string it was derived from. Automatic
+parsing of the text into geometry is prohibited outright (spec 10 §10): a
+locality string turned silently into coordinates is the false-precision failure
+the phase is built against.
+
+### 9.4 Indexing (Phase 5 additions)
+
+- `claim(event_time_earliest, event_time_latest)` — the shared time filter over
+  map, timeline and graph (spec 10 §11.2); the reason no participation
+  projection is built.
+- `location_geometry_projection` GIST `(geom)`; `(place_id)` for the object view.

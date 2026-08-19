@@ -33,6 +33,7 @@ extended** (ADR-023).
 | [`specs/07-ui.md`](specs/07-ui.md) | The investigation workspace — one durable React + TS app from Phase 2 (ADR-032); amended by T41 (ADR-043, ADR-045). |
 | [`specs/08-ontology-v2.md`](specs/08-ontology-v2.md) | Ontology v2 — **final** (Phase 3, narrowed by ADR-033, amended by ADR-037…042): module composition, interfaces, shared properties, actions v2 schema, change management, contracts. §0 records what T29's re-validation changed; §11 holds the machinery deferred to its first consumer. |
 | [`specs/09-investigation-domain.md`](specs/09-investigation-domain.md) | Investigation domain & the object-view contract — **final** (Phase 4, T41): cases, hypotheses, tasks/leads as storage/actions/authorization written before any screen (H-17); the generic object view's descriptor contract and its leak-free case list (H-18); the narrowed as-of promise (B-11). §0 records what re-validation changed. |
+| [`specs/10-events-geospatial.md`](specs/10-events-geospatial.md) | Events, geospatial & time — **final** (Phase 5, T54; ADR-046…049): events as entities and participation as claims (B-13); the event-vs-edge rule with its migration candidate list (M-17); geometry's four axes, WGS84-only, validated at the write (H-21); map privacy as a recorded coarser claim rather than a runtime blur (M-18); no external tile or geocoding service (M-19). §0 records what re-validation changed. |
 
 ## The ontology artifact
 

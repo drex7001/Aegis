@@ -1,10 +1,11 @@
 # Phase 5 Charter — Events, geospatial & time
 
-Status: charter (amended 2026-07-18, ADR-033 — claims-first storage, B-13) ·
-tasks pre-authored: `../tasks/phase-05.md` (T54–T65; re-validated by T54 at
-phase start, which also dispositions the 2026-07 review findings tagged P5:
-B-13, M-17, M-18, M-19, H-21) · Constitutional basis: Articles I, VIII, XI ·
-GOAL.md §7.3, §16, §17 · plan §2 (PostGIS, MapLibre)
+Status: **open — T54 complete 2026-08-19** (charter amended 2026-07-18, ADR-033
+— claims-first storage, B-13; re-validated 2026-08-19 by T54, whose six
+divergences are recorded in `../specs/10-events-geospatial.md` §0 and
+ADR-046…ADR-049) · tasks: `../tasks/phase-05.md` (T54–T65) · spec:
+`../specs/10-events-geospatial.md` (final) · Constitutional basis: Articles I,
+VI, VIII, XI, XIII, XIV · GOAL.md §7.3, §16, §17 · plan §2 (PostGIS, MapLibre)
 
 ## Objective
 
@@ -24,10 +25,13 @@ ontology change (or a migration lands first), never a minor bump.
 
 ## Architecture layers touched
 
-- **Semantic:** `event_types` section of the ontology filled (meeting, arrest,
-  travel, observation) — via the P3 interface mechanism (`event` interface:
-  time span + participants + optional location); `location` gains `geo`
-  property type + `precision`.
+- **Semantic:** meeting, arrest, travel and observation declared as **object
+  types implementing the platform `event` interface** — the P3 interface
+  mechanism the charter already named. The reserved `event_types:` section is
+  *removed* rather than filled: an event needs identity, display, claims and an
+  object view, all of which an object type already has and a parallel registry
+  would not (spec 10 §3.1). `location` implements a `place` interface carrying
+  the `geo` property; the overloaded `precision` string is removed (ADR-048).
 - **Consumption:** MapLibre map view in the workspace, synced with timeline and
   graph selection; time-aware projections.
 - **Kinetic:** `record_event` action (participants as role-typed references);
@@ -46,10 +50,14 @@ ontology change (or a migration lands first), never a minor bump.
    projected into PostGIS tables; the representation model separates
    **geometry type, administrative level, accuracy/uncertainty, and derivation
    method** (H-21 — not one overloaded `precision` enum); geocoding is
-   manual/assisted, never silently precise.
-3. **Map view**: MapLibre GL JS + PostGIS tiles in the workspace — tiles serve
-   only authorization-scoped projection tables (never auto-published canonical
-   tables; evaluate MapLibre Martin before hand-building — H-21); selection
+   manual/assisted, never silently precise. *(Spec 10 §4: the four axes are
+   modelled separately but asserted together, in one claim, because an accuracy
+   without its geometry means nothing. Geometry type is derived from the
+   geometry, never asserted. WGS84 only.)*
+3. **Map view**: MapLibre GL JS in the workspace over **authorized GeoJSON, not
+   tiles** — Martin was evaluated at T54 and declined, because a tile cache is
+   shared across viewers while this system's read authorization is per claim
+   (ADR-049); selection
    synced with graph and timeline; uncertainty rendered visually distinct
    (point vs circle vs admin area); **privacy-aware generalization for
    low-clearance viewers ships in this phase, not P7** (M-18); base-map/
@@ -63,9 +71,15 @@ ontology change (or a migration lands first), never a minor bump.
 
 ## Dependencies
 
-- P3: interfaces (the `event` shape), DSL `geo` type slot, SDK regen.
+- P3: interfaces (the `event` shape), DSL `geo` type slot, SDK regen. Both
+  confirmed present by T54 and both previously unused.
 - P4: workspace (map and timeline live there).
-- Phase 1 already enabled the PostGIS extension (migration 0001).
+- ~~Phase 1 already enabled the PostGIS extension (migration 0001).~~
+  **Corrected 2026-08-19 (T54, spec 10 §0 D1): it did not.** Migration `0001` is
+  an empty baseline marker and `0002` creates only `pg_trgm`; no migration has
+  ever run `CREATE EXTENSION postgis`. The compose and CI images are
+  `postgis/postgis:16-3.4` everywhere, so this is one line in T56's migration,
+  not a dependency.
 
 ## Exit criteria
 
@@ -91,9 +105,12 @@ ontology change (or a migration lands first), never a minor bump.
 
 ## Specs to author or update
 
-- `specs/10-events-geospatial.md` — author at phase start: event interface,
-  participant roles, precision ladder, tile serving.
-- `specs/02-data-model.md` — event/participation storage addendum.
+- [x] `specs/10-events-geospatial.md` — authored 2026-08-19 (T54): the event
+      interface, roles as predicates, the four-axis geometry model, GeoJSON
+      serving (ADR-049 supersedes "tile serving"), the event-vs-edge rule, and
+      the migration candidate list.
+- [x] `specs/02-data-model.md` §9 — event/participation/geometry addendum
+      (2026-08-19, T54): no new canonical table, one new projection table.
 
 ## Explicit non-goals
 
