@@ -27,8 +27,30 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.types import UserDefinedType
 
 from aegis.store.engine import Base
+
+
+class Geometry(UserDefinedType):
+    """``geometry(Geometry, 4326)`` — PostGIS's type, without a Python binding.
+
+    Fifteen lines instead of a dependency, deliberately (Article XII cuts both
+    ways: adopt a library for a *problem*, not for a type name). Geometry never
+    becomes a Python object here — it arrives as GeoJSON, is stored by
+    ``ST_GeomFromGeoJSON`` and is read back by ``ST_AsGeoJSON``, so nothing in
+    this process needs GEOS, shapely or a WKB parser. What the mapping *does*
+    need is for `Base.metadata` to describe the column truthfully, which is what
+    this provides and what a `Text` stand-in would have quietly broken.
+
+    The SRID is fixed at 4326 for the reason spec 10 §4.3 gives: a second CRS is
+    a second way to be wrong about where something is.
+    """
+
+    cache_ok = True
+
+    def get_col_spec(self, **_: Any) -> str:
+        return "geometry(Geometry, 4326)"
 
 
 class Source(Base):
@@ -920,6 +942,64 @@ class EdgeProjection(Base):
     builder_version: Mapped[str] = mapped_column(Text, nullable=False)
 
 
+class LocationGeometryProjection(Base):
+    """Geometry, spatially indexed — a cache, not a fact (spec 10 §6.1, B-13).
+
+    **One row per geometry claim**, not per place. That is the whole design:
+    two geometry claims for one location at different handling codes are two
+    rows, so ``claim_filters`` composes unchanged and each viewer sees the
+    finest geometry they may read (§7.2). A one-row-per-place table would have
+    had to pick a winner, and picking a winner is where map privacy dies.
+
+    Every governance column the claim carries is copied here for the same
+    reason: a filter that had to join back to ``claim`` to decide what a viewer
+    may see would be one forgotten join away from a leak.
+
+    This table exists because a GIST index over ``geometry(Geometry, 4326)`` is
+    something ``claim.object_value`` JSONB genuinely cannot do. There is no
+    event projection and no participation projection, because those would be a
+    copy of ``claim`` rows plus a derived column, and a projection that buys
+    nothing but duplication is duplication.
+
+    Article XIII: ``aegis projections rebuild`` truncates and rebuilds it, and
+    nothing else writes to it.
+    """
+
+    __tablename__ = "location_geometry_projection"
+    __table_args__ = (
+        Index("ix_location_geometry_place", "place_id"),
+        Index("ix_location_geometry_handling", "handling_rank"),
+        Index(
+            "ix_location_geometry_geom",
+            "geom",
+            postgresql_using="gist",
+        ),
+    )
+
+    claim_id: Mapped[str] = mapped_column(ForeignKey("claim.claim_id"), primary_key=True)
+    place_id: Mapped[str] = mapped_column(ForeignKey("entity.entity_id"), nullable=False)
+    #: NULL when ``is_valid`` is false. An invalid geometry is recorded with its
+    #: reason and **never** repaired: silently fixing a self-intersecting polygon
+    #: changes what a source said (spec 10 §4.3).
+    geom: Mapped[Any | None] = mapped_column(Geometry)
+    #: ``ST_GeometryType`` without its ``ST_`` prefix — derived from the geometry,
+    #: never asserted, which is why a source cannot disagree with it.
+    geometry_kind: Mapped[str] = mapped_column(Text, nullable=False)
+    admin_level: Mapped[str] = mapped_column(Text, nullable=False)
+    accuracy_m: Mapped[float | None] = mapped_column(Numeric)
+    derivation: Mapped[str] = mapped_column(Text, nullable=False)
+    is_valid: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    invalid_reason: Mapped[str | None] = mapped_column(Text)
+    # ── the governance columns, copied so one filter serves both ─────────
+    handling_code: Mapped[str] = mapped_column(Text, nullable=False)
+    handling_rank: Mapped[int] = mapped_column(Integer, nullable=False)
+    case_id: Mapped[str | None] = mapped_column(ForeignKey("case_file.case_id"))
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    retracted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    ontology_version: Mapped[str] = mapped_column(Text, nullable=False)
+    builder_version: Mapped[str] = mapped_column(Text, nullable=False)
+
+
 __all__ = [
     "AuditLog",
     "AuthzOutbox",
@@ -932,12 +1012,14 @@ __all__ = [
     "EdgeProjection",
     "Entity",
     "EntityCanonicalMap",
+    "Geometry",
     "ErCandidate",
     "EvidenceItem",
     "IdentityDecision",
     "IdentityMembership",
     "IdentityNegativeConstraint",
     "IdentityRevision",
+    "LocationGeometryProjection",
     "Mention",
     "ReviewQueue",
     "Source",

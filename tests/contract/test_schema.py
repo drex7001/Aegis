@@ -103,3 +103,25 @@ def test_ontology_vocabulary_columns_are_plain_text() -> None:
     for location in locations:
         table_name, column_name = location.split(".")
         assert type(Base.metadata.tables[table_name].c[column_name].type) is sa.Text
+
+
+def test_geometry_lives_only_in_the_projection() -> None:
+    """B-13's spot check at the metadata level (spec 10 §6.2, T56).
+
+    "No canonical mutable geometry column exists" is checked two ways: the
+    integration suite truncates the projection and rebuilds it byte-identically,
+    and this walks every mapped table to prove no *other* one has grown a
+    geometry column since. The second matters because the first would keep
+    passing if someone added `entity.geom` beside it.
+    """
+    from aegis.store.models import Geometry
+
+    carriers = {
+        table_name
+        for table_name, table in Base.metadata.tables.items()
+        for column in table.columns
+        if isinstance(column.type, Geometry)
+    }
+    assert carriers == {"location_geometry_projection"}
+    assert "geom" not in Base.metadata.tables["entity"].c
+    assert "precision" not in Base.metadata.tables["entity"].c

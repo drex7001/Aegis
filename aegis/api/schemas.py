@@ -566,6 +566,16 @@ class ProjectionRebuildOut(BaseModel):
     built_at_revision_id: int
     ontology_version: str
     builder_version: str
+    #: The geometry projection, rebuilt in the same pass (T56). `rejected`
+    #: counts geometry claims whose value this build could not read — under
+    #: an older ontology, or written before the validator existed. Reported
+    #: rather than silently zero: a projection is a cache, so one unreadable
+    #: row must not make the other ten thousand unavailable, and the number
+    #: is how anyone would ever notice.
+    geometry_rows: int = 0
+    geometry_invalid: int = 0
+    geometry_rejected: int = 0
+    geometry_builder_version: str | None = None
 
 
 class AsOfStampOut(BaseModel):

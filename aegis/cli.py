@@ -449,6 +449,7 @@ def projections_rebuild(
     from aegis.projections import (
         build_full_graph,
         rebuild_edge_projection,
+        rebuild_location_geometry_projection,
         write_outputs,
     )
     from aegis.store import get_sessionmaker
@@ -461,6 +462,7 @@ def projections_rebuild(
     with get_sessionmaker()() as session:
         identity = rebuild_canonical_map(session)
         edges = rebuild_edge_projection(session, ontology=ontology)
+        geometry = rebuild_location_geometry_projection(session, ontology=ontology)
         session.commit()
         graph = build_full_graph(session, ontology)
     written = write_outputs(graph, output_dir)
@@ -473,6 +475,10 @@ def projections_rebuild(
     typer.echo(
         f"  stamped: revision {edges.built_at_revision_id}, "
         f"ontology {edges.ontology_version}, builder {edges.builder_version}"
+    )
+    typer.echo(
+        f"  geometry: {geometry.rows} row(s), {geometry.invalid} invalid, "
+        f"{geometry.rejected} unreadable"
     )
     for path in written:
         typer.echo(f"  wrote {path}")
