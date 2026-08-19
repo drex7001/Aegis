@@ -154,6 +154,28 @@ def test_the_handlers_build_the_declared_models() -> None:
     assert errors.install_error_handlers is not None
 
 
+def test_a_401_still_says_how_to_authenticate() -> None:
+    """RFC 7235 §3.1: a 401 carries `WWW-Authenticate`, or it is useless.
+
+    Regression. Wrapping errors in problem+json (T36) rebuilt the response from
+    the exception's *body*, which silently dropped the headers the exception
+    carried — so every 401 lost the one field that tells a client how to
+    authenticate. Nothing failed; it just stopped being correct HTTP. Found by
+    T52's re-verification of the authenticated surface.
+    """
+    from fastapi.testclient import TestClient
+
+    from aegis.api import create_app
+
+    with TestClient(create_app()) as client:
+        response = client.get("/v1/cases")
+
+    assert response.status_code == 401
+    assert response.headers["www-authenticate"] == "Bearer"
+    # ...and it is still a problem document, not a plain body.
+    assert response.headers["content-type"].startswith("application/problem+json")
+
+
 # ── the contract diff ───────────────────────────────────────────────────────
 
 

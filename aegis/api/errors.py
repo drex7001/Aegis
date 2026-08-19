@@ -27,11 +27,14 @@ from aegis.api.problems import (
 from aegis.er.adjudication import StaleRevisionError
 
 
-def _json(problem: ProblemDetail) -> JSONResponse:
+def _json(
+    problem: ProblemDetail, headers: dict[str, str] | None = None
+) -> JSONResponse:
     return JSONResponse(
         problem.model_dump(mode="json", exclude_none=True),
         status_code=problem.status,
         media_type=PROBLEM_MEDIA_TYPE,
+        headers=headers,
     )
 
 
@@ -74,8 +77,14 @@ def install_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(StarletteHTTPException)
     async def _on_http_error(_: Request, exc: StarletteHTTPException) -> JSONResponse:
+        # The exception's headers travel with it. Rebuilding the response as
+        # problem+json used to drop them, which silently cost every 401 its
+        # `WWW-Authenticate: Bearer` — required by RFC 7235 §3.1 and the only
+        # thing telling a client *how* to authenticate. Found by T52's
+        # re-verification of the authenticated surface.
         return _json(
-            ProblemDetail(title="request failed", status=exc.status_code, detail=str(exc.detail))
+            ProblemDetail(title="request failed", status=exc.status_code, detail=str(exc.detail)),
+            headers=getattr(exc, "headers", None),
         )
 
     @app.exception_handler(RequestValidationError)
