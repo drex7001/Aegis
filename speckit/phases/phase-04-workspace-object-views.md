@@ -1,7 +1,9 @@
 # Phase 4 Charter — Investigation workspace v2 & object views
 
-Status: **ACTIVE — opened 2026-08-17** (amended 2026-07-18, ADR-032/ADR-033 —
-the workspace *grows here*, it does not start here) · tasks:
+Status: **COMPLETE 2026-08-19 — all five gate criteria checked**
+(review: `../reviews/phase-04-exit-review.md`; opened 2026-08-17 with T41's re-validation;
+amended 2026-07-18, ADR-032/ADR-033 — the workspace *grows here*, it does not
+start here) · tasks:
 `../tasks/phase-04.md` (T41–T53; **re-validated by T41 on 2026-08-17**, which
 also dispositioned the 2026-07 review findings tagged P4: H-17, H-18, H-19
 remainder, B-11) · Constitutional basis: Articles VI, VIII, X, XI, XIV ·
@@ -70,18 +72,20 @@ first.
 
 ## Exit criteria
 
-- [ ] A non-member of a case cannot see its claims via any endpoint or screen,
+All met 2026-08-19; the evidence is in `../reviews/phase-04-exit-review.md`.
+
+- [x] A non-member of a case cannot see its claims via any endpoint or screen,
       and cannot learn the case exists (no existence/count/timing leak —
       H-18; authz matrix extended to the UI).
-- [ ] A hypothesis page shows both supporting and contradicting claims
+- [x] A hypothesis page shows both supporting and contradicting claims
       (Article VIII).
-- [ ] "What was recorded before date X?" returns the defined claim-recording
+- [x] "What was recorded before date X?" returns the defined claim-recording
       snapshot, stamped with snapshot + identity revision + ontology version
       (B-11 narrowed promise).
-- [ ] Adding a test object type via ontology alone (plus regen) yields a
+- [x] Adding a test object type via ontology alone (plus regen) yields a
       working object view with properties, links, and provenance — no new
       React code.
-- [ ] Re-verified: no unauthenticated read surface exists anywhere in the repo
+- [x] Re-verified: no unauthenticated read surface exists anywhere in the repo
       (ADR-026 held through the phase).
 
 ## Risks

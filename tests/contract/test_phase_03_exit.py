@@ -12,7 +12,6 @@ failure mode M-01 was written about: code moves, statuses do not.
 
 from __future__ import annotations
 
-import tomllib
 from pathlib import Path
 
 import pytest
@@ -55,9 +54,8 @@ def test_status_surfaces_agree_on_the_current_phase() -> None:
     # "Next phase: Phase 4" used to be asserted here. It is a claim about
     # whichever phase is *current*, which is exactly what this file's docstring
     # says should not live in a test named for an earlier one — and it went
-    # stale the moment T41 opened P4. Relocated to
-    # `test_phase_04_status.py::test_status_surfaces_agree_that_phase_4_is_active`,
-    # which asserts the stronger form (active, and no longer "next").
+    # stale the moment T41 opened P4. It now lives in `test_phase_04_exit.py`,
+    # which owns the current-phase claims until P5 takes them over.
     assert "**DONE**, all five gate criteria checked" in kit_readme
     assert "COMPLETE 2026-08-17" in roadmap
     assert "Status: COMPLETE 2026-08-17" in phase_3_tasks
@@ -70,14 +68,15 @@ def test_the_roadmap_records_the_capability_as_implemented() -> None:
 
 
 def test_the_release_version_is_pinned_to_this_phase() -> None:
-    project = tomllib.loads(_read("pyproject.toml"))
-    lock = tomllib.loads(_read("uv.lock"))
-    review = _read("speckit/reviews/phase-03-exit-review.md")
-    locked = [package for package in lock["package"] if package["name"] == "aegis"]
+    """0.3.0 was P3's release; the repository moves on, the review does not.
 
-    assert project["project"]["version"] == "0.3.0"
-    assert len(locked) == 1
-    assert locked[0]["version"] == "0.3.0"
+    This used to read the **live** `pyproject.toml` and `uv.lock`, which is a
+    claim about whichever phase is current — the second time that pattern has
+    surfaced in this file, after "Next phase: Phase 4" went stale at T41. The
+    live version now belongs to `test_phase_04_exit.py`, and this asserts only
+    what P3's record says, which never changes again.
+    """
+    review = _read("speckit/reviews/phase-03-exit-review.md")
     assert "Release: Aegis 0.3.0" in review
     assert "`phase-3-ontology-modules`" in review
 
