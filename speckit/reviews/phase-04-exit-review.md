@@ -232,7 +232,7 @@ execution. It passed on every one of the ten Phase 4 pull requests (#49–#58).
 This is the same arrangement T28 and T40 recorded, stated again for the same
 reason: the reader should know which evidence came from where.
 
-Phase 4 added **131 tests** (433 + 336 against P3's 355 + 282), plus 41 browser
+Phase 4 added **132 tests** (433 + 336 against P3's 355 + 282), plus 41 browser
 journeys (92 against 51).
 
 ## Deployment boundary
