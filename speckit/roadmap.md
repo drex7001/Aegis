@@ -28,7 +28,7 @@ external-review disposition (`reviews/2026-07-18-external-review-disposition.md`
 Milestone I    Governed foundation      P0 governance ▸ P1 claim store + RBAC     [COMPLETE]
 Milestone II   MVP                      P2 identity, provenance & workspace       [COMPLETE — ★ MVP]
 Milestone III  Ontology platform        P3 modules & contracts [COMPLETE] ▸ P4 workspace v2 & object views [COMPLETE]
-Milestone IV   Intelligence domain      P5 events, geo & time ▸ P6 search, object sets & analytics
+Milestone IV   Intelligence domain      P5 events, geo & time [IN PROGRESS] ▸ P6 search, object sets & analytics
 Milestone V    Trust boundaries & AI    P7 sharing & governance ▸ P8 controlled AI & reasoning
 Milestone VI   Production               P9 production certification & scale-out
 
@@ -212,17 +212,29 @@ working object view.
 
 ## Milestone IV — Intelligence domain
 
-### Phase 5 — Events, geospatial & time *(GOAL.md §7.3, §16, §17 · effort: M)*
+### Phase 5 — Events, geospatial & time *(IN PROGRESS · GOAL.md §7.3, §16, §17 · effort: M · ADR-046…049)*
 
 **Goal.** Places and events become first-class, with honest precision —
 **claims-first**: asserted geometry, precision, participation, and time are
 typed claims; PostGIS tables are projections (B-13). Charter:
-`phases/phase-05-events-geo-time.md` · tasks: `tasks/phase-05.md`.
+`phases/phase-05-events-geo-time.md` · spec:
+`specs/10-events-geospatial.md` (final) · tasks: `tasks/phase-05.md`
+(re-validated by T54, whose six divergences are recorded in spec 10 §0).
 
 **Deliverables (summary)** — event object types with role-typed participants
 (claim-backed); location geometry + separated precision/uncertainty/admin-level
 model; MapLibre map synced with timeline + graph; movement/travel ingestion via
 suggestions; map privacy (authorized generalization) in the same phase (M-18).
+
+**As re-validated (T54, 2026-08-19).** Events are **entities**, participation is
+**claims** whose predicate is the role, and time is the claim envelope that has
+existed since P1 — so the phase adds no canonical event or participation table
+and exactly one projection (ADR-046). `location.precision` is **removed** rather
+than tightened, taking the composition to **2.0.0** (ADR-048). The map is served
+as **authorized GeoJSON, not vector tiles**, because a tile cache is shared
+across viewers while read authorization here is per claim (ADR-049). A
+literal-object predicate may now **declare** the property it carries, which is
+what makes map privacy enforceable instead of a name coincidence (ADR-047).
 
 **Exit criteria.** The same incident renders consistently on map, timeline,
 and graph from one claim set; precision is visually distinct; an event with 3+
@@ -365,7 +377,7 @@ Items may be completed any time; none may be waived.
 | Reversible identity, ER, multilingual matching | **Implemented** P2 |
 | Ontology modules, interfaces, typed clients | **Implemented** P3 |
 | Investigation workspace, object views, hypotheses, as-of (narrowed) | **Implemented** P4 |
-| Events, geospatial, timeline, map privacy | **Scheduled** P5 |
+| Events, geospatial, timeline, map privacy | **In progress** P5 (spec 10 final; T54 closed) |
 | Search, object sets, analytics, watchlists/alert triage | **Scheduled** P6 |
 | Compartments, sealing, disclosure packages, break-glass, legal authority, retention enforcement | **Scheduled** P7 |
 | Controlled AI (extraction v2, translation, summarization, hypothesis assist) | **Scheduled** P8 |

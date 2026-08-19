@@ -28,7 +28,7 @@ recommendation reduced/changed) · **reject** (not adopted, reason given) ·
 | B-10 | Security baseline arrives after real-person use | **accept, split** | Minimum operating baseline extracted from P9 into a named **pilot gate** checklist (TLS, secrets, lockfile, limits, encrypted backups, headers); P9 remains production certification — ADR-033. Lockfile pulled all the way into P1 closure (T16c) |
 | B-11 | As-of promise exceeds the time model | **narrow, P4** | P4 promise narrowed to a precisely defined claim-recording snapshot returning snapshot + identity-revision + ontology IDs (which ADR-028/029 provide); full multi-axis as-of stays north-star |
 | B-12 | Edge projection fabricates time and confidence | **accept** | Time-segmented aggregation, no max-credibility collapse, support summary with conflict count, "distinct records" not "independent sources" — ADR-030; P2 task T21 |
-| B-13 | Event/geo plans reintroduce facts outside claims | **accept, P5** | P5 charter amended: claims-first canonical model, PostGIS as projection; precision split from geometry representation; required-property change treated as major |
+| B-13 | Event/geo plans reintroduce facts outside claims | **accept, P5** | P5 charter amended: claims-first canonical model, PostGIS as projection; precision split from geometry representation; required-property change treated as major. **Closed 2026-08-19 by spec 10 (T54): ADR-046 (events are entities, participation is claims, time is the claim envelope, no canonical event or participation table) and ADR-048 (`location.precision` removed; composition 2.0.0). One projection table, rebuild-tested** |
 | B-14 | API authorization contract incomplete/stale | **accept, phased** | Route-by-route authz matrix authored in P2 (T24b) for the routes P2 ships, maintained as the authoritative artifact before SDK generation (P3); rebuild endpoint restricted; provenance endpoint added |
 | B-15 | Living runbooks bypass the governed pipeline | **accept, P1 closure** | T16d: legacy-only runbooks moved under `legacy/` with unsafe-for-governed-data banner; active ingestion runbook rewritten around `aegis ingest` |
 | B-16 | Backup misses security/evidence state (Keycloak users, FGA, versions, keys) | **defer, pilot gate** | Recovery-boundary definition + automated encrypted backup of all non-reconstructible components in the pilot baseline; full DR automation stays P9 |
@@ -60,6 +60,18 @@ recommendation reduced/changed) · **reject** (not adopted, reason given) ·
 - **H-36** (core imports legacy `clustering`): accepted; scheduled with the P2
   projection work (T21) — move Leiden usage behind `aegis/analytics/` or vendor
   the small function.
+- **H-21 / M-17 / M-18 / M-19** (geo precision and map delivery underspecified;
+  event-vs-edge rule too absolute; map privacy after the map; base-map and
+  geocoder governance absent): all four **closed 2026-08-19 by spec 10 (T54)**.
+  H-21 → the four axes modelled separately (asserted together, in one claim) plus
+  WGS84-only CRS and write-time validation, and ADR-049 declines vector tiles
+  after evaluating Martin. M-17 → the rule is *independent identity*, with
+  examples, counterexamples and a candidate list over every shipped predicate;
+  automatic pairwise derivation is declined with its reason. M-18 → generalization
+  is a *recorded coarser claim* filtered by the ordinary `claim_filters`, never a
+  runtime blur, and it ships in P5. M-19 → no external tile or geocoding service
+  is contacted, by default or by accident; sending a selector to a public
+  geocoder is prohibited outright.
 - **M-01** (stale statuses): accepted — statuses corrected in this pass; spec
   status lines now name the ADRs that amend them.
 - **M-12** (pagination too late): accepted — cursor pagination is a P2 task

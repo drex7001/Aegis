@@ -29,7 +29,11 @@ source_types: [...]        # closed list for source.source_type
 categories: {...}          # predicate categories (generalizes LayerType)
 object_types: {...}
 predicates: {...}
-event_types: {...}         # Phase 5
+# event_types: {...}       # REMOVED at P5 T55 — an event needs identity,
+                           # display, claims and an object view, all of which an
+                           # object type already has. Event types are object
+                           # types implementing the platform `event` interface
+                           # (spec 10 §3.1); this section was never populated.
 actions: {...}
 ```
 
