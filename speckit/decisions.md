@@ -1806,3 +1806,267 @@ is the API surface that already exists.
 500 ms over the real corpus. Then Martin is evaluated again against a **private
 per-authorization cache** — never a shared one — and the measurement is recorded
 with the decision.
+
+
+## ADR-050: One search route — `/v1/search` supersedes `/v1/search/entities`
+
+**Context.** P2 shipped `GET /v1/search/entities` (T23c). The Phase 6 plan adds
+"global search" across entities, claims and documents. M-11 warns that P2 and P6
+search "overlap without a migration contract" and recommends one stable endpoint
+with an additive backend, explicitly: *avoid parallel endpoints*.
+
+**Decision.** There is one search route, `GET /v1/search`, with a `types`
+parameter selecting result groups. `GET /v1/search/entities` is **removed** in
+the same change, declared with `BREAKING API CHANGE` (spec 06 §7.3).
+
+Adding a grouped route beside the entity route would produce exactly the outcome
+M-11 names: two ranking models, two pagination implementations, and two places
+where B-17's leak surfaces — ranking, counts, pagination gaps, timing, snippets,
+consumption — have to be closed independently and can drift apart silently. The
+honest expression of "same endpoint, additive backend" is that the endpoint stops
+naming one of its backends.
+
+**Consequences.** The workspace is the only client and regenerates from the
+contract in the same commit (`make openapi`). `aegis api check-contract` reports
+the removal; the marker is what makes it a decision rather than an accident. A
+typeahead is the same route with `types=person,organization` and `limit=5`.
+
+Groups enumerate `ontology.object_types` (Article XIV), so a new domain module's
+types are searchable the day they are declared, with no route change.
+
+**Revisit when** a second, non-workspace client exists. Then removal costs
+someone else something, and the answer is a deprecation window rather than a
+declared break.
+
+---
+
+## ADR-051: Searchable document text is a projection, not a column
+
+**Context.** The charter says search spans "entities, claims, and documents".
+Document text is not in PostgreSQL: `derivative.storage_uri` and
+`source_record.storage_uri` point at the object store, and the database holds a
+hash and a URI. There is nothing to index and, on a blob, no handling code to
+filter by.
+
+**Decision.** `document_text_projection` holds extracted text keyed by
+(record, derivative), carrying `content_hash`, the record's `handling_code`, its
+case scope, the normalization version, and a build stamp. It is a **projection**
+under Article XIII: `aegis projections rebuild` truncates it and reproduces it
+from the vault, and nothing but the builder writes to it.
+
+The handling code is **copied from the record, never defaulted**. A default
+would be a leak with a plausible-looking column beside it, and a row whose
+record's handling code has since changed is stale in the unsafe direction — so
+the builder is the only writer and a rebuild is the only correction.
+
+**Consequences.** Search over documents is an ordinary filtered read: the same
+candidate-generation rule applies (spec 11 §4), because the projection carries
+the columns the filter needs. Storage grows by roughly the size of the extracted
+text; this corpus is press reports and judgments, not a media archive.
+
+Evidence-item text is deliberately **not** in this projection (spec 11 §12): its
+read path is `can_view` on the item, not `claim_filters`, and putting two
+authorization models behind one query is the thing this phase is trying not to
+do.
+
+**Revisit when** extraction produces text at a volume where a full rebuild is no
+longer a routine operation. The answer then is incremental rebuild per record,
+not a canonical text column.
+
+---
+
+## ADR-052: The normalization pipeline is versioned, and stored keys are stamped
+
+**Context.** H-22 requires "one versioned index/query pipeline applied
+identically at write and query time". `norm_key`, `latin_key` and `phonetic_key`
+are applied at both ends today — but nothing records *which version* of them
+produced a stored key. Changing `collapse_separators` desynchronises every
+stored key from every query key, and the failure mode is **missing results**,
+which nothing alerts on and no test would notice.
+
+**Decision.** `NORMALIZATION_VERSION` is a code-owned string. Every table
+storing a derived key carries the version that produced it. The query path
+stamps its keys with the running version and compares only against rows carrying
+that version. `aegis search check-index` exits non-zero on rows at an older
+version, and CI runs it.
+
+Bumping the version is a **reindex, not a reinterpretation**: rows are rebuilt.
+This is safe precisely because nothing in the claim store depends on a key — the
+asymmetry with `ontology_version` on a claim (ADR-013) is deliberate and worth
+stating. A claim's meaning must survive forever, so its stamp is history. A key
+is a cache, so its stamp is a build marker.
+
+**Consequences.** A pipeline change becomes a two-step operation — bump, then
+reindex — and the gate makes forgetting the second step a red build rather than
+a quiet recall regression. Diacritic stripping is out of the pipeline entirely
+(spec 11 §3.1) and any proposal to add it must arrive with labelled golden-set
+evidence and its own ADR.
+
+---
+
+## ADR-053: Identifier queries match exactly, never fuzzily
+
+**Context.** Search uses trigram similarity, which is the right tool for names.
+An identifier — a NIC, a phone number, a registration number — is not a name. A
+trigram near-match on an identifier returns a **different person** with a high
+score and a name attached.
+
+**Decision.** A query recognised as an identifier is matched by exact equality
+after normalization, and never by similarity, phonetics, or prefix. The
+precision target for identifier queries is 1.00 and a single fuzzy identifier hit
+fails the quality gate rather than lowering a score.
+
+Recall is knowingly traded away. A mistyped identifier returns nothing, and that
+is the correct answer: the alternative is a confident wrong person, which
+Article IX makes unacceptable at any recall.
+
+**Consequences.** The identifier surface is the one place in search where a
+false negative is preferred outright, and the gate is a pass/fail assertion
+rather than a threshold, so it cannot be tuned away under pressure to improve a
+number. Identifier *linkage* remains where it belongs — the ER pipeline, whose
+output is a candidate for a human decision (Article VII), not a search result.
+
+---
+
+## ADR-054: An object set pins its ontology version, and interface expansion is frozen at pin time
+
+**Context.** T69's pre-authored acceptance criterion says a set filtering on an
+interface "picks up a new member type after an ontology minor bump without
+edits". The charter was amended on 2026-07-18 (ADR-033, from B-17) to require
+the opposite: *pinned to the ontology version by default, with an explicit
+track-future-members opt-in and change notification*. The task text was never
+rewritten.
+
+**Decision.** Pinned by default. A set version records the composition version
+current at save, and interface expansion is resolved at that moment and frozen
+into the stored AST as an explicit member list. `track_interface_members: true`
+is an explicit per-version opt-in that re-expands at every evaluation. Either
+way, a composition bump that adds a member to an interface a set uses produces a
+notice row for the owner and everyone it is shared with.
+
+The reason is that a saved set is an **input to analytics and watchlists**. A
+set that silently widens changes the meaning of a finding somebody already
+acted on and of an alert rule nobody re-approved, and it does so at the moment a
+*different* team lands a domain module. Ontology growth must not be a
+scope-widening event.
+
+**Consequences.** Sets survive ontology growth by not moving, which is the
+opposite of the pre-authored AC and the same conclusion the amended charter
+reached. The opt-in exists because "watch every kind of place, including ones we
+have not modelled yet" is a legitimate thing to want — it is just not a default.
+
+A pinned set gets the same notice as a tracking one, worded as an opportunity:
+finding out that your set *could* have widened is as useful as finding out that
+it did.
+
+---
+
+## ADR-055: An analytic run records an immutable manifest; reproducibility is manifest equality
+
+**Context.** T72's criterion is "re-running with the same inputs reproduces the
+finding". H-23 objects that neither an object set nor a projection is an
+immutable input, and that method versions, identity revision, ontology,
+authorization scope, seed and graph snapshot are not all required. Phase 5
+carried forward a related gap: `is_stale` answers "was any row built at an older
+identity revision", not "has this projection seen every claim" — so an operator
+cannot detect that the graph is behind, and a finding could not say what it was
+computed over.
+
+**Decision.** Every analytic run writes an immutable manifest **before** the
+algorithm runs, recording: method and method version; the **implementation that
+actually ran** and its library version; parameters and seed; the object-set id
+and version; an `evaluation_digest` over the sorted evaluated member ids; the
+projection's `built_at_revision_id`, builder version and aggregation-method
+version; an `edge_digest` over the edge rows consumed; ontology version;
+identity revision; code version and settings digest; actor, purpose and an
+authorization digest; caveat version; and timestamps.
+
+**Reproducibility is defined as: equal manifests produce equal finding
+digests**, ignoring actor, purpose and timestamps. That is a testable statement.
+"Rerunning reproduces the finding" was not.
+
+This closes the Phase 5 `is_stale` carryover **without changing what `is_stale`
+means.** A manifest does not ask whether a projection was fresh — an
+unanswerable question at the moment of a run — it records *which* projection was
+read. Freshness is an operator's question about a cache; provenance is a
+finding's question about its own inputs, and they are different questions.
+
+It also closes a defect found during re-validation: `aegis/analytics/clustering.py`
+falls back from Leiden to NetworkX Louvain when igraph is unavailable, printing a
+warning and producing a different partition from a different algorithm. Under
+the manifest, the fallback is a different `implementation` value and therefore a
+different run — visible rather than silent.
+
+**Consequences.** A run is cheap to record and expensive to fake. A finding
+whose manifest cannot be reconstructed is a finding nobody should promote, and
+§10's promotion path can say so mechanically. The `authorization_digest` makes
+Article VI legible in the record: a finding computed under a narrower clearance
+is a different finding, and the manifest says which one it was.
+
+---
+
+## ADR-056: Watchlist evaluation is explicit or scheduled, never a write-path hook
+
+**Context.** T75 says "an exact identifier landing in canon fires the watching
+set's alert". Firing on write requires the generalized side-effect outbox that
+spec 08 §6.5 declares and **nothing executes** — Phase 3 deferred it to its
+first real consumer, Phase 5 needed neither, and it remains a Phase 6 carryover.
+
+**Decision.** Watchlists are evaluated by an explicit command,
+`aegis watchlists evaluate`, run on demand or on a schedule. Each sweep records
+an `analytic_run` and an `evaluated_through` watermark, so the next run starts
+where the last one finished and a window that was never evaluated is a visible
+gap in the runs rather than silence.
+
+Building the outbox to power one feature would ship a second inert mechanism:
+one hook, one consumer, no second caller to prove the abstraction, and a
+write-path dependency on machinery no test exercises under load. The outbox
+lands with the first feature that genuinely needs on-write dispatch, which this
+is not — a watchlist is a standing query, and running a standing query on a
+schedule is the ordinary shape of the thing.
+
+**Consequences.** Detection latency is the sweep interval, stated rather than
+implied. Idempotence comes from the dedupe key
+`(watchlist_id, rule_version, matched_value, entity_id)`, so a re-run over an
+overlapping window produces no duplicate alerts.
+
+Watchlist evaluation runs under the **watchlist owner's** authorization context,
+recorded in the manifest — the one place a saved artifact evaluates with its
+owner's clearance rather than the caller's. An alert nobody may read is not an
+alert. It is stated here, in the decision record, rather than discovered later
+in a query.
+
+**Revisit when** a second feature needs on-write dispatch. Then the outbox has
+two consumers, which is the point at which building it is engineering rather
+than speculation.
+
+---
+
+## ADR-057: `/v1/graph/*` answers a question; `/v1/analytics/*` records an answer
+
+**Context.** T72 lists k-hop neighbourhoods and shortest paths among the
+analytics to build. `POST /v1/graph/expand` and `POST /v1/graph/paths` already
+do both, shipped at T22, with a support-summary edge model, a budget, and an
+authorization story that took a phase to get right.
+
+**Decision.** The traversal implementation is shared. The routes differ in one
+respect: whether the answer is **recorded**.
+
+- `/v1/graph/expand` and `/v1/graph/paths` are interactive reads. They write
+  nothing, need no manifest, and carry no caveat row.
+- `/v1/analytics/{metric}` records an `analytic_run` and one or more
+  `analytic_finding` rows, each carrying its manifest and its caveat, each
+  promotable and auditable.
+
+Recording is what demands the manifest, the caveat, the actor and the purpose,
+because a recorded answer outlives the question and gets forwarded to people who
+never saw the query. An interactive expansion does not, and making an analyst
+mint a finding to look at a neighbourhood would make findings worthless by
+volume.
+
+**Consequences.** k-hop and shortest path appear in both places, deliberately.
+Asking is free; committing to an answer is a governed act. Weighted paths are
+**not** offered under either: ADR-030 removed the aggregate weight from
+`edge_projection` on purpose, so there is no weight to traverse, and any future
+weighted metric must declare its weight function in the manifest and derive it
+from the support summary in the open.

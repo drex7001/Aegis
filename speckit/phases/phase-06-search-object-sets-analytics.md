@@ -1,9 +1,13 @@
 # Phase 6 Charter — Search, object sets & governed analytics
 
-Status: charter (amended 2026-07-18, ADR-033) · tasks pre-authored:
-`../tasks/phase-06.md` (T66–T77; re-validated by T66 at phase start, which
-also dispositions the 2026-07 review findings tagged P6: B-17, H-22, H-23,
-H-24, M-11, M-16) · Constitutional basis: Articles VI, IX, XIII ·
+Status: **ACTIVE — opened 2026-08-23** (amended 2026-07-18, ADR-033) · tasks:
+`../tasks/phase-06.md` (T66–T77), **re-validated by T66 on 2026-08-23**, whose
+fourteen divergences are recorded in `../specs/11-search.md` §0 and
+`../specs/12-object-sets-analytics.md` §0 and in ADR-050…ADR-057. The 2026-07
+review findings tagged P6 are dispositioned there: **B-17** (spec 11 §4, spec 12
+§2/§5), **H-22** (spec 11 §3, §8–§10), **H-23** (spec 12 §8.2), **H-24**
+(spec 12 §11), **M-11** (ADR-050), **M-13** (spec 11 §0 S7), **M-16** (spec 12
+§6) · Constitutional basis: Articles VI, IX, XIII ·
 GOAL.md §12, §13, §32, §7.8 (object sets) · ADR-012
 
 ## Objective
@@ -18,8 +22,10 @@ for analytics, watchlists, and bulk operations.
 
 - **Consumption:** global search; object sets (definition, storage, sharing,
   composition); analytics results as first-class `AnalyticFinding` records.
-- **Governance:** authorization re-check before result hydration (ADR-012);
-  finding→claim promotion as an audited action; every metric ships its caveat.
+- **Governance:** authorization applied **in candidate generation** (ADR-012 as
+  amended by B-17 — "re-check before hydration" is the wording B-17 rejects,
+  and P2's search already does better; spec 11 §4); finding→claim promotion as
+  an audited action; every metric ships its caveat.
 - **Semantic:** object-set filter grammar targets ontology types *and
   interfaces* (P3), so sets survive ontology growth.
 
@@ -45,7 +51,9 @@ for analytics, watchlists, and bulk operations.
    (union/intersect/difference) **evaluated under one snapshot + one
    authorization context per request** (M-16); a shared set never leaks what
    the viewer can't see (Article VI).
-4. **Analytics service**: k-hop neighborhoods, shortest/weighted paths, Leiden
+4. **Analytics service**: k-hop neighborhoods, shortest paths — **not weighted;
+   ADR-030 removed the aggregate weight on purpose, so there is none to
+   traverse (spec 12 §0 O4)** — Leiden
    communities, brokerage/betweenness, shared-identifier detection — each run
    records an **immutable run manifest** (input digest/snapshot, projection
    version, identity revision, ontology version, code + settings versions,
@@ -58,8 +66,9 @@ for analytics, watchlists, and bulk operations.
 6. **Watchlists**: exact-identifier watchlists built on object sets; a
    detection is a **typed alert suggestion** (rule + version, inputs, dedupe
    key, confidence/exactness) with triage lifecycle (new/reviewing/closed) —
-   Article VII applies to alerts too (H-24); evaluation ownership (on-write vs
-   scheduled) decided in-spec.
+   Article VII applies to alerts too (H-24); evaluation ownership decided
+   in-spec — **explicit/scheduled, never a write-path hook** (ADR-056), because
+   the side-effect outbox spec 08 §6.5 declares is still executed by nothing.
 
 ## Dependencies
 
@@ -85,15 +94,17 @@ for analytics, watchlists, and bulk operations.
 | Risk | Mitigation |
 |---|---|
 | Multilingual search quality insufficient in Postgres | Golden set makes it measurable; OpenSearch trigger fires on evidence, not vibes |
-| Metrics read as guilt ("most connected = leader") | Article IX caveats are structural (in the finding record), not UI decoration; wording reviewed once with the analyst persona |
+| Metrics read as guilt ("most connected = leader") | Article IX caveats are structural: the text is code (`aegis/analytics/caveats.py`), copied into every finding row, and `tests/contract/test_caveat_catalog.py` refuses leadership language and superlatives in any metric name or label — with a non-vacuity check, since a word list that catches nothing proves nothing |
 | Object sets become a second authorization system | Sets store *queries*, never results; evaluation always applies the caller's filters at read time |
 | Watchlist scope creep toward §32's full alert engine | Exact identifiers only; anything fuzzy waits for a real need |
 
 ## Specs to author or update
 
-- `specs/11-search.md` and `specs/12-object-sets-analytics.md` — author at
-  phase start (filter grammar, finding schema, caveat catalog).
-- `specs/06-api.md` — search, sets, findings, watchlist routes.
+- [x] `specs/11-search.md` and `specs/12-object-sets-analytics.md` — authored
+  at phase start by T66 (filter grammar, finding schema, caveat catalog).
+  Both **final**.
+- [x] `specs/06-api.md` — search (§2.1), analytics and findings (§2.6), sets,
+  watchlists and alerts (§2.9).
 
 ## Explicit non-goals
 

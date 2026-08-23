@@ -79,7 +79,8 @@ required · **cursor** paginated per §4.
 | `GET /v1/claims/{id}/provenance` | — | case `can_view` | **generic** provenance for any claim-derived value: source records, all three grading dimensions, relations, identity-decision line (B-14) | — | `test_why_connected.py` (T21) |
 | `GET /v1/entities/{id}` | — | — | claims grouped by predicate, **each with its grading, source and both relation directions** so a property disagreement is named rather than left to be noticed (ADR-036); resolves through the canonical map, reporting `resolved_entity_id`; `?asOf=`, `?asOfRevision=` (§3) | max 200 claims, `truncated` disclosed | `test_entity_provenance.py` (T23c), matrix suite |
 | `GET /v1/entities/{id}/why-connected/{other}` | — | — | claims, gradings, sources, relations, and the identity decisions behind the edge (GOAL.md §18); **undirected**, and resolves through the canonical map so claims written against an absorbed id still answer | max 200 claims, `truncated` disclosed | `test_why_connected.py` (T21) |
-| `GET /v1/search/entities?q=` | — | — | `pg_trgm` over names/aliases/**mention keys** — `norm_key` plus the stored `latin_key`/`phonetic_key`, which is what makes a romanized query reach a Sinhala name (ADR-035); each hit reports `matched` so a phonetic lead is not read as a name match; **authorization applied in candidate generation, not only hydration** (ADR-012, B-17); deterministic ordering, cursor in T24c | q ≤ 200 chars, limit ≤ 50 | `test_search.py` (T23c), matrix suite |
+| `GET /v1/search?q=&types=` | — | — | **One route for every searchable thing** (ADR-050, M-11): entities, claims (`excerpt` + literal values) and documents (`document_text_projection`, ADR-051), grouped by ontology object type plus the `claim` and `document` groups — the group list is enumerated from `ontology.object_types`, never hard-coded (Article XIV). `pg_trgm` over names/aliases/**mention keys** — `norm_key` plus the stored `latin_key`/`phonetic_key`, which is what makes a romanized query reach a Sinhala name (ADR-035); each hit reports `matched` so a phonetic lead is not read as a name match; **identifiers match exactly, never fuzzily** (ADR-053). **Authorization applied in candidate generation, not only hydration** (ADR-012, B-17): a hit the caller's filters exclude is absent from the scan, so no total, approximate total or hidden count is returned in any group, and an empty group is omitted rather than returned empty. `as_of`/`as_of_revision` per §3. Supersedes `GET /v1/search/entities`, removed with `BREAKING API CHANGE` | q ≤ 200 chars, limit ≤ 50 per group, ≤ 12 groups, 3 000 ms statement timeout | `test_search.py`, `test_search_authz.py`, `test_search_quality.py` (T67, T68) |
+| ~~`GET /v1/search/entities?q=`~~ | — | — | **Removed at T67** (ADR-050). P2's first implementation of the route above, under a narrower name; M-11 asks for one endpoint with an additive backend, and two parallel search routes would be two rankings, two paginations and two copies of B-17's leak surface | — | `test_openapi.py` (contract diff) |
 
 ### 2.2 Review queue & identity (Articles VII, V)
 
@@ -158,8 +159,9 @@ case just as surely as one on a read.
 |---|---|---|---|---|---|
 | `POST /v1/graph/expand` | — | `can_view` when `case_id` is given | seed ids, max hops, categories, time window, max results; edges carry the **support summary and stamps**, never an aggregate weight (ADR-030). An edge is visible when ≥ 1 supporting claim passes `claim_filters`, and its summary is rebuilt from **only those** claims (T22). **`case_id` (T46)** narrows to one case's own evidence by joining `claim_filters`, not by filtering the result — so edge visibility *and* every tally move together, and the case graph cannot overstate what the investigation has. An unauthorized case id is **404**, never silently ignored: an ignored filter would return the caller's whole readable graph under a heading saying otherwise | ≤ 3 hops, ≤ 2 000 elements (nodes + edges), ≤ 100 seeds; over-asking is clamped and disclosed as `truncated` | `test_graph_routes.py` |
 | `POST /v1/graph/paths` | — | — | shortest routes only, not all routes (T22): a path nobody can audit is machine-produced insinuation (Article IX) | ≤ 5 hops, ≤ 25 paths | `test_graph_routes.py` |
-| `POST /v1/analytics/{algo}` | analyst | — | returns `AnalyticFinding` + caveat text (Article IX) — P6 | — | P6 |
-| `POST /v1/findings/{id}/promote` | analyst | — | finding → review queue as an assessed-claim draft — P6 | — | P6 |
+| `POST /v1/analytics/{metric}` | analyst | `can_view` when the input set is case-scoped | **Records an answer**, where `/v1/graph/*` above only answers (ADR-057). Writes one immutable `analytic_run` manifest — method, implementation and library version, seed, object-set id + version, evaluation digest, projection stamps + edge digest, ontology version, identity revision, code version, actor, purpose, authorization digest, caveat version (ADR-055) — then one or more `AnalyticFinding` rows, each carrying its caveat text **copied into the row** (spec 12 §9.3). Metrics: `k_hop`, `shortest_path`, `community`, `betweenness`, `degree`, `shared_identifier`. **No weighted paths** — ADR-030 removed the aggregate weight on purpose. A finding's handling code is the maximum of its contributing claims | evaluated input ≤ 50 000 objects; 10 000 ms | `test_analytics.py`, `test_run_manifest.py` (T72) |
+| `GET /v1/findings/{id}` · `GET /v1/findings?run=&set=&type=` | — | per row | findings the caller may read, with their manifest and caveat; cursor, no total | limit ≤ 50 | `test_analytics.py` |
+| `POST /v1/findings/{id}/promote` | analyst | `can_edit` when case-scoped | finding → **typed suggestion** (`finding_promotion`) → on acceptance an `assessed` claim written with the **reviewer** as actor (ADR-031 §2). Rationale required and substantive; the finding is **not consumed** — it stays, linked through `promoted_claim_id` and a `claim_relation` of kind `analytic_basis`. Promoting the same finding twice is `409` | — | `test_promotion.py` (T74) |
 | `POST /v1/projections/rebuild` | admin | — | **controlled job/admin action only** (B-14): full rebuild is a DoS and staleness risk, not general analyst capability. Returns the build report (edges, segments, anchor/map split, `built_at_revision_id`) and is audited as an operator action (Article X) | 1 concurrent, enforced by a transaction-scoped Postgres advisory lock → 409 | `test_projection_routes.py` (T23c), matrix suite |
 | ~~`GET /api/graph`, `/api/stats`, `/api/cells`, `/api/query/{name}`~~ | — | — | **deleted at T22** (ADR-026) with the `public_route` marker and the legacy explorer. `/api` stays a reserved path prefix so a caller of a retired route gets 404, not the workspace's HTML | — | `test_route_gating.py`, `test_workspace_serving.py` |
 
@@ -175,6 +177,33 @@ case just as surely as one on a read.
 |---|---|---|---|---|---|
 | `GET /v1/audit?actor=&case=&action=&from=&to=` | auditor | — | **P** — querying audit is itself audited; cursor | — | `test_audit.py` |
 | `POST /v1/audit/verify` | auditor, admin | — | chain verification report | — | `test_audit.py` |
+
+### 2.9 Object sets, watchlists & alerts (P6 — spec 12)
+
+A set stores a **query, never results** (spec 12 §3), evaluates under **one
+snapshot and one authorization context** per request (M-16), and grants nothing.
+An unshared set is **absent** from every list, not 403 — the same rule cases
+already follow (§2.5).
+
+| Route | R | F | Notes / filters | Limits | Tests |
+|---|---|---|---|---|---|
+| `POST /v1/object-sets` | analyst, investigator | `can_edit` when `case_id` is given | body is a **validated AST**, never SQL; every leaf names ontology vocabulary and fails `422` with the offending path when it does not. Pins the composition version and freezes interface expansion at save (ADR-054) unless `track_interface_members` is set | depth ≤ 8, ≤ 64 nodes, ≤ 8 set refs, composition depth ≤ 3; cycles refused at **save** | `test_object_sets.py` (T69) |
+| `GET /v1/object-sets` · `GET /v1/object-sets/{id}` | — | `viewer` | only sets shared with the caller; cursor, no total. A `property` node above the caller's clearance reads back `withheld: true` with a null value and an **unchanged shape** — a set definition is protected data (B-17, spec 12 §5.2) | limit ≤ 50 | `test_object_sets.py` |
+| `POST /v1/object-sets/{id}/versions` | analyst, investigator | `editor` | an edit is a **new immutable version** with a note; a finding that names `(set_id, version)` names something that cannot move under it | — | `test_object_sets.py` |
+| `POST /v1/object-sets/{id}/evaluate` | — | `viewer` **or** an explicit evaluate grant | evaluates under the **caller's** `claim_filters` in candidate generation — never the owner's. One repeatable-read snapshot for the whole request, composed subsets included (M-16). Returns member ids, readable labels, `truncated`, and the `evaluation_digest`; **no total** | ≤ 50 000 objects, 10 000 ms | `test_set_evaluation.py` (T70) |
+| `POST /v1/object-sets/{id}/share` · `DELETE .../share/{user_id}` | analyst, investigator | `editor` | FGA `object_set` viewer/editor grants; audited with what was shared and with whom | — | `test_set_sharing.py` (T70) |
+| `GET /v1/object-sets/{id}/notices` | — | `viewer` | composition bumps that added a member to an interface this set uses — delivered to pinned and tracking sets alike (spec 12 §4.3) | — | `test_object_sets.py` |
+| `POST /v1/watchlists` · `GET /v1/watchlists` | analyst | `can_edit` / per row | a set plus an **exact-identifier** rule and its version. Fuzzy matching is deliberately absent and its absence is asserted, not assumed | — | `test_watchlists.py` (T75) |
+| `GET /v1/alerts?watchlist=&status=` | analyst | per row | detections are **typed suggestions** (`watchlist_hit`) in the queue that already exists — Article VII applies to alerts (H-24). Dedupe key `(watchlist_id, rule_version, matched_value, entity_id)` | limit ≤ 50 | `test_watchlists.py` |
+| `POST /v1/alerts/{id}/triage` | analyst | — | `new → reviewing → closed`; **every** transition audited, and `closed` without a reason is `422`. No transition graph beyond that — the same decision spec 09 made for investigation tasks | — | `test_watchlists.py` |
+
+**Evaluation is explicit** (ADR-056): `aegis watchlists evaluate` sweeps and
+records an `analytic_run` with an `evaluated_through` watermark, so an
+unevaluated window is a visible gap rather than silence. There is no write-path
+hook, because the side-effect outbox spec 08 §6.5 declares is still executed by
+nothing. Watchlist sweeps run under the **owner's** authorization context, which
+is recorded in the manifest — the one place a saved artifact does not use the
+caller's clearance, stated here rather than discovered later.
 
 ## 3. Time and identity revision (ADR-029)
 
@@ -211,8 +240,8 @@ case just as surely as one on a read.
   the final sort key, so iteration is stable under concurrent inserts.
 - **No total counts** on authorization-filtered collections: a count is an
   existence leak (default 4). Responses carry `next_cursor` only.
-- Applies to: review queue, identity candidates, entity search, sources, audit,
-  and every P2 list view.
+- Applies to: review queue, identity candidates, search, sources, audit,
+  object sets, findings, alerts, and every P2 list view.
 
 ## 5. Governance seams (B-08 — nullable in P2, enforced P7)
 
