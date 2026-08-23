@@ -53,6 +53,12 @@ EXPECTED = {
     "linkClaim": ({"analyst"}, False),
     "retractClaim": ({"analyst", "supervisor"}, False),
     "getEntity": (set(), False),
+    # The map is not a side door (spec 10 §7.1). Both geo routes are ordinary
+    # authenticated reads — no role of their own, because a viewer who may
+    # read a claim may see where it says something happened, and one who may
+    # not sees neither.
+    "geoLocations": (set(), False),
+    "geoEvents": (set(), False),
     "listEntityCases": (set(), False),
     "identityHistory": (set(), False),
     "whyConnected": (set(), False),
