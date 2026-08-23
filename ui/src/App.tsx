@@ -14,6 +14,7 @@ import { InterfaceView } from "./views/InterfaceView";
 import { ObjectTypeView } from "./views/ObjectTypeView";
 import { ObjectView } from "./views/ObjectView";
 import { ReviewView } from "./views/ReviewView";
+import { SetBuilder } from "./views/SetBuilder";
 import { SourcesView } from "./views/SourcesView";
 
 /**
@@ -35,6 +36,7 @@ export function App() {
           <Route path={ROUTES.graph} element={<GraphView />} />
           <Route path={ROUTES.map} element={<MapView />} />
           <Route path={ROUTES.timeline} element={<Timeline />} />
+          <Route path={ROUTES.sets} element={<SetBuilder />} />
           <Route path={ROUTES.sources} element={<SourcesView />} />
           <Route path={ROUTES.review} element={<ReviewView />} />
           <Route path={ROUTES.cases} element={<CasesView />} />

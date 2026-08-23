@@ -30,6 +30,8 @@ const WORKSPACE_VIEWS: Array<{ to: string; label: string }> = [
   { to: ROUTES.graph, label: "Graph" },
   { to: ROUTES.map, label: "Map" },
   { to: ROUTES.timeline, label: "Timeline" },
+  // Last, because a set is built *from* what the other views showed you.
+  { to: ROUTES.sets, label: "Sets" },
 ];
 
 export function Shell() {

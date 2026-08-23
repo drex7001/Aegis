@@ -801,6 +801,142 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/object-sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Sets
+         * @description Only sets the caller may see. No total — a count is an existence leak.
+         *
+         *     Sets the caller cannot reach are **absent**, which is why this filters
+         *     rather than 403s per row: a list with holes in it is a list that answers
+         *     the question it was refusing to answer.
+         */
+        get: operations["listObjectSets"];
+        put?: never;
+        /**
+         * Create
+         * @description Save a definition. Interfaces are pinned here unless tracking is asked for.
+         */
+        post: operations["createObjectSet"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/object-sets/{set_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Set */
+        get: operations["getObjectSet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/object-sets/{set_id}/evaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Evaluate Set
+         * @description Run the set under the **caller's** filters, never the owner's.
+         *
+         *     `evaluator` and not `viewer`: running somebody's saved query is the weaker
+         *     disclosure, and a colleague can be given the answer without being given the
+         *     question (spec 12 §5.2).
+         */
+        post: operations["evaluateObjectSet"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/object-sets/{set_id}/notices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Notices
+         * @description Interface growth this set's owner should know about (spec 12 §4.3).
+         *
+         *     Delivered to pinned and tracking sets alike: a tracking set changed, a
+         *     pinned set could have, and finding that out is as useful as finding out it
+         *     did.
+         */
+        get: operations["listObjectSetNotices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/object-sets/{set_id}/share": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Share Set
+         * @description Grant or revoke, audited with what was shared and with whom.
+         *
+         *     An audit row saying "shared" without naming the grant answers no question
+         *     anybody will later ask (spec 12 §5.2 rule 3).
+         */
+        post: operations["shareObjectSet"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/object-sets/{set_id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Set Version
+         * @description An edit is a new version; nothing updates one.
+         */
+        post: operations["addObjectSetVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ontology/vocabulary": {
         parameters: {
             query?: never;
@@ -2403,6 +2539,174 @@ export interface components {
             record_id: string;
             /** Script */
             script: string | null;
+        };
+        /**
+         * ObjectSetEvaluationOut
+         * @description What a set evaluates to **for this caller**.
+         *
+         *     Never for its owner: a shared set is a shared question, not lent clearance
+         *     (spec 12 §6). `truncated` is the honest alternative to a count — it says
+         *     there is more without saying how much more.
+         */
+        ObjectSetEvaluationOut: {
+            /** Evaluation Digest */
+            evaluation_digest: string;
+            /** Members */
+            members: components["schemas"]["ObjectSetMemberOut"][];
+            /** Set Id */
+            set_id: string;
+            /** Truncated */
+            truncated: boolean;
+            /** Version */
+            version: number;
+        };
+        /**
+         * ObjectSetIn
+         * @description A new set. The AST is validated against the ontology before it is stored.
+         */
+        ObjectSetIn: {
+            /** Ast */
+            ast: {
+                [key: string]: unknown;
+            };
+            /** Case Id */
+            case_id?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name: string;
+            /** Note */
+            note?: string | null;
+            /**
+             * Track Interface Members
+             * @default false
+             */
+            track_interface_members?: boolean;
+        };
+        /** ObjectSetMemberOut */
+        ObjectSetMemberOut: {
+            /** Entity Id */
+            entity_id: string;
+            /** Entity Type */
+            entity_type: string;
+            /** Label */
+            label: string;
+        };
+        /** ObjectSetNoticeOut */
+        ObjectSetNoticeOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Interface */
+            interface: string;
+            /** Member */
+            member: string;
+            /** Notice Id */
+            notice_id: string;
+            /** Ontology Version */
+            ontology_version: string;
+            /** Set Id */
+            set_id: string;
+            /** Tracking */
+            tracking: boolean;
+            /** Version */
+            version: number;
+        };
+        /** ObjectSetOut */
+        ObjectSetOut: {
+            /** Case Id */
+            case_id?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description?: string | null;
+            latest: components["schemas"]["ObjectSetVersionOut"];
+            /** Name */
+            name: string;
+            /** Owner */
+            owner: string;
+            /** Set Id */
+            set_id: string;
+        };
+        /**
+         * ObjectSetPageOut
+         * @description Sets the caller may see. **No total** — a count is an existence leak.
+         */
+        ObjectSetPageOut: {
+            /** Items */
+            items: components["schemas"]["ObjectSetOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** ObjectSetShareIn */
+        ObjectSetShareIn: {
+            /**
+             * Relation
+             * @default viewer
+             */
+            relation?: string;
+            /**
+             * Revoke
+             * @default false
+             */
+            revoke?: boolean;
+            /** User Sub */
+            user_sub: string;
+        };
+        /** ObjectSetVersionIn */
+        ObjectSetVersionIn: {
+            /** Ast */
+            ast: {
+                [key: string]: unknown;
+            };
+            /** Note */
+            note?: string | null;
+            /**
+             * Track Interface Members
+             * @default false
+             */
+            track_interface_members?: boolean;
+        };
+        /**
+         * ObjectSetVersionOut
+         * @description One immutable version, as this reader may see it.
+         *
+         *     A `property` node above the reader's clearance arrives shape-intact and
+         *     value-empty — `{property, op, value: null, withheld: true}`. Removing it
+         *     would misdescribe the set, since the evaluation still uses the condition;
+         *     showing the value would be the leak B-17 names (spec 12 §5.2).
+         */
+        ObjectSetVersionOut: {
+            /** As Of */
+            as_of?: string | null;
+            /** As Of Revision */
+            as_of_revision?: number | null;
+            /** Ast */
+            ast: {
+                [key: string]: unknown;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /** Note */
+            note?: string | null;
+            /** Ontology Version */
+            ontology_version: string;
+            /** Set Id */
+            set_id: string;
+            /** Track Interface Members */
+            track_interface_members: boolean;
+            /** Version */
+            version: number;
         };
         /**
          * OntologyVocabularyOut
@@ -5619,6 +5923,453 @@ export interface operations {
             };
             /** @description Body exceeds the configured limit. */
             413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    listObjectSets: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectSetPageOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    createObjectSet: {
+        parameters: {
+            query?: {
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ObjectSetIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectSetOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Authenticated, but the role gate refused. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    getObjectSet: {
+        parameters: {
+            query?: {
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectSetOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    evaluateObjectSet: {
+        parameters: {
+            query?: {
+                version?: number | null;
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectSetEvaluationOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    listObjectSetNotices: {
+        parameters: {
+            query?: {
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectSetNoticeOut"][];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    shareObjectSet: {
+        parameters: {
+            query?: {
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ObjectSetShareIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectSetOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Authenticated, but the role gate refused. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    addObjectSetVersion: {
+        parameters: {
+            query?: {
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ObjectSetVersionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectSetVersionOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Authenticated, but the role gate refused. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4). */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

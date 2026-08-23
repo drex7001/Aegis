@@ -1831,3 +1831,86 @@ button:hover {
   outline: 2px solid #1565c0;
   outline-offset: 1px;
 }
+
+/* ── the object-set builder (T71) ─────────────────────────────────────── */
+
+.set-builder__form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 620px;
+}
+
+.set-builder__filters {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.set-builder__filter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.set-builder__add {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.set-builder__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.set-builder__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.set-builder__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.set-builder__members {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Nested because results belong *to* a set rather than beside it: they are
+   computed per caller and per evaluation, not saved. */
+.panel--nested {
+  margin-top: 14px;
+  border: 1px solid var(--line);
+}
+
+.field--inline {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.button--quiet {
+  background: none;
+  color: var(--muted);
+}

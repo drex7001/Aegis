@@ -216,13 +216,37 @@ than `viewer`, so a colleague can be given the answer without being given the
 question (spec 12 §5.2). The creator is made an `editor` at save, so a set
 cannot exist that nobody — including its author — can edit.
 
-**T71. Set builder in the workspace** (needs T70; SDK regen) — set and finding
+**T71. Set builder in the workspace** (needs T70; SDK regen) — **DONE
+2026-08-23.** Set and finding
 types regenerate into the TypeScript client; workspace set builder (build,
 compose, save, share) and results panel. Closes the P4 claims-picker carryover:
 a hypothesis link picker is an object set with `type: claim`.
-AC: a set is built, composed, and shared entirely from the workspace through
-typed SDK calls; the builder offers only grammar the spec defines; no
-hand-written domain types appear in the workspace.
+AC: **met.** A set is built, saved, evaluated and shared entirely from the
+workspace through the generated client. The builder's menus are fed from the
+*generated* ontology descriptors, so a second domain's vocabulary appears with
+no change to the workspace (Article XIV) and there is deliberately **no
+free-text condition box** — that would be a second grammar, and the one in
+spec 12 §2 is the one that gets validated. The browser test asserts a declared
+type is offered and an undeclared one is not.
+
+T71 also adds the routes, which T69 and T70 built the service layer for. The
+property they exist to hold is that **an unshared set is absent, never
+forbidden**: every check is 404-on-failure, the list omits rather than marks,
+and a missing set and an unshared one return byte-identical responses. The
+stub FGA answers `False` for anything ungranted, so "the route never asked"
+and "the route asked and was refused" are distinguishable — and one test
+asserts the *relation* asked for, because a route that skipped its check would
+pass every other case.
+
+**The two grants are visible in the routes, not only in the model.**
+Evaluating asks for `evaluator`; reading the definition asks for `viewer`. A
+colleague granted only the first gets the answer and still gets 404 from the
+definition, which is the disclosure boundary spec 12 §5.2 draws.
+
+The results panel labels members "as you can see them" and shows the
+evaluation digest. Two people sharing one set correctly see different members,
+and a screen that implied otherwise would teach a model this system does not
+have. No total, in the panel or the API.
 
 ## Milestone C — Analytics
 

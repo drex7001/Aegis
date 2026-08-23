@@ -463,6 +463,101 @@ export async function search(
   );
 }
 
+/* ── object sets (T71, over the routes T69/T70 landed) ─────────────────── */
+
+export type ObjectSet = components["schemas"]["ObjectSetOut"];
+export type ObjectSetPage = components["schemas"]["ObjectSetPageOut"];
+export type ObjectSetVersion = components["schemas"]["ObjectSetVersionOut"];
+export type ObjectSetEvaluation = components["schemas"]["ObjectSetEvaluationOut"];
+export type ObjectSetMember = components["schemas"]["ObjectSetMemberOut"];
+export type ObjectSetNotice = components["schemas"]["ObjectSetNoticeOut"];
+
+/**
+ * Sets the caller may see.
+ *
+ * An unshared set is **absent**, never a forbidden row: a list with holes in
+ * it answers the question it was refusing to answer. It carries no total, for
+ * the same reason every other authorization-filtered collection here does not.
+ */
+export async function listObjectSets(params?: {
+  cursor?: string;
+  limit?: number;
+}): Promise<ObjectSetPage> {
+  return unwrap(await api.GET("/v1/object-sets", { params: { query: params ?? {} } }));
+}
+
+export async function getObjectSet(setId: string): Promise<ObjectSet> {
+  return unwrap(
+    await api.GET("/v1/object-sets/{set_id}", { params: { path: { set_id: setId } } }),
+  );
+}
+
+export async function createObjectSet(body: {
+  name: string;
+  ast: Record<string, unknown>;
+  description?: string | null;
+  case_id?: string | null;
+  track_interface_members?: boolean;
+  note?: string | null;
+}): Promise<ObjectSet> {
+  return unwrap(await api.POST("/v1/object-sets", { body }));
+}
+
+/** An edit is a new version. Nothing updates one (spec 12 §3). */
+export async function addObjectSetVersion(
+  setId: string,
+  body: {
+    ast: Record<string, unknown>;
+    track_interface_members?: boolean;
+    note?: string | null;
+  },
+): Promise<ObjectSetVersion> {
+  return unwrap(
+    await api.POST("/v1/object-sets/{set_id}/versions", {
+      params: { path: { set_id: setId } },
+      body,
+    }),
+  );
+}
+
+/**
+ * Run a set. The answer is **the caller's**, never the owner's.
+ *
+ * A shared set is a shared question, not lent clearance — so two people
+ * evaluating one set legitimately see different members, and the response
+ * carries an `evaluation_digest` that says so.
+ */
+export async function evaluateObjectSet(
+  setId: string,
+  version?: number,
+): Promise<ObjectSetEvaluation> {
+  return unwrap(
+    await api.POST("/v1/object-sets/{set_id}/evaluate", {
+      params: { path: { set_id: setId }, query: version ? { version } : {} },
+    }),
+  );
+}
+
+export async function shareObjectSet(
+  setId: string,
+  body: { user_sub: string; relation?: string; revoke?: boolean },
+): Promise<ObjectSet> {
+  return unwrap(
+    await api.POST("/v1/object-sets/{set_id}/share", {
+      params: { path: { set_id: setId } },
+      body,
+    }),
+  );
+}
+
+export async function listObjectSetNotices(setId: string): Promise<ObjectSetNotice[]> {
+  return unwrap(
+    await api.GET("/v1/object-sets/{set_id}/notices", {
+      params: { path: { set_id: setId } },
+    }),
+  );
+}
+
 /* ── cases (T46, over the routes T43 landed) ───────────────────────────── */
 
 export type Case = components["schemas"]["CaseOut"];
