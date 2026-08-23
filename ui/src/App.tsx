@@ -7,6 +7,7 @@ import { ROUTES } from "./routing";
 import { CaseView } from "./views/CaseView";
 import { CasesView } from "./views/CasesView";
 import { GraphView } from "./views/GraphView";
+import { MapView } from "./views/map/MapView";
 import { HypothesisView } from "./views/HypothesisView";
 import { InterfaceView } from "./views/InterfaceView";
 import { ObjectTypeView } from "./views/ObjectTypeView";
@@ -31,6 +32,7 @@ export function App() {
         <Route path={ROUTES.signinCallback} element={<SigninCallback />} />
         <Route element={<Shell />}>
           <Route path={ROUTES.graph} element={<GraphView />} />
+          <Route path={ROUTES.map} element={<MapView />} />
           <Route path={ROUTES.sources} element={<SourcesView />} />
           <Route path={ROUTES.review} element={<ReviewView />} />
           <Route path={ROUTES.cases} element={<CasesView />} />

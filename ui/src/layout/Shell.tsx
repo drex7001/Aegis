@@ -28,6 +28,7 @@ const WORKSPACE_VIEWS: Array<{ to: string; label: string }> = [
   { to: ROUTES.sources, label: "Sources" },
   { to: ROUTES.review, label: "Review" },
   { to: ROUTES.graph, label: "Graph" },
+  { to: ROUTES.map, label: "Map" },
 ];
 
 export function Shell() {

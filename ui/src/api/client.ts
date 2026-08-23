@@ -141,6 +141,47 @@ export async function expandGraph(body: {
   return unwrap(await api.POST("/v1/graph/expand", { body }));
 }
 
+/* ── geo (T59) ─────────────────────────────────────────────────────────── */
+
+/**
+ * A GeoJSON `FeatureCollection` with two foreign members (`next_cursor`,
+ * `stamp`), which RFC 7946 §6.1 permits.
+ *
+ * The feature shapes are **generated**, not declared here. The first cut of
+ * this file wrote them by hand — a GeoJSON Feature's `properties` is
+ * open-ended by the standard, so the server had left them untyped — and the
+ * repository sweep refused it, correctly: an undescribed shape is a gap in the
+ * OpenAPI document, not a licence to keep a second copy (ADR-039).
+ */
+export type FeatureCollection = components["schemas"]["FeatureCollectionOut"];
+
+export type GeoFeature = components["schemas"]["GeoFeatureOut"];
+export type PlaceProperties = components["schemas"]["PlaceFeaturePropertiesOut"];
+export type EventProperties = components["schemas"]["EventFeaturePropertiesOut"];
+
+export async function geoLocations(params: {
+  bbox?: string;
+  limit?: number;
+  cursor?: string;
+  asOf?: string;
+  asOfRevision?: number;
+} = {}): Promise<FeatureCollection> {
+  return unwrap(await api.GET("/v1/geo/locations", { params: { query: params } }));
+}
+
+export async function geoEvents(params: {
+  bbox?: string;
+  from?: string;
+  to?: string;
+  eventType?: string;
+  limit?: number;
+  cursor?: string;
+  asOf?: string;
+  asOfRevision?: number;
+} = {}): Promise<FeatureCollection> {
+  return unwrap(await api.GET("/v1/geo/events", { params: { query: params } }));
+}
+
 /* ── ingestion (T23a) ──────────────────────────────────────────────────── */
 
 /**
