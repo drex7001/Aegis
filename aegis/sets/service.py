@@ -35,7 +35,13 @@ from aegis.sets.grammar import (
     validate,
 )
 from aegis.sets.limits import MAX_COMPOSITION_DEPTH
-from aegis.store import ObjectSet, ObjectSetNotice, ObjectSetVersion
+from aegis.sets.sharing import (
+    EDITOR,
+    VIEWER,
+    grant_tuple,
+    refuse_undisclosable_difference,
+)
+from aegis.store import AuthzOutbox, ObjectSet, ObjectSetNotice, ObjectSetVersion
 
 
 def create_set(
@@ -51,8 +57,9 @@ def create_set(
     as_of: datetime | None = None,
     as_of_revision: int | None = None,
     note: str | None = None,
+    readable_set_ids: set[str] | None = None,
 ) -> tuple[ObjectSet, ObjectSetVersion]:
-    """A new set and its version 1."""
+    """A new set and its version 1, owned and editable by its creator."""
     set_id = new_id("oset")
     row = ObjectSet(
         set_id=set_id,
@@ -74,8 +81,47 @@ def create_set(
         as_of=as_of,
         as_of_revision=as_of_revision,
         note=note,
+        readable_set_ids=readable_set_ids,
     )
+    # The creator is an editor, through the outbox like every other grant
+    # (ADR-014). Written here rather than left to the route so a set can never
+    # exist that nobody can edit — including its author.
+    session.add(AuthzOutbox(op="write", fga_tuple=grant_tuple(actor, EDITOR, set_id)))
+    if case_id:
+        # Case-scoped sets derive their grants from the case (spec 12 §5.1), so
+        # the only tuple needed is the one naming the case.
+        session.add(
+            AuthzOutbox(
+                op="write",
+                fga_tuple={
+                    "user": f"case:{case_id}",
+                    "relation": "case",
+                    "object": f"object_set:{set_id}",
+                },
+            )
+        )
+    session.flush()
     return row, version
+
+
+def share(
+    session: Session,
+    *,
+    set_id: str,
+    user_sub: str,
+    relation: str = VIEWER,
+    op: str = "write",
+) -> dict[str, str]:
+    """Grant or revoke, through the outbox (ADR-014).
+
+    Returns the tuple so the caller can audit *what* was shared with *whom* —
+    spec 12 §5.2 rule 3 asks for the audit, and an audit row saying "shared"
+    without naming the grant answers no question anybody will later ask.
+    """
+    tuple_ = grant_tuple(user_sub, relation, set_id)
+    session.add(AuthzOutbox(op=op, fga_tuple=tuple_))
+    session.flush()
+    return tuple_
 
 
 def add_version(
@@ -89,10 +135,18 @@ def add_version(
     as_of: datetime | None = None,
     as_of_revision: int | None = None,
     note: str | None = None,
+    readable_set_ids: set[str] | None = None,
 ) -> ObjectSetVersion:
-    """Validate, pin, and append. Never update."""
+    """Validate, pin, and append. Never update.
+
+    `readable_set_ids` is the caller's own view of which set definitions they
+    may read, used for the §7 difference rule. `None` means "no composition is
+    readable", which is the safe default: a caller that did not say refuses
+    every negation over a set rather than permitting one.
+    """
     node = parse(ast)
     validate(node, ontology=ontology)
+    refuse_undisclosable_difference(node, readable_set_ids=readable_set_ids or set())
     _refuse_cycles(session, set_id=set_id, node=node)
 
     # Tracking sets keep interfaces unexpanded, so evaluation resolves them
@@ -208,4 +262,4 @@ def notify_interface_growth(
     return notices
 
 
-__all__ = ["add_version", "create_set", "notify_interface_growth"]
+__all__ = ["add_version", "create_set", "notify_interface_growth", "share"]

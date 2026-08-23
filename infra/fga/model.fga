@@ -58,3 +58,24 @@ type investigation_task
     define case: [case]
     define can_view: can_view from case
     define can_edit: can_edit from case
+
+# Object sets (T70, spec 12 §5). The first type here whose grants are about a
+# *saved query* rather than about evidence, and the first with a relation that
+# deliberately grants less than `viewer`.
+#
+# `evaluator` exists because running somebody's saved query and reading what
+# they were looking for are different disclosures (spec 12 §5.2). A set
+# filtering on `has_nic = '...'` discloses that identifier to everyone who can
+# read the definition, regardless of what the evaluation returns — so a
+# colleague can be given the answer without being given the question.
+#
+# `viewer` implies `evaluator`, never the other way round.
+#
+# Case derivation mirrors `hypothesis`: a case-scoped set belongs to exactly
+# one investigation, and its members reach it without a tuple per set.
+type object_set
+  relations
+    define case: [case]
+    define editor: [user] or can_edit from case
+    define viewer: [user] or editor or can_view from case
+    define evaluator: [user] or viewer

@@ -175,18 +175,46 @@ Edits append; nothing updates a version, because a finding names
 `(set_id, version)` and must name something that cannot change under it.
 
 **T70. Sharing + evaluation under caller filters** (specs/12 §5–§7; needs T69)
+— **DONE 2026-08-23.**
 — FGA `object_set` type (viewer/editor); composition (union / intersect /
 difference); evaluation applies the **caller's** row filters in candidate
 generation, under **one snapshot and one authorization context** per request
 (M-16); the definition is protected data — a `property` node above clearance
 reads back `withheld: true` with an unchanged shape.
-AC: the same shared set evaluates as a subset for a narrower-clearance user,
-and a strict subset with a seeded restricted member (charter exit №4, second
-half); composed sets equal set algebra over their evaluated operands for that
-caller (property-based); an unshared set is **absent** from every list; a
-`difference` over a definition the caller cannot read is refused at save; a set
-never evaluates with its owner's clearance except the watchlist sweep, which is
-asserted explicitly.
+AC: **met.** The composition identity is tested as an identity — union,
+intersection and difference each equal the corresponding operation over their
+operands' evaluated memberships **for that same caller**, each with a control
+asserting the operands actually overlap so the equality is not vacuous. A
+narrower caller sees a subset, strictly so once a restricted member matches,
+and the same-answer case is a test rather than an omission (M-13). A set
+evaluated by a junior returns the junior's view, never its owner's — including
+through composition of somebody else's set. `difference` over a definition the
+caller cannot read is refused **at save**, and the default refuses rather than
+permits, because a security rule nobody remembers to opt into is not a rule.
+
+**T70 found an authorization hole in T69.** `{"kind": "type", "object_type":
+"person"}` compiled to a bare type comparison with no claim join, so an object
+set returned every person in the database — including those reachable only
+through claims above the caller's clearance. An entity carries no handling code
+of its own; claims do, and `aegis/search/entities.py` had encoded that since
+T23c. `visible_entity_ids` now lives in `aegis/authz/filters` with one
+definition and two callers, `compile_set` composes it once for every node
+rather than per node, and `tests/contract/test_object_set_invariants.py`
+asserts both packages compose it.
+
+**M-16's snapshot is obtained by construction, not by isolation level.** The
+first implementation issued `SET TRANSACTION ISOLATION LEVEL REPEATABLE READ`
+and could not — PostgreSQL accepts it only as a transaction's first statement.
+`compile_set` produces one `SELECT` with every operand as a subquery, and a
+single statement sees a single snapshot at any isolation level, so there is no
+moment between operands for the corpus to change in.
+`test_composition_is_a_single_statement` pins it and says what to do if it ever
+fails. Spec 12 §6 records both.
+
+FGA gains an `object_set` type with a third relation: `evaluator` is weaker
+than `viewer`, so a colleague can be given the answer without being given the
+question (spec 12 §5.2). The creator is made an `editor` at save, so a set
+cannot exist that nobody — including its author — can edit.
 
 **T71. Set builder in the workspace** (needs T70; SDK regen) — set and finding
 types regenerate into the TypeScript client; workspace set builder (build,

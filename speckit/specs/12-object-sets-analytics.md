@@ -171,10 +171,28 @@ watchlist.
 
 ### 5.1 The FGA type
 
-`object_set` with relations `viewer` and `editor`, granted directly or derived
-from a case's membership when `case_id` is set. An unshared set is **absent**
-from every list — not 403, absent — for the same reason a non-member gets 404
-from a case (spec 06 §2.5).
+`object_set` with relations `viewer`, `editor` and `evaluator`, granted
+directly or derived from a case's membership when `case_id` is set. An unshared
+set is **absent** from every list — not 403, absent — for the same reason a
+non-member gets 404 from a case (spec 06 §2.5).
+
+`evaluator` is the third relation §5.2 rule 2 requires, and it is weaker than
+`viewer` on purpose:
+
+| Grant | Lets you |
+|---|---|
+| `evaluator` | run the set — get the answer |
+| `viewer` | read the definition — see the question |
+| `editor` | write a new version |
+
+`viewer` implies `evaluator`; the reverse is deliberately false, so a colleague
+can be given the answer without being given the question. A model with one
+relation for both would make the weaker grant unexpressible, which is why
+`test_object_set_invariants.py` asserts the derivation runs one way only.
+
+The creator is made an `editor` at save, through the outbox like every other
+grant (ADR-014) — so a set cannot exist that nobody, including its author, can
+edit.
 
 ### 5.2 The definition is protected
 
@@ -208,6 +226,34 @@ Therefore:
   owned by other people. **A set never evaluates with its owner's clearance.**
 - Applied in candidate generation, per spec 11 §4. The rule is one rule; sets
   do not get their own.
+
+**How the snapshot is actually obtained (corrected at T70).** Not by an
+isolation level. The first implementation issued `SET TRANSACTION ISOLATION
+LEVEL REPEATABLE READ` and could not: PostgreSQL accepts that only as a
+transaction's first statement, and an evaluation runs after its caller has done
+something. Working around it — rolling back the caller's transaction to obtain
+a clean one — would have been a library discarding uncommitted work.
+
+The guarantee is met by construction, and is stronger for it. `compile_set`
+produces **one** `SELECT`, with every operand and every composed subset as a
+subquery inside it. A single statement sees a single snapshot at any isolation
+level, so there is no moment *between* the operands for the corpus to change
+in. `test_composition_is_a_single_statement` pins it; if an evaluation ever
+needs a second statement that test fails, and at that point the caller must
+supply a repeatable-read transaction because construction no longer will.
+
+The statement timeout is separate and still set per evaluation: a definition
+inside the complexity limits can be expensive over a large corpus, and a query
+that runs forever is a denial of service the limits did not catch.
+
+**An entity exists only through a readable claim.** Every compiled set is
+scoped to `visible_entity_ids` — the same helper search composes. T70 found
+T69's compiler without it: `{"kind": "type", "object_type": "person"}` compiled
+to a bare type comparison, so an object set returned every person in the
+database including those reachable only through claims above the caller's
+clearance. An entity carries no handling code of its own; claims do. The helper
+now lives in `aegis/authz/filters` so there is one definition and two callers,
+and `test_object_set_invariants.py` asserts each package composes it.
 
 The evaluation returns object ids plus the labels and types the caller may
 read, `truncated`, and the **evaluation digest** (§8.2). No total.
