@@ -60,7 +60,7 @@ because a word list that catches nothing proves nothing. Targets are numbers in
 `aegis/search/targets.py`, quoted by spec 11 §8 and compared by
 `tests/contract/test_search_targets.py`. Divergences are ADR'd.
 
-**T67. ⛓ Global search** (specs/11; supersedes T25) — one route,
+**T67. ⛓ Global search** (specs/11; supersedes T25) — **DONE 2026-08-23.** One route,
 `GET /v1/search`: Postgres FTS + trigram + transliteration keys across
 entities, `claim.excerpt` and the `document_text_projection` (ADR-051);
 grouped results enumerated from `ontology.object_types`; the versioned
@@ -69,15 +69,43 @@ normalization pipeline (ADR-052) applied identically at write and query time;
 generate-then-filter; identifiers matched exactly (ADR-053); `asOf` /
 `asOfRevision` (closing the P5 carryover); purpose capture when a sensitive
 hit is opened. Removes `GET /v1/search/entities` with `BREAKING API CHANGE`.
-AC: a hit the caller's filters exclude is absent — not redacted, absent; two
-users get **subset** results for the same query, and a **strict** subset once a
-restricted matching row is seeded (M-13, spec 11 §0 S7); a restricted row
-leaves no pagination gap; no response carries a total, approximate total or
-hidden count in any group, and an empty group is omitted; opening a sensitive
-hit without a purpose is `422`, and with one the purpose is in `audit_log`;
-result groups follow the ontology's types; an identifier near-miss returns
-nothing; `aegis search check-index` fails on a key at an older
-`NORMALIZATION_VERSION`.
+AC: **met.** A hit the caller's filters exclude is absent — not redacted,
+absent; two users get **subset** results, and a **strict** subset once a
+restricted matching row is seeded (M-13, spec 11 §0 S7); paging both users
+yields the narrower's set as a **subsequence**, so a restricted row leaves no
+gap; a borrowed cursor widens nothing; no response carries a total in any
+group, asserted over the response *and* over the OpenAPI document; an empty
+group is omitted; opening a restricted record without a purpose is `422` and
+with one the purpose is in `audit_log`; result groups are enumerated from
+`ontology.object_types`; an identifier near-miss returns nothing, with a
+non-vacuity check that the near-miss scores >0.8 on trigram; a row at an older
+`NORMALIZATION_VERSION` is excluded from the scan and `aegis search
+check-index` exits non-zero on it.
+
+Three things implementation changed, each written back into spec 11:
+
+1. **§3.1 described a pipeline that does not exist.** It said stage 1 was NFKC
+   and that diacritics are never stripped; `norm_key` does NFKD and *does* fold
+   Latin diacritics, deliberately, so P1-migration keys still match. The rule is
+   **fold when the base is ASCII, preserve when it is not** — which is what
+   H-22 actually asks for. Rewritten against the code.
+2. **One cursor, not one per group.** §5.3 said "limit ≤ 50 per group", which
+   implies a cursor per group — and independent cursors are the pagination-gap
+   surface §4.2 claims to close. One ranked sequence, one cursor; groups are a
+   display of the page.
+3. **The group cap was a latent silent-drop bug.** It truncated *after* the
+   page was cut and after `next_cursor` was computed. Eleven groups against a
+   cap of twelve: two more object types and it would have dropped hits nobody
+   could ever reach. Removed, with `tests/unit/test_search_grouping.py`
+   asserting grouping is a partition.
+
+Two defects found and fixed on the way: a **zero-width joiner inside a name
+split the token**, so the same Sinhala name pasted from two pages produced two
+keys that never blocked together (migration `0014` recomputes rather than
+merely stamps); and the results overlay styling lived on the result *list*, so
+splitting results into one list per group made **every group its own floating
+panel**, stacked — the top group's rows were unclickable. Only a test that
+clicks could see it, and one did.
 
 **T68. Golden multilingual set + CI gate** (specs/11 §8–§10; needs T67) — the
 fictional Sinhala/Tamil/English golden set (name variants, transliterations,

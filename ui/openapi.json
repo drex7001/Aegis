@@ -1580,40 +1580,6 @@
         "title": "EntityDetail",
         "type": "object"
       },
-      "EntityHitOut": {
-        "description": "One search result, with how it was found.",
-        "properties": {
-          "entity_id": {
-            "title": "Entity Id",
-            "type": "string"
-          },
-          "entity_type": {
-            "title": "Entity Type",
-            "type": "string"
-          },
-          "label": {
-            "title": "Label",
-            "type": "string"
-          },
-          "matched": {
-            "title": "Matched",
-            "type": "string"
-          },
-          "score": {
-            "title": "Score",
-            "type": "number"
-          }
-        },
-        "required": [
-          "entity_id",
-          "label",
-          "entity_type",
-          "score",
-          "matched"
-        ],
-        "title": "EntityHitOut",
-        "type": "object"
-      },
       "EntityOut": {
         "properties": {
           "created_at": {
@@ -3928,8 +3894,104 @@
         "title": "RetractIn",
         "type": "object"
       },
-      "SearchResultsOut": {
+      "SearchGroupOut": {
+        "description": "A display group. Carries **no total** — a count is an existence leak.\n\nEmpty groups are omitted from the response rather than returned empty,\nfor the same reason: a present group with no hits *is* a count of zero.",
         "properties": {
+          "group": {
+            "title": "Group",
+            "type": "string"
+          },
+          "hits": {
+            "items": {
+              "$ref": "#/components/schemas/SearchHitOut"
+            },
+            "title": "Hits",
+            "type": "array"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "group",
+          "label",
+          "hits"
+        ],
+        "title": "SearchGroupOut",
+        "type": "object"
+      },
+      "SearchHitOut": {
+        "description": "One result from any backend, on one 0–1 scale.",
+        "properties": {
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "group": {
+            "title": "Group",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "matched": {
+            "title": "Matched",
+            "type": "string"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "group",
+          "label",
+          "score",
+          "matched"
+        ],
+        "title": "SearchHitOut",
+        "type": "object"
+      },
+      "SearchResultsOut": {
+        "description": "One ranked page, displayed as groups.\n\nThere is no per-group cursor and no per-group limit. Groups are how a page\nis displayed, never how it is fetched: several independent cursors would\nleave informative gaps where restricted rows were removed, which is the\npagination surface B-17 names (spec 11 §5.1).",
+        "properties": {
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/SearchGroupOut"
+            },
+            "title": "Groups",
+            "type": "array"
+          },
           "next_cursor": {
             "anyOf": [
               {
@@ -3945,17 +4007,20 @@
             "title": "Query",
             "type": "string"
           },
-          "results": {
-            "items": {
-              "$ref": "#/components/schemas/EntityHitOut"
-            },
-            "title": "Results",
-            "type": "array"
+          "stamp": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AsOfStampOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
           "query",
-          "results"
+          "groups"
         ],
         "title": "SearchResultsOut",
         "type": "object"
@@ -10275,21 +10340,76 @@
         ]
       }
     },
-    "/v1/search/entities": {
+    "/v1/search": {
       "get": {
-        "description": "Find entities by name, alias or the names they were mentioned under.\n\nAuthorization is applied while candidates are chosen, not after they are\nhydrated (ADR-012, B-17): an entity reachable only through claims above the\ncaller's clearance is absent from the scan, so the result *count* cannot be\nused to infer that it exists.",
-        "operationId": "searchEntities",
+        "description": "Find entities, claims and documents by name, alias, excerpt or text.\n\nAuthorization is applied while candidates are chosen, not after they are\nhydrated (ADR-012, B-17): a row the caller's filters exclude is absent from\nthe scan, so neither the result *count* nor a gap in the sequence can be\nused to infer that it exists. There is no total for the same reason, and an\nempty group is omitted rather than returned empty.\n\nResult groups are enumerated from the ontology (Article XIV), so a new\ndomain module's object types are searchable the day they are declared.",
+        "operationId": "search",
         "parameters": [
           {
-            "description": "Free-text name query",
+            "description": "Free-text query",
             "in": "query",
             "name": "q",
             "required": true,
             "schema": {
-              "description": "Free-text name query",
+              "description": "Free-text query",
               "maxLength": 200,
               "title": "Q",
               "type": "string"
+            }
+          },
+          {
+            "description": "Restrict to these result groups; omit for all",
+            "in": "query",
+            "name": "types",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Restrict to these result groups; omit for all",
+              "title": "Types"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asOf",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Asof"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asOfRevision",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Asofrevision"
             }
           },
           {
@@ -10385,7 +10505,7 @@
             "HTTPBearer": []
           }
         ],
-        "summary": "Search",
+        "summary": "Search Everything",
         "tags": [
           "search"
         ]
@@ -10539,6 +10659,7 @@
     },
     "/v1/source-records/{record_id}": {
       "get": {
+        "description": "One record's provenance envelope. Opening a restricted one needs a purpose.\n\nPurpose is captured **here, at the open**, not at the search that found it\n(spec 11 §7). Requiring a reason to type a name trains users to supply a\nmeaningless one, and the audit value is in knowing why a *specific*\nrestricted record was read.\n\n\"Restricted\" means any handling code above the least restrictive one the\nontology declares — an index, not a name, so a deployment that renames its\nladder keeps the rule (Article XIV).",
         "operationId": "getSourceRecord",
         "parameters": [
           {

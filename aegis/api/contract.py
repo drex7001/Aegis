@@ -26,6 +26,12 @@ from typing import Any
 #: the break will later be explained from.
 BREAKING_MARKER = "BREAKING API CHANGE"
 
+#: Separators for the `git log` scan below. NUL and SOH cannot appear in a
+#: commit message, so nothing a human writes can be mistaken for a field
+#: boundary — unlike a newline, which every message contains.
+_FIELD = chr(0)
+_RECORD = chr(1)
+
 
 @dataclass
 class ContractDiff:
@@ -147,3 +153,68 @@ def document_at(ref: str, path: str) -> dict[str, Any] | None:
         return json.loads(blob)
     except json.JSONDecodeError:
         return None
+
+
+def declaring_commit(baseline: str) -> str | None:
+    """The commit on this branch that declares `BREAKING API CHANGE`, or None.
+
+    ADR-042 says the escape hatch is "a phrase in the change itself rather than
+    a CLI flag, so the reason lands in the history that the break will later be
+    explained from". Until T67 that was only half true: the flag existed and
+    **nothing read the phrase**, so CI — which passes no flags — had no way to
+    accept an intended break at all. The documented mechanism did not exist.
+
+    This is it. The scan is scoped to `baseline..HEAD`, so a marker can only
+    accept a break made on the same branch that declared it; a stale marker from
+    an old commit cannot silently license a different break later.
+
+    Returns the subject line of the declaring commit, so the caller can say
+    *which* change accepted it rather than merely that something did.
+    """
+    for revisions in (f"{baseline}..HEAD", "-n1 HEAD"):
+        try:
+            log = subprocess.run(
+                ["git", "log", "--format=%H%x00%s%x00%B%x01", *revisions.split()],
+                capture_output=True,
+                check=True,
+                text=True,
+            ).stdout
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            continue
+        for entry in log.split(_RECORD):
+            parts = entry.split(_FIELD)
+            if len(parts) == 3 and BREAKING_MARKER in parts[2]:
+                return parts[1].strip()
+        # A computable range that declares nothing is an answer, not a reason to
+        # widen the search: falling through to `HEAD` would scan a commit the
+        # range deliberately excluded.
+        if revisions != "-n1 HEAD":
+            return None
+    return None
+
+
+def is_shallow() -> bool:
+    """Whether this clone is missing history the marker scan might need.
+
+    A shallow clone is why a declared break can look undeclared. On a
+    `pull_request` event GitHub checks out a synthetic **merge commit** whose
+    message is "Merge <sha> into <sha>" — the commit that actually carries the
+    marker is a parent, and at `fetch-depth: 1` that parent is not in the
+    repository at all. The scan is then correct and useless: there is nothing
+    to find.
+
+    Reported rather than worked around. Fetching history from inside a check
+    command would make a read-only gate mutate the repository and touch the
+    network, and guessing that an unreachable commit probably declared the
+    break would defeat the point of asking.
+    """
+    try:
+        answer = subprocess.run(
+            ["git", "rev-parse", "--is-shallow-repository"],
+            capture_output=True,
+            check=True,
+            text=True,
+        ).stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return False
+    return answer == "true"

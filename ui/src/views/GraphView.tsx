@@ -3,7 +3,7 @@ import { useCallback, useState } from "react";
 import { useAuth } from "react-oidc-context";
 
 import { ApiError, expandGraph, rebuildProjections } from "../api/client";
-import { EntitySearch } from "./EntitySearch";
+import { SearchPanel } from "./SearchPanel";
 import { GraphCanvas } from "./GraphCanvas";
 import { SurfaceLinks, TimeFilter, useSharedFilter } from "./TimeFilter";
 import { ProvenancePanel, type PanelSelection } from "./ProvenancePanel";
@@ -99,7 +99,7 @@ export function GraphView() {
   return (
     <div className="graph">
       <div className="graph__toolbar">
-        <EntitySearch onPick={focus} />
+        <SearchPanel onPick={focus} />
         <TimeFilter testId="graph-time-filter" />
         <SurfaceLinks current="graph" />
         <span className="muted" data-testid="graph-mode">

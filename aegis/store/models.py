@@ -15,6 +15,7 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     CheckConstraint,
+    Computed,
     Date,
     DateTime,
     ForeignKey,
@@ -25,7 +26,7 @@ from sqlalchemy import (
     UniqueConstraint,
     text,
 )
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import UserDefinedType
 
@@ -179,6 +180,12 @@ class Mention(Base):
     phonetic_key: Mapped[str | None] = mapped_column(Text)
     char_start: Mapped[int | None] = mapped_column(Integer)
     char_end: Mapped[int | None] = mapped_column(Integer)
+    #: Which revision of the normalization pipeline produced the three keys
+    #: above (ADR-052). Nullable only for rows written before the stamp
+    #: existed; migration `0014` recomputes and stamps every one, so a NULL
+    #: after that is a row nothing rebuilt — which is what
+    #: `aegis search check-index` is for.
+    normalization_version: Mapped[str | None] = mapped_column(Text)
     script: Mapped[str | None] = mapped_column(Text)  # ISO 15924, when detected
     language: Mapped[str | None] = mapped_column(Text)  # BCP-47, when detected
     context: Mapped[str | None] = mapped_column(Text)
@@ -1010,6 +1017,81 @@ class LocationGeometryProjection(Base):
     builder_version: Mapped[str] = mapped_column(Text, nullable=False)
 
 
+class DocumentTextProjection(Base):
+    """Searchable document text — a cache, because the text is not here (ADR-051).
+
+    The charter says search spans "entities, claims, and documents". The first
+    two are Postgres columns. The third is not in Postgres at all:
+    ``source_record.storage_uri`` and ``derivative.storage_uri`` point at the
+    object store, and what the database holds is a hash and a URI. There is
+    nothing to index and — the part that matters — **no handling code to filter
+    by on a blob**.
+
+    So the text is projected here with the columns a filter needs, and
+    ``handling_code`` is **copied from the record, never defaulted**. A default
+    would be a leak with a plausible-looking column beside it. A row whose
+    record's handling code has changed since the build is stale in the *unsafe*
+    direction, which is why the builder is the only writer and a rebuild is the
+    only correction — the same rule ``LocationGeometryProjection`` follows.
+
+    One row per (record, derivative). A re-extraction is a new derivative and
+    therefore a new row; ``derivative_id`` is NULL when the record *is* text and
+    no transformation happened, which mirrors ``TextExtraction.derivative``.
+
+    Article XIII: ``aegis projections rebuild`` truncates and rebuilds it from
+    the vault, and nothing else writes to it.
+    """
+
+    __tablename__ = "document_text_projection"
+    __table_args__ = (
+        UniqueConstraint(
+            "record_id", "derivative_id", name="uq_document_text_record_derivative"
+        ),
+        Index("ix_document_text_record", "record_id"),
+        Index("ix_document_text_handling", "handling_rank"),
+        # Full text, not trigram: a document is long and a query is short, so
+        # similarity over the whole body is meaningless. The `simple`
+        # configuration is deliberate — there is no Sinhala or Tamil stemmer,
+        # and an English stemmer applied to Sinhala would mangle it while
+        # looking like it worked.
+        Index("ix_document_text_tsv", "tsv", postgresql_using="gin"),
+    )
+
+    projection_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    record_id: Mapped[str] = mapped_column(
+        ForeignKey("source_record.record_id"), nullable=False
+    )
+    #: NULL when the record is text and needed no transformation.
+    derivative_id: Mapped[str | None] = mapped_column(
+        ForeignKey("derivative.derivative_id")
+    )
+    #: Hash of **the text**, not of the parent object, so a rebuild is verifiable
+    #: without re-reading the vault.
+    content_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    text_body: Mapped[str] = mapped_column("text", Text, nullable=False)
+    #: Generated **by the database** from `text`, so it cannot drift from it —
+    #: and declared `Computed` here so the ORM never tries to write it. A
+    #: plain column would be sent as NULL on every insert and rejected.
+    tsv: Mapped[Any | None] = mapped_column(
+        TSVECTOR,
+        Computed("to_tsvector('simple', text)", persisted=True),
+    )
+    # ── the governance columns, copied so one filter serves both ─────────
+    handling_code: Mapped[str] = mapped_column(Text, nullable=False)
+    handling_rank: Mapped[int] = mapped_column(Integer, nullable=False)
+    #: There is deliberately **no** `case_id`. `source_record` carries no case
+    #: scope — records live in the general pool and are filtered by handling
+    #: code alone (spec 06 §2.3) — and deriving one by aggregating the claims
+    #: recorded against a record would either over-restrict (take the max) or
+    #: leak (take NULL) for any record cited by more than one case. A
+    #: nullable column that is always NULL would be a lie shaped like a filter.
+    normalization_version: Mapped[str] = mapped_column(Text, nullable=False)
+    builder_version: Mapped[str] = mapped_column(Text, nullable=False)
+    built_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+
+
 __all__ = [
     "AuditLog",
     "AuthzOutbox",
@@ -1019,6 +1101,7 @@ __all__ = [
     "ClaimRelation",
     "CustodyEvent",
     "Derivative",
+    "DocumentTextProjection",
     "EdgeProjection",
     "Entity",
     "EntityCanonicalMap",

@@ -900,7 +900,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/search/entities": {
+    "/v1/search": {
         parameters: {
             query?: never;
             header?: never;
@@ -908,15 +908,19 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Search
-         * @description Find entities by name, alias or the names they were mentioned under.
+         * Search Everything
+         * @description Find entities, claims and documents by name, alias, excerpt or text.
          *
          *     Authorization is applied while candidates are chosen, not after they are
-         *     hydrated (ADR-012, B-17): an entity reachable only through claims above the
-         *     caller's clearance is absent from the scan, so the result *count* cannot be
-         *     used to infer that it exists.
+         *     hydrated (ADR-012, B-17): a row the caller's filters exclude is absent from
+         *     the scan, so neither the result *count* nor a gap in the sequence can be
+         *     used to infer that it exists. There is no total for the same reason, and an
+         *     empty group is omitted rather than returned empty.
+         *
+         *     Result groups are enumerated from the ontology (Article XIV), so a new
+         *     domain module's object types are searchable the day they are declared.
          */
-        get: operations["searchEntities"];
+        get: operations["search"];
         put?: never;
         post?: never;
         delete?: never;
@@ -954,7 +958,19 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Source Record */
+        /**
+         * Get Source Record
+         * @description One record's provenance envelope. Opening a restricted one needs a purpose.
+         *
+         *     Purpose is captured **here, at the open**, not at the search that found it
+         *     (spec 11 §7). Requiring a reason to type a name trains users to supply a
+         *     meaningless one, and the audit value is in knowing why a *specific*
+         *     restricted record was read.
+         *
+         *     "Restricted" means any handling code above the least restrictive one the
+         *     ontology declares — an index, not a name, so a deployment that renames its
+         *     ladder keeps the rule (Article XIV).
+         */
         get: operations["getSourceRecord"];
         put?: never;
         post?: never;
@@ -1673,22 +1689,6 @@ export interface components {
              * @default false
              */
             truncated?: boolean;
-        };
-        /**
-         * EntityHitOut
-         * @description One search result, with how it was found.
-         */
-        EntityHitOut: {
-            /** Entity Id */
-            entity_id: string;
-            /** Entity Type */
-            entity_type: string;
-            /** Label */
-            label: string;
-            /** Matched */
-            matched: string;
-            /** Score */
-            score: number;
         };
         /** EntityOut */
         EntityOut: {
@@ -2579,14 +2579,60 @@ export interface components {
             /** Reason */
             reason: string;
         };
-        /** SearchResultsOut */
+        /**
+         * SearchGroupOut
+         * @description A display group. Carries **no total** — a count is an existence leak.
+         *
+         *     Empty groups are omitted from the response rather than returned empty,
+         *     for the same reason: a present group with no hits *is* a count of zero.
+         */
+        SearchGroupOut: {
+            /** Group */
+            group: string;
+            /** Hits */
+            hits: components["schemas"]["SearchHitOut"][];
+            /** Label */
+            label: string;
+        };
+        /**
+         * SearchHitOut
+         * @description One result from any backend, on one 0–1 scale.
+         */
+        SearchHitOut: {
+            /** Detail */
+            detail?: string | null;
+            /** Group */
+            group: string;
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+            /** Matched */
+            matched: string;
+            /** Parent Id */
+            parent_id?: string | null;
+            /** Score */
+            score: number;
+        };
+        /**
+         * SearchResultsOut
+         * @description One ranked page, displayed as groups.
+         *
+         *     There is no per-group cursor and no per-group limit. Groups are how a page
+         *     is displayed, never how it is fetched: several independent cursors would
+         *     leave informative gaps where restricted rows were removed, which is the
+         *     pagination surface B-17 names (spec 11 §5.1).
+         */
         SearchResultsOut: {
+            /** Groups */
+            groups: components["schemas"]["SearchGroupOut"][];
             /** Next Cursor */
             next_cursor?: string | null;
             /** Query */
             query: string;
-            /** Results */
-            results: components["schemas"]["EntityHitOut"][];
+            stamp?: components["schemas"]["AsOfStampOut"] | null;
         };
         /** SourceIn */
         SourceIn: {
@@ -5931,11 +5977,15 @@ export interface operations {
             };
         };
     };
-    searchEntities: {
+    search: {
         parameters: {
             query: {
-                /** @description Free-text name query */
+                /** @description Free-text query */
                 q: string;
+                /** @description Restrict to these result groups; omit for all */
+                types?: string[] | null;
+                asOf?: string | null;
+                asOfRevision?: number | null;
                 cursor?: string | null;
                 limit?: number;
                 /** @description Reason for access */

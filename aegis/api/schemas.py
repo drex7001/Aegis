@@ -892,24 +892,60 @@ class CandidateOut(BaseModel):
     created_at: datetime
 
 
-class EntityHitOut(BaseModel):
-    """One search result, with how it was found."""
+class SearchHitOut(BaseModel):
+    """One result from any backend, on one 0–1 scale."""
 
-    entity_id: str
+    #: `entity`, `claim` or `document` — what `id` refers to.
+    kind: str
+    id: str
+    #: The display group: an ontology object type, `claim`, or `document`.
+    group: str
     label: str
-    entity_type: str
+    #: Secondary line — a claim's predicate, a document's record id. Never the
+    #: matched text: a fragment shown without its grading is what Article III
+    #: exists to prevent, and a result list is where that is easiest to lose.
+    detail: str | None = None
+    #: Where to go when the hit's own id is not a destination: a claim's subject
+    #: entity, a document's source record. Null for an entity, which already is
+    #: one. Carries no authorization — the hit passed the caller's filters in
+    #: its candidate query before it existed.
+    parent_id: str | None = None
     score: float
-    #: `label`, `alias`, `mention` or `phonetic`. Reported because they are not
-    #: equally strong evidence: metaphone collapses genuinely different names,
-    #: so a phonetic hit is a lead, and a list that renders it like a name
-    #: match invites the reader to treat it as one.
+    #: `label`, `alias`, `mention`, `phonetic`, `identifier`, `excerpt`,
+    #: `value` or `text`. Reported because they are not equally strong
+    #: evidence: metaphone collapses genuinely different names, so a phonetic
+    #: hit is a lead, and a list that renders it like a name match invites the
+    #: reader to treat it as one.
     matched: str
 
 
+class SearchGroupOut(BaseModel):
+    """A display group. Carries **no total** — a count is an existence leak.
+
+    Empty groups are omitted from the response rather than returned empty,
+    for the same reason: a present group with no hits *is* a count of zero.
+    """
+
+    group: str
+    label: str
+    hits: list[SearchHitOut]
+
+
 class SearchResultsOut(BaseModel):
+    """One ranked page, displayed as groups.
+
+    There is no per-group cursor and no per-group limit. Groups are how a page
+    is displayed, never how it is fetched: several independent cursors would
+    leave informative gaps where restricted rows were removed, which is the
+    pagination surface B-17 names (spec 11 §5.1).
+    """
+
     query: str
-    results: list[EntityHitOut]
+    groups: list[SearchGroupOut]
+    #: Present only when another page exists. Derived from fetching one row
+    #: beyond the limit — never from a count.
     next_cursor: str | None = None
+    stamp: AsOfStampOut | None = None
 
 
 class CandidateListOut(BaseModel):

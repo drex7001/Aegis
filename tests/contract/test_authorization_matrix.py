@@ -80,8 +80,13 @@ EXPECTED = {
     "listSuggestions": ({"analyst"}, False),
     "acceptSuggestion": ({"analyst"}, False),
     "rejectSuggestion": ({"analyst"}, False),
-    "searchEntities": (set(), False),
+    "search": (set(), False),
     "listSourceRecords": ({"analyst"}, False),
+    # `False` is the truth about the **gate**, and is not the whole story:
+    # T67 makes purpose mandatory *conditionally*, when the record's handling
+    # code ranks above the first one the ontology declares (spec 11 §7). The
+    # gate cannot express "sometimes", so the route enforces it and
+    # `tests/integration/test_purpose_capture.py` is where it is proved.
     "getSourceRecord": (set(), False),
     "listDerivatives": ({"analyst"}, False),
     "extractRecord": ({"analyst"}, False),

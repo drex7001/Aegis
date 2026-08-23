@@ -106,7 +106,7 @@ one audit shape.
 | `POST /v1/ingest/file` (multipart) | analyst, investigator | — | lands; `outcome` (`landed`/`already_landed`/`quarantined`) is what the *request* did, `record.status` is what the *record* is — they differ when re-sending something already quarantined | body `AEGIS_INGEST_MAX_BYTES`, default 100 MiB → `413` | `test_ingest_routes.py` (T23a) |
 | `POST /v1/ingest/text` (JSON) | analyst, investigator | — | pasted entry, same rules and same `land_bytes`. Split from the multipart route rather than one route with two optional bodies: they carry different inputs, and "exactly one of" is a validation rule the type system can express as two operations instead | as above | `test_ingest_routes.py` |
 | `GET /v1/source-records` | analyst | — | handling-filtered; rows above clearance are **absent, not counted** (§1 default 4). Deterministic order (`received_at desc, record_id desc`) so T24c's cursor is stable | limit ≤ 200 | `test_ingest_routes.py` |
-| `GET /v1/source-records/{id}` | — | — | provenance envelope, derivatives, quarantine state | — | matrix suite |
+| `GET /v1/source-records/{id}?purpose=` | — | — | provenance envelope, derivatives, quarantine state. **Purpose is required when the record's handling code ranks above the first one the ontology declares** (spec 11 §7) — an index, not the literal name `open`, so a renamed ladder keeps the rule. Missing or blank is `422`: the caller is permitted and the *request* is incomplete, and a 403 would disclose more than the 404 an over-clearance caller already gets. The allow is audited with the purpose and the record id (Article X). Conditional, so the **gate** cannot express it — the route does, and `test_purpose_capture.py` proves it | — | `test_purpose_capture.py` (T67), matrix suite |
 | `GET /v1/source-records/{id}/derivatives` | analyst | — | recorded transformations (tool, version, params, output hash); 404 when the record is above clearance | — | `test_ingest_routes.py` |
 | `POST /v1/source-records/{id}/extract` | analyst | — | derivative stage + one producer, **synchronously** (ADR-034); `409` on a quarantined record, `422` on a media type with no tool. Writes suggestions only, never claims (Article VII) | one producer per call | `test_ingest_routes.py` |
 | `POST /v1/source-records/{id}/release` | supervisor | — | un-quarantine, audited | — | `test_ingest_routes.py` |
@@ -343,9 +343,35 @@ faithfully re-exported passes the drift test and breaks every caller.
 | a parameter removed, or becoming required | a parameter becoming optional |
 | a request body becoming required | |
 
-A break is accepted with `--allow-breaking` **plus** the phrase
-`BREAKING API CHANGE` in the change itself, so the reason lands in the history
-the break will later be explained from.
+A break is accepted by the phrase `BREAKING API CHANGE` in a commit message on
+the branch making the change, so the reason lands in the history the break will
+later be explained from. `--allow-breaking` accepts it locally, for a run
+before the commit exists.
+
+> **Corrected at T67.** This section, and ADR-042, described the phrase as the
+> escape hatch — and until T67 **nothing read it**. Only the flag worked, and
+> CI passes no flags, so an intended breaking change could not be landed at
+> all. Found while trying to use the hatch for ADR-050's route removal, which
+> is the first break the project has made.
+>
+> `declaring_commit()` now scans `baseline..HEAD`. The scope is the rule: a
+> marker may only accept a break made on the branch that declared it. A stale
+> marker licensing every later break would read as governance while enforcing
+> nothing.
+>
+> **The workflow had the other half of the gap.** On a `pull_request` event
+> GitHub checks out a synthetic merge commit; at `fetch-depth: 1` the commit
+> carrying the declaration is a parent that was never fetched. The gate
+> rejected a break the branch declared, while the `push` run on the same
+> commits accepted it — a verdict that depends on which event triggered it is
+> not a verdict. The fast-tests job now checks out at `fetch-depth: 0`; the
+> other jobs stay shallow, because they run tests rather than read history.
+>
+> When the gate still fails in a shallow clone it **says so** and names the
+> fix, rather than leaving the next reader to rediscover this. It does not
+> deepen the clone itself: a read-only check that fetches would mutate the
+> repository and touch the network, and treating an unreachable commit as
+> probably-declared would defeat the point of asking.
 
 > **Corrected at T36 (ADR-042).** This section previously called the check "the
 > API-side analogue of the ontology compatibility diff… comparison against a

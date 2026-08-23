@@ -25,6 +25,9 @@ authz_app = typer.Typer(help="OpenFGA projection tools (ADR-014)", no_args_is_he
 identity_app = typer.Typer(
     help="Identity ledger maintenance (spec 05)", no_args_is_help=True
 )
+search_app = typer.Typer(
+    help="Search index maintenance (spec 11)", no_args_is_help=True
+)
 migrate_app = typer.Typer(
     help="One-time, reviewed data transformations", no_args_is_help=True
 )
@@ -36,6 +39,7 @@ app.add_typer(projections_app, name="projections")
 app.add_typer(ingest_app, name="ingest")
 app.add_typer(authz_app, name="authz")
 app.add_typer(identity_app, name="identity")
+app.add_typer(search_app, name="search")
 app.add_typer(migrate_app, name="migrate")
 
 
@@ -252,7 +256,7 @@ def api_check_contract(
     """Fail on a breaking change to the committed OpenAPI document (spec 06 §7.3)."""
     import json
 
-    from aegis.api.contract import compare, document_at
+    from aegis.api.contract import compare, declaring_commit, document_at, is_shallow
 
     relative = "ui/openapi.json"
     current = json.loads((REPO_ROOT / relative).read_text(encoding="utf-8"))
@@ -270,15 +274,30 @@ def api_check_contract(
     for line in diff.breaking:
         typer.secho(f"  ! {line}", fg=typer.colors.RED, err=True)
 
-    if diff.is_breaking and not allow_breaking:
+    declared_by = declaring_commit(baseline) if diff.is_breaking else None
+    if diff.is_breaking and not (allow_breaking or declared_by):
         typer.secho(
             f"BREAKING contract change against {baseline}. Every generated "
-            "client breaks on this. Re-run with --allow-breaking and say so in "
-            "the change if it is intended.",
+            f"client breaks on this. State {BREAKING_MARKER!r} in the commit "
+            "that makes the change (ADR-042) — or pass --allow-breaking to "
+            "accept it here.",
             fg=typer.colors.RED,
             err=True,
         )
+        if is_shallow():
+            # The failure mode that costs an hour if it is not named: the
+            # marker is there, and this clone cannot see the commit holding it.
+            typer.secho(
+                "  NOTE: this is a shallow clone, so a declared break can look "
+                "undeclared. On a pull_request event the checkout is a merge "
+                "commit whose parents were never fetched. Deepen the checkout "
+                "(`fetch-depth: 0`) for this step to read the declaration.",
+                fg=typer.colors.YELLOW,
+                err=True,
+            )
         raise typer.Exit(code=1)
+    if declared_by:
+        typer.secho(f"  declared by: {declared_by}", fg=typer.colors.YELLOW)
     typer.secho(
         f"OK: {len(diff.additive)} additive, {len(diff.breaking)} breaking "
         f"(accepted)" if diff.is_breaking else f"OK: {len(diff.additive)} additive changes",
@@ -450,8 +469,10 @@ def projections_rebuild(
     from aegis.config import get_settings
     from aegis.er.canonical import rebuild_canonical_map
     from aegis.ontology import load
+    from aegis.evidence import get_vault
     from aegis.projections import (
         build_full_graph,
+        rebuild_document_text_projection,
         rebuild_edge_projection,
         rebuild_location_geometry_projection,
         write_outputs,
@@ -467,6 +488,9 @@ def projections_rebuild(
         identity = rebuild_canonical_map(session)
         edges = rebuild_edge_projection(session, ontology=ontology)
         geometry = rebuild_location_geometry_projection(session, ontology=ontology)
+        documents = rebuild_document_text_projection(
+            session, vault=get_vault(), ontology=ontology
+        )
         session.commit()
         graph = build_full_graph(session, ontology)
     written = write_outputs(graph, output_dir)
@@ -484,9 +508,71 @@ def projections_rebuild(
         f"  geometry: {geometry.rows} row(s), {geometry.invalid} invalid, "
         f"{geometry.rejected} unreadable"
     )
+    typer.echo(
+        f"  documents: {documents.indexed} indexed, "
+        f"{documents.skipped_no_text} without text, "
+        f"{documents.skipped_quarantined} quarantined, "
+        f"{documents.skipped_unreadable} unreadable"
+    )
     for path in written:
         typer.echo(f"  wrote {path}")
 
+
+@search_app.command("check-index")
+def search_check_index() -> None:
+    """Fail when any stored key was produced by an older pipeline (ADR-052).
+
+    The failure this exists to catch is **silent**. Change the normalization
+    pipeline without reindexing and every stored key stops matching every query
+    key; nothing raises, nothing logs, and the only symptom is results that do
+    not come back — which is indistinguishable from "we do not hold that
+    record". CI runs this so the symptom is a red build instead.
+
+    Exit code 1 with counts, never a warning: a gate that prints and passes is
+    not a gate.
+    """
+    import sqlalchemy as sa
+
+    from aegis.search.pipeline import NORMALIZATION_VERSION
+    from aegis.store import DocumentTextProjection, Mention, get_sessionmaker
+
+    stale: dict[str, int] = {}
+    with get_sessionmaker()() as session:
+        for label, column, table in (
+            ("mention", Mention.normalization_version, Mention),
+            (
+                "document_text_projection",
+                DocumentTextProjection.normalization_version,
+                DocumentTextProjection,
+            ),
+        ):
+            count = session.scalar(
+                sa.select(sa.func.count())
+                .select_from(table)
+                .where(column.is_distinct_from(NORMALIZATION_VERSION))
+            )
+            if count:
+                stale[label] = int(count)
+
+    if stale:
+        typer.secho(
+            f"search index is stale for pipeline {NORMALIZATION_VERSION}:",
+            fg=typer.colors.RED,
+        )
+        for label, count in sorted(stale.items()):
+            typer.echo(f"  {label}: {count} row(s) at an older version")
+        typer.echo(
+            "  Reindex before serving: `aegis projections rebuild` rebuilds the",
+        )
+        typer.echo(
+            "  document projection; mention keys are recomputed by migration 0014.",
+        )
+        raise typer.Exit(code=1)
+
+    typer.secho(
+        f"OK: every stored key was produced by {NORMALIZATION_VERSION}",
+        fg=typer.colors.GREEN,
+    )
 
 @authz_app.command("sync")
 def authz_sync(
