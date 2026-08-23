@@ -481,6 +481,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/geo/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Geo Events
+         * @description Occurrences that have a place the caller may see.
+         *
+         *     **One feature per (event, place, role)**, not per event: travel has an
+         *     origin and a destination, and a journey drawn as one point at its origin
+         *     would be a lie of omission.
+         *
+         *     `time_intervals` carries every interval the event's claims assert, each with
+         *     the claim that asserts it. Never collapsed to one span — two disjoint
+         *     reports are two intervals, and min/max would turn them into a single
+         *     continuous occurrence (spec 10 §6.3, the B-12 discipline).
+         */
+        get: operations["geoEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/geo/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Geo Locations
+         * @description Every place the caller may see, with the finest geometry they may read.
+         *
+         *     **Authorized generalization, not a runtime blur** (M-18, spec 10 §7.2). A
+         *     location may carry a `sensitive` building polygon and an `open` district
+         *     polygon; the ordinary claim filter removes the first for a low-clearance
+         *     viewer and the district is what comes back. Nothing is synthesized, so no
+         *     viewer is ever shown a shape no source asserted — and the coarse geometry
+         *     keeps its own source and grading, because in practice it came from a
+         *     different, more public document.
+         *
+         *     A place with no readable geometry is **listed, never placed**:
+         *     `geometry: null` with a `geometry_state` of `none_permitted`,
+         *     `none_recorded` or `invalid`.
+         */
+        get: operations["geoLocations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/graph/expand": {
         parameters: {
             query?: never;
@@ -1770,6 +1831,35 @@ export interface components {
             record_id: string;
             /** Suggestions Created */
             suggestions_created: number;
+        };
+        /**
+         * FeatureCollectionOut
+         * @description An RFC 7946 `FeatureCollection`, with two foreign members.
+         *
+         *     `next_cursor` and `stamp` are foreign members, which §6.1 permits: a client
+         *     that only knows GeoJSON ignores them, and a client that knows this API gets
+         *     its page cursor and the as-of stamp in the same response as the features
+         *     rather than having to correlate two calls.
+         *
+         *     `features` is untyped `dict` deliberately. A Feature's `properties` is
+         *     open-ended by the standard, and pinning it here would mean a second schema
+         *     to keep in step with `PlaceFeature`/`EventFeature` for no type-safety a
+         *     caller could use — the generated TS client reads it as JSON either way.
+         */
+        FeatureCollectionOut: {
+            /** Features */
+            features: {
+                [key: string]: unknown;
+            }[];
+            /** Next Cursor */
+            next_cursor?: string | null;
+            stamp?: components["schemas"]["AsOfStampOut"] | null;
+            /**
+             * Type
+             * @default FeatureCollection
+             * @constant
+             */
+            type?: "FeatureCollection";
         };
         /**
          * GradingOut
@@ -4295,6 +4385,119 @@ export interface operations {
             };
             /** @description Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4). */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    geoEvents: {
+        parameters: {
+            query?: {
+                bbox?: string | null;
+                from?: string | null;
+                to?: string | null;
+                eventType?: string | null;
+                limit?: number;
+                cursor?: string | null;
+                asOf?: string | null;
+                asOfRevision?: number | null;
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeatureCollectionOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    geoLocations: {
+        parameters: {
+            query?: {
+                bbox?: string | null;
+                limit?: number;
+                cursor?: string | null;
+                asOf?: string | null;
+                asOfRevision?: number | null;
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeatureCollectionOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

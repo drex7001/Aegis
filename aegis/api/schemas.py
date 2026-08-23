@@ -700,6 +700,26 @@ class EntityDetail(BaseModel):
     stamp: AsOfStampOut | None = None
 
 
+class FeatureCollectionOut(BaseModel):
+    """An RFC 7946 `FeatureCollection`, with two foreign members.
+
+    `next_cursor` and `stamp` are foreign members, which §6.1 permits: a client
+    that only knows GeoJSON ignores them, and a client that knows this API gets
+    its page cursor and the as-of stamp in the same response as the features
+    rather than having to correlate two calls.
+
+    `features` is untyped `dict` deliberately. A Feature's `properties` is
+    open-ended by the standard, and pinning it here would mean a second schema
+    to keep in step with `PlaceFeature`/`EventFeature` for no type-safety a
+    caller could use — the generated TS client reads it as JSON either way.
+    """
+
+    type: Literal["FeatureCollection"] = "FeatureCollection"
+    features: list[dict[str, Any]]
+    next_cursor: str | None = None
+    stamp: AsOfStampOut | None = None
+
+
 class IdentityDecisionOut(BaseModel):
     """A human's identity decision: who, when, why, and which revision."""
 

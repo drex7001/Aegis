@@ -2050,6 +2050,51 @@
         "title": "ExtractionOut",
         "type": "object"
       },
+      "FeatureCollectionOut": {
+        "description": "An RFC 7946 `FeatureCollection`, with two foreign members.\n\n`next_cursor` and `stamp` are foreign members, which §6.1 permits: a client\nthat only knows GeoJSON ignores them, and a client that knows this API gets\nits page cursor and the as-of stamp in the same response as the features\nrather than having to correlate two calls.\n\n`features` is untyped `dict` deliberately. A Feature's `properties` is\nopen-ended by the standard, and pinning it here would mean a second schema\nto keep in step with `PlaceFeature`/`EventFeature` for no type-safety a\ncaller could use — the generated TS client reads it as JSON either way.",
+        "properties": {
+          "features": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Features",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "stamp": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AsOfStampOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "const": "FeatureCollection",
+            "default": "FeatureCollection",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "features"
+        ],
+        "title": "FeatureCollectionOut",
+        "type": "object"
+      },
       "GradingOut": {
         "description": "The three dimensions, kept apart (Article III).\n\nThere is deliberately no combined score here. A single number would be the\none thing every caller reached for, and it cannot be reconstructed back\ninto the judgements that produced it.",
         "properties": {
@@ -7335,6 +7380,366 @@
         "summary": "Add Custody Event",
         "tags": [
           "evidence"
+        ]
+      }
+    },
+    "/v1/geo/events": {
+      "get": {
+        "description": "Occurrences that have a place the caller may see.\n\n**One feature per (event, place, role)**, not per event: travel has an\norigin and a destination, and a journey drawn as one point at its origin\nwould be a lie of omission.\n\n`time_intervals` carries every interval the event's claims assert, each with\nthe claim that asserts it. Never collapsed to one span — two disjoint\nreports are two intervals, and min/max would turn them into a single\ncontinuous occurrence (spec 10 §6.3, the B-12 discipline).",
+        "operationId": "geoEvents",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "bbox",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Bbox"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "eventType",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Eventtype"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asOf",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Asof"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asOfRevision",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Asofrevision"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureCollectionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "No credentials, or a token that does not verify."
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "The body or parameters did not validate."
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Per-caller rate limit exceeded (spec 06 §1.6)."
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Geo Events",
+        "tags": [
+          "geo"
+        ]
+      }
+    },
+    "/v1/geo/locations": {
+      "get": {
+        "description": "Every place the caller may see, with the finest geometry they may read.\n\n**Authorized generalization, not a runtime blur** (M-18, spec 10 §7.2). A\nlocation may carry a `sensitive` building polygon and an `open` district\npolygon; the ordinary claim filter removes the first for a low-clearance\nviewer and the district is what comes back. Nothing is synthesized, so no\nviewer is ever shown a shape no source asserted — and the coarse geometry\nkeeps its own source and grading, because in practice it came from a\ndifferent, more public document.\n\nA place with no readable geometry is **listed, never placed**:\n`geometry: null` with a `geometry_state` of `none_permitted`,\n`none_recorded` or `invalid`.",
+        "operationId": "geoLocations",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "bbox",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Bbox"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asOf",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Asof"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asOfRevision",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Asofrevision"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureCollectionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "No credentials, or a token that does not verify."
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "The body or parameters did not validate."
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Per-caller rate limit exceeded (spec 06 §1.6)."
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Geo Locations",
+        "tags": [
+          "geo"
         ]
       }
     },
