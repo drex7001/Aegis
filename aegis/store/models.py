@@ -1092,6 +1092,119 @@ class DocumentTextProjection(Base):
     )
 
 
+class ObjectSet(Base):
+    """A saved, shareable question about objects (spec 12 §3).
+
+    **There is no results column and no results table**, and that is the whole
+    point rather than an omission. T69's acceptance criterion is that a stored
+    definition contains no result rows "because the schema makes it
+    impossible" — which is the only way that criterion can be met durably. A
+    results column with a comment saying not to use it is a results column.
+
+    Sharing is an FGA relation (T70), not a column here. A set grants nothing
+    by existing, and evaluation always applies the **caller's** row filters —
+    so a set cannot become a second authorization system by accident.
+    """
+
+    __tablename__ = "object_set"
+    __table_args__ = (Index("ix_object_set_case", "case_id"),)
+
+    set_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    #: A case-scoped set is invisible outside the case. Nullable: a set over
+    #: the general OSINT pool belongs to no investigation.
+    case_id: Mapped[str | None] = mapped_column(ForeignKey("case_file.case_id"))
+    owner: Mapped[str] = mapped_column(Text, nullable=False)
+    created_by: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+
+
+class ObjectSetVersion(Base):
+    """One immutable version of a definition (spec 12 §3, ADR-054).
+
+    Immutable because a finding names `(set_id, version)` and must name
+    something that cannot change under it (spec 12 §8.2). Editing a set writes
+    a new row; nothing updates one.
+
+    `ontology_version` and the **expanded** AST together are what "pinned"
+    means: interfaces are resolved to their members at save, so a domain module
+    landing later cannot silently widen a saved analytic or a watchlist rule.
+    `track_interface_members` opts out, per version, explicitly.
+    """
+
+    __tablename__ = "object_set_version"
+    __table_args__ = (
+        CheckConstraint("version >= 1", name="ck_object_set_version_positive"),
+        Index("ix_object_set_version_set", "set_id"),
+    )
+
+    set_id: Mapped[str] = mapped_column(
+        ForeignKey("object_set.set_id"), primary_key=True
+    )
+    version: Mapped[int] = mapped_column(Integer, primary_key=True)
+    #: The definition, **after** interface expansion. Validated before it is
+    #: written, and never concatenated into a query (spec 12 §2.3).
+    ast: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    #: As written, before expansion — so a reader can see the interface the
+    #: author meant, and §4.3 knows which sets to notify.
+    ast_as_written: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    ontology_version: Mapped[str] = mapped_column(Text, nullable=False)
+    track_interface_members: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false")
+    )
+    #: Optional pins. A pinned set answers the same question forever, which is
+    #: what makes it a legitimate analytic input; an unpinned one answers
+    #: today's, which is what makes it a legitimate watchlist (spec 12 §4.4).
+    as_of: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    as_of_revision: Mapped[int | None] = mapped_column(BigInteger)
+    note: Mapped[str | None] = mapped_column(Text)
+    created_by: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+
+
+class ObjectSetNotice(Base):
+    """"An interface your set uses gained a member" (spec 12 §4.3).
+
+    A row, not an email: delivery is a channel decision, and a notice nobody
+    can query is a notification system rather than a record.
+
+    Delivered to **pinned and tracking sets alike**. A tracking set changed;
+    a pinned set could have, and finding that out is as useful — it is the
+    moment to decide, rather than the moment after somebody acted on a number
+    that moved.
+    """
+
+    __tablename__ = "object_set_notice"
+    __table_args__ = (
+        UniqueConstraint(
+            "set_id",
+            "version",
+            "interface",
+            "member",
+            "ontology_version",
+            name="uq_object_set_notice_event",
+        ),
+    )
+
+    notice_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    set_id: Mapped[str] = mapped_column(ForeignKey("object_set.set_id"), nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    interface: Mapped[str] = mapped_column(Text, nullable=False)
+    member: Mapped[str] = mapped_column(Text, nullable=False)
+    #: The composition version that added the member.
+    ontology_version: Mapped[str] = mapped_column(Text, nullable=False)
+    #: Whether this set actually widened, or merely could have.
+    tracking: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+
+
 __all__ = [
     "AuditLog",
     "AuthzOutbox",
@@ -1114,6 +1227,9 @@ __all__ = [
     "IdentityRevision",
     "LocationGeometryProjection",
     "Mention",
+    "ObjectSet",
+    "ObjectSetNotice",
+    "ObjectSetVersion",
     "ReviewQueue",
     "Source",
     "SourceRecord",
