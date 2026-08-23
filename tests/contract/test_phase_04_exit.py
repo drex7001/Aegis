@@ -1,10 +1,10 @@
 """The Phase 4 release status is one consistent, executable contract (T53).
 
-Mirrors `test_phase_03_exit.py` for the phase that just closed, and takes over
-the two claims that belong to whichever phase is *current*: where work is, and
-what version the repository is at. `test_phase_04_status.py` — which asserted
-the phase was **open** and its gate unchecked — is replaced by this file, the
-same way T40 replaced its own opening test.
+Mirrors `test_phase_03_exit.py` for the phase that closed at T53. **The two
+claims that belong to whichever phase is *current* — where work is, and what
+version the repository is at — moved to `test_phase_05_exit.py` at T65**, the
+same way this file took them from T40's. What remains here is what stays true
+about Phase 4 forever.
 
 The gate criteria themselves are proved by their own suites. What this checks is
 that the documents agree about what those suites established, which is the
@@ -14,6 +14,8 @@ failure mode M-01 was written about: code moves, statuses do not.
 from __future__ import annotations
 
 import tomllib
+
+from packaging.version import Version
 from pathlib import Path
 
 import pytest
@@ -48,16 +50,19 @@ def test_every_phase_4_gate_is_checked_and_reviewed() -> None:
     assert "none is deferred or weakened" in review
 
 
-def test_status_surfaces_agree_on_the_current_phase() -> None:
+def test_phase_4_is_recorded_as_complete_everywhere() -> None:
+    """Phase 4's own status, which does not change when a later phase closes.
+
+    "Which phase is current" moved to `test_phase_05_exit.py` at T65 — keeping
+    it here would mean this file failing every time a *later* phase shipped,
+    which is the same defect it was written to prevent.
+    """
     root_readme = _read("README.md")
-    kit_readme = _read("speckit/README.md")
     roadmap = _read("speckit/roadmap.md")
     phase_4_tasks = _read("speckit/tasks/phase-04.md")
 
     assert "Phase 4 — investigation workspace v2 & object views — is complete" in root_readme
     assert "Active phase: Phase 4" not in root_readme
-    assert "Next phase: Phase 5" in root_readme
-    assert "**DONE**, all five gate criteria checked" in kit_readme
     assert "COMPLETE 2026-08-19" in roadmap
     assert "Status: COMPLETE 2026-08-19" in phase_4_tasks
 
@@ -72,16 +77,27 @@ def test_the_roadmap_records_the_capability_as_implemented() -> None:
 
 
 def test_the_release_version_is_pinned_to_this_phase() -> None:
+    """What Phase 4 released, and that the lock agrees with the project.
+
+    This pinned `pyproject.toml == "0.4.0"` until P5 T65, which made it fail for
+    a release it had no opinion about — the same defect class the P4 review
+    itself recorded three of, and that P5 has now fixed five more of. The
+    durable facts are what the *review* says P4 released, and that the project
+    and its lockfile never disagree about the current version.
+    """
     project = tomllib.loads(_read("pyproject.toml"))
     lock = tomllib.loads(_read("uv.lock"))
     review = _read("speckit/reviews/phase-04-exit-review.md")
     locked = [package for package in lock["package"] if package["name"] == "aegis"]
 
-    assert project["project"]["version"] == "0.4.0"
-    assert len(locked) == 1
-    assert locked[0]["version"] == "0.4.0"
     assert "Release: Aegis 0.4.0" in review
     assert "`phase-4-workspace`" in review
+    # The lock and the project agree, whatever the version is today. A drift
+    # here means a release nobody can reproduce.
+    assert len(locked) == 1
+    assert locked[0]["version"] == project["project"]["version"]
+    # ...and the version only ever goes up.
+    assert Version(project["project"]["version"]) >= Version("0.4.0")
 
 
 def test_the_review_names_its_decisions_and_its_defects() -> None:

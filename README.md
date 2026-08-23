@@ -67,8 +67,21 @@ as a required field, and `?asOf=` returns a claim-recording snapshot stamped
 with the identity revision that produced it. Verdict and evidence:
 [`speckit/reviews/phase-04-exit-review.md`](speckit/reviews/phase-04-exit-review.md).
 
-**Next phase: Phase 5 — events, geospatial & time.** It begins with T54's
-re-validation. The full
+**Phase 5 — events, geospatial & time — is complete** (2026-08-23). Places and
+events are first-class, and the phase's rule held throughout: *where something
+happened, when, how precisely and who was there are assertions; assertions are
+claims; PostGIS is a cache.* An occurrence is an entity, participation is claims
+whose predicate is the role, and geometry is one claim carrying four separate
+axes — so there is no canonical event table, no participation table, and no
+geometry column anyone can update. A location known only to a district never
+renders as a point, because the store refuses the claim that would license one
+and the renderer has no branch that would draw it; a low-clearance viewer sees
+the *recorded* coarser geometry the ordinary filter left, never a shape the
+server invented. Verdict and evidence:
+[`speckit/reviews/phase-05-exit-review.md`](speckit/reviews/phase-05-exit-review.md).
+
+**Next phase: Phase 6 — search, object sets & governed analytics.** It begins
+with T66's re-validation. The full
 roadmap to production is [`speckit/roadmap.md`](speckit/roadmap.md); the
 external-review disposition is
 [`speckit/reviews/2026-07-18-external-review-disposition.md`](speckit/reviews/2026-07-18-external-review-disposition.md).
