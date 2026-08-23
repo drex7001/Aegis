@@ -196,6 +196,19 @@ class SourceRecordPageOut(BaseModel):
     next_cursor: str | None = None
 
 
+class AnalyticMetricOut(BaseModel):
+    """A metric a caller may run, and what to call it on screen.
+
+    **No caveat text here, deliberately.** A caveat reaches a reader from the
+    finding row it was written onto, never from a catalog lookup — if the
+    workspace could fetch caveats, there would be a render path that fetches
+    one, and therefore a render path that can fail to (spec 12 §9.3).
+    """
+
+    metric: str
+    label: str
+
+
 class OntologyVocabularyOut(BaseModel):
     """Closed vocabularies, served so no client hand-writes them (Article XI)."""
 
@@ -205,6 +218,11 @@ class OntologyVocabularyOut(BaseModel):
     #: Core, not domain: how a claim is asserted is platform epistemics, so this
     #: comes from a code-owned constant rather than `aegis.yaml` (Article XIV).
     assertion_types: list[str]
+    #: Platform vocabulary, like `assertion_types`: every deployment has
+    #: these metrics and no deployment declares them (Article XIV). Served so
+    #: the workspace never hand-writes a label for a machine's reading of a
+    #: graph — which is the wording Article IX cares most about.
+    analytic_metrics: list[AnalyticMetricOut] = Field(default_factory=list)
 
 
 class LandTextIn(BaseModel):

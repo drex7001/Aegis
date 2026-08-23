@@ -16,8 +16,9 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from aegis.actions.service import ASSERTION_TYPES
+from aegis.analytics.caveats import CAVEATS
 from aegis.api.deps import AuthContext, OntologyDep, authorize
-from aegis.api.schemas import OntologyVocabularyOut
+from aegis.api.schemas import AnalyticMetricOut, OntologyVocabularyOut
 
 router = APIRouter(tags=["ontology"])
 
@@ -50,4 +51,12 @@ def get_vocabulary(
         # not be a second copy of a list the server already owns. Sorted for a
         # stable render; unlike handling codes, the order carries no meaning.
         assertion_types=sorted(ASSERTION_TYPES),
+        # Names and labels only. The catalog owns the caveat *text*, and it
+        # reaches a reader by being copied onto a finding row — never by
+        # being fetched, because a render path that fetches a caveat is a
+        # render path that can fail to (spec 12 §9.3).
+        analytic_metrics=[
+            AnalyticMetricOut(metric=caveat.metric, label=caveat.label)
+            for caveat in sorted(CAVEATS.values(), key=lambda item: item.metric)
+        ],
     )

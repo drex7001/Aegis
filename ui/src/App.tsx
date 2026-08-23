@@ -6,6 +6,7 @@ import { Shell } from "./layout/Shell";
 import { ROUTES } from "./routing";
 import { CaseView } from "./views/CaseView";
 import { CasesView } from "./views/CasesView";
+import { Findings } from "./views/Findings";
 import { GraphView } from "./views/GraphView";
 import { MapView } from "./views/map/MapView";
 import { Timeline } from "./views/Timeline";
@@ -37,6 +38,7 @@ export function App() {
           <Route path={ROUTES.map} element={<MapView />} />
           <Route path={ROUTES.timeline} element={<Timeline />} />
           <Route path={ROUTES.sets} element={<SetBuilder />} />
+          <Route path={ROUTES.findings} element={<Findings />} />
           <Route path={ROUTES.sources} element={<SourcesView />} />
           <Route path={ROUTES.review} element={<ReviewView />} />
           <Route path={ROUTES.cases} element={<CasesView />} />

@@ -299,12 +299,44 @@ gets an empty list rather than a redacted row.
 the error names the spec section rather than leaving a stub somebody has to
 remember.
 
-**T73. Findings panel** (needs T71, T72) — findings rendered in the workspace;
-the caveat comes from the finding record and always renders; no metric has a
-caveat-free rendering path.
-AC: a UI test asserts caveat presence for every metric type (charter exit №2);
-centrality never renders with leadership language or a superlative; a finding
-links back to its inputs, its parameters and its manifest.
+**T73. Findings panel** (needs T71, T72) — **DONE 2026-08-24.** Findings
+rendered in the workspace; the caveat comes from the finding record and always
+renders; no metric has a caveat-free rendering path.
+AC: **met.** The browser test is parameterised over every metric, because a
+caveat asserted for one proves nothing about the next one somebody adds — and a
+**count** assertion pairs with it: findings rendered and caveats rendered must
+be equal, so a metric that skipped one fails the moment the counts diverge. The
+caveat comes from `finding.caveat_text`, renders without any interaction, and
+sits behind no toggle: a caveat somebody has to open is a caveat nobody reads.
+
+**The route serves labels and never caveat text**, and a contract test asserts
+`AnalyticMetricOut` is exactly `{metric, label}`. That is the subtle half of
+spec 12 §9.3: if the workspace could *fetch* a caveat there would be a render
+path that fetches one, and therefore one that can fail to. The text lives on
+the row or nowhere.
+
+Metric labels ride on `/v1/ontology/vocabulary` — the precedent
+`assertion_types` set (platform vocabulary, code-owned, Article XIV) — because
+a hand-written label map in TypeScript is exactly where "most connected"
+becomes "most important". `degree` is labelled **Recorded connections**: a
+superlative does the same work as "leader" with none of the vocabulary. The
+rendered page is swept for leadership language, exempting words that appear
+*inside* a caveat, since a caveat's job is to name the wrong reading and deny
+it.
+
+A finding opens its manifest, including `authorization_digest`: two analysts
+running one metric under different clearances correctly get different findings,
+and without that on screen it reads as the system contradicting itself.
+
+**The browser flakiness was diagnosed rather than tolerated.** Three runs had
+failed 2–4 map-heavy journeys while every one passed in isolation, and T71
+recorded it as a local sensitivity. The cause is worker count: Playwright
+defaults to half the cores, so a 16-core machine runs 8 workers and several
+MapLibre journeys compete for one software renderer, while a 2–4 core CI runner
+uses 1–2 and never sees it. Measured at 151 tests: 8 workers fail, **4 workers
+pass all 151**. `workers: 4` is now in the config, below what CI already uses,
+so it costs CI nothing. `retries` stays 0 — a retry would have made those runs
+green while hiding the reason.
 
 ## Milestone D — Promotion & watchlists
 

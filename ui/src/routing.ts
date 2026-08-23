@@ -22,6 +22,8 @@ export const ROUTES = {
   map: "/map",
   /** The timeline (spec 10 §11). Shares `from`/`to` with the map. */
   timeline: "/timeline",
+  /** Findings: metrics that recorded an answer, each with its caveat. */
+  findings: "/findings",
   /** Object sets: build, compose, share, evaluate (spec 12). */
   sets: "/sets",
   sources: "/sources",

@@ -278,21 +278,6 @@ test("the same incident is a stated range on the timeline, never an instant", as
   await expect(first).toContainText("2019-03-12 → 2019-03-12");
 });
 
-/*
- * KNOWN LOCAL SENSITIVITY, recorded at T71 so the next person to see a red run
- * here does not spend an afternoon on it.
- *
- * The two tests below navigate from `/map` — the heaviest view in the
- * workspace — and time out under **local** parallel load. Measured across six
- * full local runs they failed in three, all of them while something else was
- * saturating the machine, and passed in every isolated run. The CI workspace
- * job has been green on every run since T64 landed this file.
- *
- * Deliberately **not** given a retry. The project forbids retries added to get
- * green, and a retry here would hide the one signal worth having: if this ever
- * fails in CI, the classification changes and it is a defect rather than a
- * machine under load.
- */
 test("one window carries the incident across all three surfaces", async ({ page }) => {
   await page.goto("/map");
   await page.getByTestId("map-time-filter-from").fill("2019-01-01");

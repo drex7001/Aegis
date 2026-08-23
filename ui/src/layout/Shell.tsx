@@ -32,6 +32,7 @@ const WORKSPACE_VIEWS: Array<{ to: string; label: string }> = [
   { to: ROUTES.timeline, label: "Timeline" },
   // Last, because a set is built *from* what the other views showed you.
   { to: ROUTES.sets, label: "Sets" },
+  { to: ROUTES.findings, label: "Findings" },
 ];
 
 export function Shell() {

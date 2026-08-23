@@ -463,6 +463,59 @@ export async function search(
   );
 }
 
+/* ── analytics and findings (T73, over the routes T72 landed) ────────── */
+
+export type AnalyticRun = components["schemas"]["AnalyticRunOut"];
+export type AnalyticFinding = components["schemas"]["AnalyticFindingOut"];
+export type AnalyticRunResult = components["schemas"]["AnalyticRunResultOut"];
+export type AnalyticFindingPage = components["schemas"]["AnalyticFindingPageOut"];
+
+/**
+ * Run a metric and record what it found.
+ *
+ * `purpose` is required, and not as ceremony: `/v1/graph/*` answers a question
+ * and writes nothing, while this **records** — and a recorded answer outlives
+ * the question, gets forwarded to people who never saw the query, and is the
+ * kind of act Article X exists to keep a record of.
+ */
+export async function runAnalytic(
+  metric: string,
+  purpose: string,
+  body: { object_set_id?: string | null; object_set_version?: number | null } = {},
+): Promise<AnalyticRunResult> {
+  return unwrap(
+    await api.POST("/v1/analytics/{metric}", {
+      params: { path: { metric }, query: { purpose } },
+      body: { parameters: {}, ...body },
+    }),
+  );
+}
+
+/**
+ * Findings the caller may read. No total — a count is an existence leak.
+ *
+ * Every row carries its own `caveat_text`. Nothing here fetches a caveat from
+ * a catalog, and nothing should: a render path that looks one up is a render
+ * path that can fail to (spec 12 §9.3).
+ */
+export async function listFindings(params?: {
+  run?: string;
+  type?: string;
+  cursor?: string;
+  limit?: number;
+}): Promise<AnalyticFindingPage> {
+  return unwrap(await api.GET("/v1/findings", { params: { query: params ?? {} } }));
+}
+
+/** One finding **with its manifest**. Together, always. */
+export async function getFinding(findingId: string): Promise<AnalyticRunResult> {
+  return unwrap(
+    await api.GET("/v1/findings/{finding_id}", {
+      params: { path: { finding_id: findingId } },
+    }),
+  );
+}
+
 /* ── object sets (T71, over the routes T69/T70 landed) ─────────────────── */
 
 export type ObjectSet = components["schemas"]["ObjectSetOut"];
