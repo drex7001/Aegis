@@ -30,6 +30,7 @@ from aegis.api.errors import install_error_handlers
 from aegis.api.problems import apply_error_responses, retag_problem_media_type
 from aegis.api.ratelimit import build_limiter
 from aegis.api.routes import (
+    analytics,
     audit,
     cases,
     entities,
@@ -186,6 +187,7 @@ def create_app() -> FastAPI:
         cases.router,
         hypotheses.router,
         tasks.router,
+        analytics.router,
         audit.router,
         provenance.router,
         graph.router,

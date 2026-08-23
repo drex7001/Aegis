@@ -1314,3 +1314,94 @@ class ObjectSetNoticeOut(BaseModel):
     #: Whether this set actually widened, or merely could have.
     tracking: bool
     created_at: datetime
+
+
+class AnalyticRunOut(BaseModel):
+    """The manifest, as a reader sees it (spec 12 §8.2).
+
+    Complete enough that "reproduce this" is a mechanical instruction, which
+    is what ADR-055 replaced "rerunning the same inputs reproduces the
+    finding" with — the second was not testable, because neither an object set
+    nor a projection is immutable.
+    """
+
+    run_id: str
+    method: str
+    method_version: str
+    #: Which library actually ran, with its version. A Leiden run and a
+    #: Louvain fallback are different manifests, and therefore different runs.
+    implementation: str
+    parameters: dict[str, Any]
+    #: Null means **unseeded** — recorded as such rather than pretending to a
+    #: determinism the run did not have.
+    seed: int | None = None
+    input_kind: str
+    object_set_id: str | None = None
+    object_set_version: int | None = None
+    evaluation_digest: str | None = None
+    edge_digest: str
+    #: *Which* projection was read — not whether it was fresh. Freshness is
+    #: `is_stale`'s question and it answers a different one.
+    projection_built_at_revision_id: int | None = None
+    projection_builder_version: str | None = None
+    projection_aggregation_method_version: str | None = None
+    ontology_version: str
+    identity_revision_id: int
+    code_version: str
+    settings_digest: str
+    actor: str
+    purpose: str | None = None
+    #: The clearance and case membership the run saw. A finding computed under
+    #: a narrower clearance is a different finding (Article VI).
+    authorization_digest: str
+    caveat_version: str
+    started_at: datetime
+    finished_at: datetime | None = None
+
+
+class AnalyticFindingOut(BaseModel):
+    """One result, carrying the caveat it was issued with (Article IX).
+
+    `caveat_text` is stored on the row and returned from it — never looked up
+    when it renders. There is no render path that fetches a caveat, so there
+    is no render path that can fail to (spec 12 §9.3).
+    """
+
+    finding_id: str
+    run_id: str
+    finding_type: str
+    subjects: list[str]
+    value: dict[str, Any]
+    caveat_text: str
+    caveat_version: str
+    finding_digest: str
+    promoted_claim_id: str | None = None
+    #: Derived from the claims that contributed, never chosen: a finding over
+    #: restricted evidence is restricted.
+    handling_code: str
+    created_at: datetime
+
+
+class AnalyticRunResultOut(BaseModel):
+    """A run and what it found. The manifest always ships with the findings.
+
+    Together rather than separately, because a finding without its manifest is
+    a number whose provenance a reader has to go and look for — and the going
+    and looking is exactly what does not happen.
+    """
+
+    run: AnalyticRunOut
+    findings: list[AnalyticFindingOut]
+
+
+class AnalyticRunIn(BaseModel):
+    """What to run it over. Omitting the set runs over the whole readable graph."""
+
+    object_set_id: str | None = None
+    object_set_version: int | None = None
+    parameters: dict[str, Any] = Field(default_factory=dict)
+
+
+class AnalyticFindingPageOut(BaseModel):
+    items: list[AnalyticFindingOut]
+    next_cursor: str | None = None

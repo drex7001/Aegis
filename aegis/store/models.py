@@ -1205,7 +1205,129 @@ class ObjectSetNotice(Base):
     )
 
 
+class AnalyticRun(Base):
+    """The manifest: what was run, over what, by whom (spec 12 §8.2, ADR-055).
+
+    Written **before** the algorithm runs and never updated. H-23's objection
+    was that "rerunning the same inputs reproduces the finding" is not a
+    testable claim when neither an object set nor a projection is immutable —
+    so reproducibility is redefined here as **equal manifests produce equal
+    finding digests**, which is.
+
+    Two fields are worth reading twice.
+
+    ``implementation`` records **which library actually ran**.
+    ``aegis/analytics/clustering.py`` falls back from Leiden to NetworkX
+    Louvain when igraph is unavailable; it labels the result, but a label on a
+    summary nobody is obliged to keep is not provenance. Here the fallback is a
+    different manifest, and therefore a different run.
+
+    The ``projection_*`` columns record *which* projection was read, not
+    whether it was fresh. That distinction closes the Phase-5 ``is_stale``
+    carryover without changing what ``is_stale`` means: freshness is an
+    operator's question about a cache, provenance is a finding's question about
+    its own inputs, and they have different answers.
+    """
+
+    __tablename__ = "analytic_run"
+    __table_args__ = (
+        Index("ix_analytic_run_method", "method"),
+        Index("ix_analytic_run_set", "object_set_id"),
+    )
+
+    run_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    method: Mapped[str] = mapped_column(Text, nullable=False)
+    method_version: Mapped[str] = mapped_column(Text, nullable=False)
+    #: The library that ran, with its version. Never "leiden" alone.
+    implementation: Mapped[str] = mapped_column(Text, nullable=False)
+    parameters: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+    #: NULL means **unseeded**, recorded as such rather than pretending to a
+    #: determinism the run does not have.
+    seed: Mapped[int | None] = mapped_column(Integer)
+    input_kind: Mapped[str] = mapped_column(Text, nullable=False)
+    object_set_id: Mapped[str | None] = mapped_column(ForeignKey("object_set.set_id"))
+    object_set_version: Mapped[int | None] = mapped_column(Integer)
+    #: SHA-256 over the sorted evaluated member ids.
+    evaluation_digest: Mapped[str | None] = mapped_column(Text)
+    #: SHA-256 over the sorted edge rows consumed, so a projection rebuilt
+    #: between two runs is visible as a different digest.
+    edge_digest: Mapped[str] = mapped_column(Text, nullable=False)
+    projection_built_at_revision_id: Mapped[int | None] = mapped_column(BigInteger)
+    projection_builder_version: Mapped[str | None] = mapped_column(Text)
+    projection_aggregation_method_version: Mapped[str | None] = mapped_column(Text)
+    ontology_version: Mapped[str] = mapped_column(Text, nullable=False)
+    identity_revision_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    code_version: Mapped[str] = mapped_column(Text, nullable=False)
+    settings_digest: Mapped[str] = mapped_column(Text, nullable=False)
+    actor: Mapped[str] = mapped_column(Text, nullable=False)
+    purpose: Mapped[str | None] = mapped_column(Text)
+    #: Which clearance and case membership the run saw. A finding computed
+    #: under a narrower clearance is a different finding, and Article VI is why
+    #: the manifest has to say so rather than leaving it to be inferred.
+    authorization_digest: Mapped[str] = mapped_column(Text, nullable=False)
+    caveat_version: Mapped[str] = mapped_column(Text, nullable=False)
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class AnalyticFinding(Base):
+    """One result of a run, carrying its own caveat (spec 12 §8.3, Article IX).
+
+    **A finding is not a claim and cannot become one by editing.** It lives in
+    its own table with its own lifecycle: immutable, promotable, supersedable
+    by a later run, never edited. Promotion (§10) writes a *new* claim and
+    leaves the finding standing, linked.
+
+    ``caveat_text`` is **copied into the row**, not looked up when it renders.
+    That is what "structural, never UI decoration" means: there is no render
+    path that fetches a caveat, so there is no render path that can fail to. It
+    also means a finding keeps the wording it was issued with — silently
+    improving the disclaimer on a finding somebody already acted on is not an
+    improvement.
+
+    ``handling_code`` is **derived, never chosen**: the maximum of every claim
+    that contributed. A finding computed from sensitive evidence and stored as
+    ``open`` would be the leak the whole evaluation path exists to prevent,
+    arriving one level up.
+    """
+
+    __tablename__ = "analytic_finding"
+    __table_args__ = (
+        Index("ix_analytic_finding_run", "run_id"),
+        Index("ix_analytic_finding_type", "finding_type"),
+        Index("ix_analytic_finding_handling", "handling_rank"),
+        UniqueConstraint("run_id", "finding_digest", name="uq_analytic_finding_digest"),
+    )
+
+    finding_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    run_id: Mapped[str] = mapped_column(ForeignKey("analytic_run.run_id"), nullable=False)
+    finding_type: Mapped[str] = mapped_column(Text, nullable=False)
+    #: The entities this finding is about.
+    subjects: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False)
+    value: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    caveat_text: Mapped[str] = mapped_column(Text, nullable=False)
+    caveat_version: Mapped[str] = mapped_column(Text, nullable=False)
+    #: SHA-256 over (finding_type, subjects, value) — what "equal manifests
+    #: produce equal findings" is checked against.
+    finding_digest: Mapped[str] = mapped_column(Text, nullable=False)
+    #: Set by promotion, never cleared. There is deliberately **no** foreign key
+    #: in the other direction: a claim must not be reachable *as* a finding, or
+    #: the two lifecycles would be one.
+    promoted_claim_id: Mapped[str | None] = mapped_column(ForeignKey("claim.claim_id"))
+    handling_code: Mapped[str] = mapped_column(Text, nullable=False)
+    handling_rank: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+
+
 __all__ = [
+    "AnalyticFinding",
+    "AnalyticRun",
     "AuditLog",
     "AuthzOutbox",
     "CaseFile",

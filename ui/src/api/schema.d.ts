@@ -4,6 +4,31 @@
  */
 
 export interface paths {
+    "/v1/analytics/{metric}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run
+         * @description Run a metric and record what it found.
+         *
+         *     When an object set is named, it is **evaluated first under the caller's own
+         *     filters** and the metric runs over those members — so a shared set drives
+         *     an analytic without lending its owner's clearance, and the evaluation
+         *     digest that lands in the manifest is the caller's.
+         */
+        post: operations["runAnalytic"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/audit": {
         parameters: {
             query?: never;
@@ -475,6 +500,50 @@ export interface paths {
         put?: never;
         /** Add Custody Event */
         post: operations["addCustodyEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/findings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Findings
+         * @description Findings the caller may read. No total — a count is an existence leak.
+         */
+        get: operations["listFindings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/findings/{finding_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Finding
+         * @description One finding **with its manifest**.
+         *
+         *     Together, always. A finding without its manifest is a number whose
+         *     provenance the reader has to go and look for, and the going and looking is
+         *     exactly what does not happen.
+         */
+        get: operations["getFinding"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1273,6 +1342,141 @@ export interface components {
             } | null;
             /** Note */
             note?: string | null;
+        };
+        /**
+         * AnalyticFindingOut
+         * @description One result, carrying the caveat it was issued with (Article IX).
+         *
+         *     `caveat_text` is stored on the row and returned from it — never looked up
+         *     when it renders. There is no render path that fetches a caveat, so there
+         *     is no render path that can fail to (spec 12 §9.3).
+         */
+        AnalyticFindingOut: {
+            /** Caveat Text */
+            caveat_text: string;
+            /** Caveat Version */
+            caveat_version: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Finding Digest */
+            finding_digest: string;
+            /** Finding Id */
+            finding_id: string;
+            /** Finding Type */
+            finding_type: string;
+            /** Handling Code */
+            handling_code: string;
+            /** Promoted Claim Id */
+            promoted_claim_id?: string | null;
+            /** Run Id */
+            run_id: string;
+            /** Subjects */
+            subjects: string[];
+            /** Value */
+            value: {
+                [key: string]: unknown;
+            };
+        };
+        /** AnalyticFindingPageOut */
+        AnalyticFindingPageOut: {
+            /** Items */
+            items: components["schemas"]["AnalyticFindingOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /**
+         * AnalyticRunIn
+         * @description What to run it over. Omitting the set runs over the whole readable graph.
+         */
+        AnalyticRunIn: {
+            /** Object Set Id */
+            object_set_id?: string | null;
+            /** Object Set Version */
+            object_set_version?: number | null;
+            /** Parameters */
+            parameters?: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * AnalyticRunOut
+         * @description The manifest, as a reader sees it (spec 12 §8.2).
+         *
+         *     Complete enough that "reproduce this" is a mechanical instruction, which
+         *     is what ADR-055 replaced "rerunning the same inputs reproduces the
+         *     finding" with — the second was not testable, because neither an object set
+         *     nor a projection is immutable.
+         */
+        AnalyticRunOut: {
+            /** Actor */
+            actor: string;
+            /** Authorization Digest */
+            authorization_digest: string;
+            /** Caveat Version */
+            caveat_version: string;
+            /** Code Version */
+            code_version: string;
+            /** Edge Digest */
+            edge_digest: string;
+            /** Evaluation Digest */
+            evaluation_digest?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Identity Revision Id */
+            identity_revision_id: number;
+            /** Implementation */
+            implementation: string;
+            /** Input Kind */
+            input_kind: string;
+            /** Method */
+            method: string;
+            /** Method Version */
+            method_version: string;
+            /** Object Set Id */
+            object_set_id?: string | null;
+            /** Object Set Version */
+            object_set_version?: number | null;
+            /** Ontology Version */
+            ontology_version: string;
+            /** Parameters */
+            parameters: {
+                [key: string]: unknown;
+            };
+            /** Projection Aggregation Method Version */
+            projection_aggregation_method_version?: string | null;
+            /** Projection Builder Version */
+            projection_builder_version?: string | null;
+            /** Projection Built At Revision Id */
+            projection_built_at_revision_id?: number | null;
+            /** Purpose */
+            purpose?: string | null;
+            /** Run Id */
+            run_id: string;
+            /** Seed */
+            seed?: number | null;
+            /** Settings Digest */
+            settings_digest: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+        };
+        /**
+         * AnalyticRunResultOut
+         * @description A run and what it found. The manifest always ships with the findings.
+         *
+         *     Together rather than separately, because a finding without its manifest is
+         *     a number whose provenance a reader has to go and look for — and the going
+         *     and looking is exactly what does not happen.
+         */
+        AnalyticRunResultOut: {
+            /** Findings */
+            findings: components["schemas"]["AnalyticFindingOut"][];
+            run: components["schemas"]["AnalyticRunOut"];
         };
         /**
          * AsOfStampOut
@@ -3343,6 +3547,81 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    runAnalytic: {
+        parameters: {
+            query?: {
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description One of the recorded metrics */
+                metric: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnalyticRunIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalyticRunResultOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Authenticated, but the role gate refused. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     queryAudit: {
         parameters: {
             query?: {
@@ -4942,6 +5221,121 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    listFindings: {
+        parameters: {
+            query?: {
+                run?: string | null;
+                type?: string | null;
+                cursor?: string | null;
+                limit?: number;
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalyticFindingPageOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    getFinding: {
+        parameters: {
+            query?: {
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path: {
+                finding_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalyticRunResultOut"];
                 };
             };
             /** @description No credentials, or a token that does not verify. */

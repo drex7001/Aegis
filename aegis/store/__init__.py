@@ -2,6 +2,8 @@
 
 from aegis.store.engine import Base, get_engine, get_sessionmaker
 from aegis.store.models import (
+    AnalyticFinding,
+    AnalyticRun,
     AuditLog,
     AuthzOutbox,
     CaseFile,
@@ -36,6 +38,8 @@ from aegis.store.models import (
 )
 
 __all__ = [
+    "AnalyticFinding",
+    "AnalyticRun",
     "AuditLog",
     "AuthzOutbox",
     "Base",
