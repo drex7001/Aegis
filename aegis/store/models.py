@@ -539,13 +539,17 @@ class ReviewQueue(Base):
             name="ck_review_queue_status",
         ),
         CheckConstraint(
-            "suggestion_kind IN ('claim_draft', 'identity_candidate', 'claim_relation')",
+            "suggestion_kind IN ('claim_draft', 'identity_candidate', "
+            "'claim_relation', 'event_draft')",
             name="ck_review_queue_kind",
         ),
-        # exactly one typed result on acceptance, per kind
+        # exactly one typed result on acceptance, per kind. Four columns since
+        # T58: an accepted `event_draft` produces an entity, and the arity is
+        # what makes "acceptance wrote exactly one kind of thing" checkable by
+        # the database rather than by reading the dispatch.
         CheckConstraint(
             "status <> 'accepted' OR num_nonnulls(result_claim_id, "
-            "result_decision_id, result_relation) = 1",
+            "result_decision_id, result_relation, result_entity_id) = 1",
             name="ck_review_queue_accepted_result",
         ),
         UniqueConstraint("idempotency_key", name="uq_review_queue_idempotency_key"),
@@ -579,6 +583,12 @@ class ReviewQueue(Base):
         ForeignKey("identity_decision.decision_id")
     )
     result_relation: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    #: The occurrence an accepted `event_draft` created (T58). The entity rather
+    #: than one of its claims: the claims are reachable from it, and picking one
+    #: of them as *the* result would be arbitrary.
+    result_entity_id: Mapped[str | None] = mapped_column(
+        ForeignKey("entity.entity_id")
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")
     )

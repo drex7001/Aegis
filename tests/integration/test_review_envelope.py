@@ -81,10 +81,24 @@ def test_every_kind_declares_its_target_action() -> None:
         "claim_draft",
         "identity_candidate",
         "claim_relation",
+        "event_draft",
     }
     assert SUGGESTION_KINDS["claim_draft"] == "record_claim"
     assert SUGGESTION_KINDS["identity_candidate"] == "adjudicate_identity"
     assert SUGGESTION_KINDS["claim_relation"] == "link_claims"
+    # T58. The travel path's kind: a producer proposes an occurrence and
+    # acceptance dispatches to `record_event`, so Article VII holds for events
+    # through the mechanism it already held for claims.
+    assert SUGGESTION_KINDS["event_draft"] == "record_event"
+
+    # The code-owned list and the ontology's declared enum must agree, or a
+    # producer could send a kind nothing can accept — or a kind could exist that
+    # no caller is permitted to name (ADR-031 §1).
+    from aegis.ontology import load
+    from tests.support.paths import ONTOLOGY_PATH
+
+    declared = load(ONTOLOGY_PATH).action("submit_suggestion").parameters["suggestion_kind"]
+    assert set(declared.values or ()) == set(SUGGESTION_KINDS)
 
 
 @pytest.mark.integration

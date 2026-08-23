@@ -1,12 +1,12 @@
 {
-  "compatibility": "major",
-  "content_hash": "db0a4e8091eef1a0b67167773944c8ff59afda98c1decf4fb20db0eb8e5290d5",
+  "compatibility": "minor",
+  "content_hash": "9ee145562534fcaf41631d94c2976210578d76c10d857434c7c7c4bdaea3a09e",
   "modules": {
     "criminal_network": "2.0.0",
-    "platform": "1.4.0"
+    "platform": "1.5.0"
   },
-  "previous_content_hash": "52ac92ad9cd3a9cb7bc74305dc3341025628a86a166e11180ac1775164e9f7bb",
-  "previous_version": "1.7.0",
-  "proposal": "007-events-and-geometry",
-  "version": "2.0.0"
+  "previous_content_hash": "db0a4e8091eef1a0b67167773944c8ff59afda98c1decf4fb20db0eb8e5290d5",
+  "previous_version": "2.0.0",
+  "proposal": "008-event-draft-suggestions",
+  "version": "2.1.0"
 }

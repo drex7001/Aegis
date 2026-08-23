@@ -95,6 +95,11 @@ SUGGESTION_KINDS: dict[str, str] = {
     "claim_draft": "record_claim",
     "identity_candidate": "adjudicate_identity",
     "claim_relation": "link_claims",
+    # T58. A producer proposing a whole occurrence — the travel path's kind.
+    # Acceptance dispatches to `record_event` exactly as a claim draft
+    # dispatches to `record_claim`, so Article VII holds for events with no new
+    # mechanism: the reviewer is the actor, and the producer never writes canon.
+    "event_draft": "record_event",
 }
 SUGGESTION_SCHEMA_VERSION = 1
 
@@ -835,17 +840,27 @@ class ActionService:
         """
         if not isinstance(entry, dict):
             raise ActionValidationError(path, "expected an object with `role` and `entity_id`")
-        unknown = sorted(set(entry) - {"role", "entity_id", "mention_id"})
+        unknown = sorted(set(entry) - {"role", "entity_id", "mention_id", "entity_type"})
         if unknown:
             raise ActionValidationError(
-                path, f"unknown field(s) {unknown}; expected role, entity_id, mention_id"
+                path,
+                f"unknown field(s) {unknown}; expected role, entity_id, mention_id, entity_type",
             )
         role = entry.get("role")
         entity_id = entry.get("entity_id")
+        mention_id = entry.get("mention_id")
         if not role:
             raise ActionValidationError(f"{path}.role", "is required")
-        if not entity_id:
-            raise ActionValidationError(f"{path}.entity_id", "is required")
+        # Either an entity or the text that names one. A producer proposing a
+        # journey has read a name, not an id — there is no `entity_draft` kind
+        # (ADR-031 §1), so an unadjudicated name rides as its mention anchor and
+        # `_create_claim` creates the entity from it on acceptance (spec 02
+        # §3.2). Requiring an id here would have forced a producer to invent
+        # identity, which is the one thing it must never do.
+        if not entity_id and not mention_id:
+            raise ActionValidationError(
+                f"{path}.entity_id", "an entity_id or a mention_id is required"
+            )
         if role not in allowed:
             raise ActionValidationError(
                 f"{path}.role",
@@ -862,7 +877,8 @@ class ActionService:
             subject_id=event.entity_id,
             predicate=role,
             object_id=entity_id,
-            object_mention_id=entry.get("mention_id"),
+            object_mention_id=mention_id,
+            object_entity_type=entry.get("entity_type"),
             **envelope,
         ).claim_id
 
@@ -1266,6 +1282,7 @@ class ActionService:
                 detail["result_claim_id"] = row.result_claim_id
                 detail["result_decision"] = row.result_decision_id
                 detail["result_relation"] = row.result_relation
+                detail["result_entity_id"] = row.result_entity_id
             row.status = decision
             row.decided_by = context.actor
             row.decided_at = _utcnow()
@@ -1342,6 +1359,19 @@ class ActionService:
                 "relation": relation.relation,
             }
             return None
+        if row.suggestion_kind == "event_draft":
+            # Through `record_event`'s declared parameters, for the reason the
+            # claim branch above gives: a draft accepted from the queue must get
+            # the same defaults, the same validation and the same refusals as a
+            # direct call, or the queue becomes a way around them.
+            validated = self._validate_parameters(
+                "record_event",
+                self.ontology.action("record_event"),
+                draft,
+            )
+            result = self.record_event(context, **validated)
+            row.result_entity_id = result.entity_id
+            return validated.get("case_id")
         # identity_candidate dispatches to adjudicate_identity, which lands in
         # T20 with the ledger write and the scoped concurrency check.  Nothing
         # produces this kind yet (T18/T19 do), so this is an unreachable

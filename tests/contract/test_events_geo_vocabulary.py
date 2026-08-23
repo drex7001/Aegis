@@ -22,7 +22,7 @@ import pytest
 
 from aegis.authz.filters import forbidden_field_predicates, property_sensitivity
 from aegis.ontology import OntologyValidationError, compose, load, load_dict
-from aegis.ontology.generate import typescript_constants
+from aegis.ontology.generate import content_hash, typescript_constants
 from aegis.ontology.registries import (
     GEO_ADMIN_LEVELS,
     GEO_DERIVATIONS,
@@ -262,21 +262,23 @@ def test_precision_is_gone(ont) -> None:
     assert "place" in ont.object_type("location").implements
 
 
-def test_the_removal_is_what_makes_the_bump_major() -> None:
-    """Diffed against the artifact this release actually names."""
-    release = json.loads((REPO_ROOT / "ontology" / "release.json").read_text("utf-8"))
-    assert release["compatibility"] == "major"
-    previous = json.loads(
-        (
-            REPO_ROOT / "ontology" / "history" / f"composed-{release['previous_version']}.json"
-        ).read_text("utf-8")
-    )
-    composition = compose(ONTOLOGY_PATH)
-    from aegis.ontology.generate import composed_artifact
-    from aegis.ontology.modules import registry
+#: The bump that removed `location.precision`, and the one before it. Named
+#: rather than read from `release.json`, because what these cases are about is
+#: **that** bump — reading "the current release" made them fail for every later
+#: release they had no opinion about (T58 was the first).
+PRECISION_REMOVED_IN = "2.0.0"
+PRECISION_REMOVED_FROM = "1.7.0"
 
-    current = composed_artifact(composition, registry(composition))
-    report = compare(previous, current)
+
+def _history(version: str) -> dict:
+    return json.loads(
+        (REPO_ROOT / "ontology" / "history" / f"composed-{version}.json").read_text("utf-8")
+    )
+
+
+def test_the_removal_is_what_makes_the_bump_major() -> None:
+    """Diffed between the two committed artifacts, not against today's head."""
+    report = compare(_history(PRECISION_REMOVED_FROM), _history(PRECISION_REMOVED_IN))
     assert report.computed == "major"
     assert report.breaking == ["object_types.location.properties.precision: removed"]
     # Everything else in the bump is additive, and the list is worth reading.
@@ -285,20 +287,32 @@ def test_the_removal_is_what_makes_the_bump_major() -> None:
     assert "actions.record_event: added" in report.additive
 
 
-def test_declaring_this_bump_as_minor_would_fail_the_gate(tmp_path: Path) -> None:
+def test_declaring_that_bump_as_minor_would_have_failed_the_gate(tmp_path: Path) -> None:
     """The gate is only worth what it refuses."""
+    previous = _history(PRECISION_REMOVED_FROM)
+    understated = {
+        "version": PRECISION_REMOVED_IN,
+        "compatibility": "minor",
+        "proposal": "007-events-and-geometry",
+        "previous_version": PRECISION_REMOVED_FROM,
+        "previous_content_hash": content_hash(previous),
+        "modules": {m["name"]: m["version"] for m in previous["modules"]},
+    }
+    errors = check(REPO_ROOT, release=understated, artifact=_history(PRECISION_REMOVED_IN))
+    assert any("declared 'minor' but the diff" in e for e in errors)
+    assert any("breaking change without a major bump" in e for e in errors)
+
+
+def test_the_committed_release_still_declares_its_own_class_honestly() -> None:
+    """Whatever the head release is, its declaration matches its diff."""
     release = json.loads((REPO_ROOT / "ontology" / "release.json").read_text("utf-8"))
     assert release["compatibility"] in COMPATIBILITY_ORDER
-    understated = {**release, "compatibility": "minor"}
     composition = compose(ONTOLOGY_PATH)
     from aegis.ontology.generate import composed_artifact
     from aegis.ontology.modules import registry
 
-    errors = check(
-        REPO_ROOT, release=understated, artifact=composed_artifact(composition, registry(composition))
-    )
-    assert any("declared 'minor' but the diff" in e for e in errors)
-    assert any("breaking change without a major bump" in e for e in errors)
+    current = composed_artifact(composition, registry(composition))
+    assert check(REPO_ROOT, release=release, artifact=current) == []
 
 
 def test_the_prior_module_sources_are_archived() -> None:
