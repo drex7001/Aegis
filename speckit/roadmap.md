@@ -28,7 +28,7 @@ external-review disposition (`reviews/2026-07-18-external-review-disposition.md`
 Milestone I    Governed foundation      P0 governance ▸ P1 claim store + RBAC     [COMPLETE]
 Milestone II   MVP                      P2 identity, provenance & workspace       [COMPLETE — ★ MVP]
 Milestone III  Ontology platform        P3 modules & contracts [COMPLETE] ▸ P4 workspace v2 & object views [COMPLETE]
-Milestone IV   Intelligence domain      P5 events, geo & time [COMPLETE] ▸ P6 search, object sets & analytics
+Milestone IV   Intelligence domain      P5 events, geo & time [COMPLETE] ▸ P6 search, object sets & analytics [ACTIVE]
 Milestone V    Trust boundaries & AI    P7 sharing & governance ▸ P8 controlled AI & reasoning
 Milestone VI   Production               P9 production certification & scale-out
 
@@ -241,11 +241,14 @@ and graph from one claim set; precision is visually distinct; an event with 3+
 participants round-trips; no canonical mutable geometry column exists (spot
 check: geometry projections rebuild from claims).
 
-### Phase 6 — Search, object sets & governed analytics *(NEXT · GOAL.md §12, §13, §32 · effort: M)*
+### Phase 6 — Search, object sets & governed analytics *(ACTIVE, opened 2026-08-23 · GOAL.md §12, §13, §32 · effort: M · ADR-050…ADR-057)*
 
 **Goal.** Find anything you're allowed to find; save and share what you found;
 compute metrics that explain themselves. Charter:
-`phases/phase-06-search-object-sets-analytics.md` · tasks: `tasks/phase-06.md`.
+`phases/phase-06-search-object-sets-analytics.md` · specs: `specs/11-search.md`
+and `specs/12-object-sets-analytics.md` (both final) · tasks:
+`tasks/phase-06.md` (re-validated by T66, whose fourteen divergences are
+recorded in spec 11 §0 and spec 12 §0).
 
 **Deliverables (summary)** — global search with **authorization applied in
 candidate generation, not only hydration** (B-17); golden

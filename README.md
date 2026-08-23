@@ -80,8 +80,12 @@ the *recorded* coarser geometry the ordinary filter left, never a shape the
 server invented. Verdict and evidence:
 [`speckit/reviews/phase-05-exit-review.md`](speckit/reviews/phase-05-exit-review.md).
 
-**Next phase: Phase 6 — search, object sets & governed analytics.** It begins
-with T66's re-validation. The full
+**Next phase: Phase 6 — search, object sets & governed analytics** — **in
+progress since 2026-08-23.** It began with T66's re-validation, which authored
+[`speckit/specs/11-search.md`](speckit/specs/11-search.md) and
+[`speckit/specs/12-object-sets-analytics.md`](speckit/specs/12-object-sets-analytics.md)
+and recorded fourteen divergences from the pre-authored plan as ADR-050…ADR-057.
+The full
 roadmap to production is [`speckit/roadmap.md`](speckit/roadmap.md); the
 external-review disposition is
 [`speckit/reviews/2026-07-18-external-review-disposition.md`](speckit/reviews/2026-07-18-external-review-disposition.md).

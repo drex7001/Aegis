@@ -32,7 +32,7 @@ recommendation reduced/changed) · **reject** (not adopted, reason given) ·
 | B-14 | API authorization contract incomplete/stale | **accept, phased** | Route-by-route authz matrix authored in P2 (T24b) for the routes P2 ships, maintained as the authoritative artifact before SDK generation (P3); rebuild endpoint restricted; provenance endpoint added |
 | B-15 | Living runbooks bypass the governed pipeline | **accept, P1 closure** | T16d: legacy-only runbooks moved under `legacy/` with unsafe-for-governed-data banner; active ingestion runbook rewritten around `aegis ingest` |
 | B-16 | Backup misses security/evidence state (Keycloak users, FGA, versions, keys) | **defer, pilot gate** | Recovery-boundary definition + automated encrypted backup of all non-reconstructible components in the pilot baseline; full DR automation stays P9 |
-| B-17 | Search/object sets leak or widen scope | **defer, P6** | P6 charter amended: authorization in candidate generation, versioned/pinned set definitions, AST-only storage, complexity limits |
+| B-17 | Search/object sets leak or widen scope | **defer, P6** | P6 charter amended: authorization in candidate generation, versioned/pinned set definitions, AST-only storage, complexity limits. **Closed 2026-08-23 by specs 11 and 12 (T66).** Search: the six leak surfaces the finding names — ranking, counts, pagination gaps, timing, snippets, consumption — each get a mechanism (spec 11 §4.2), and §4.3 states what the design does *not* claim rather than overclaiming. P2's entity search already applied filters in candidate generation, so the finding's own recommendation was **already met and the plan was the thing that was stale** (spec 11 §0 S1). Sets: validated ASTs with no SQL text and nowhere to store results, complexity and cycle limits refused at *save*, pinned ontology versions by default with an opt-in and a notice (ADR-054), and the definition treated as protected data — including the `difference`-as-oracle case (spec 12 §5.2, §7) |
 | B-18 | AI egress governance missing | **defer, P8** | P8 charter amended: data-egress policy, provider allowlist, least-privilege producer credentials, realistic reproducibility definition |
 | B-19 | Claims disconnected from mention evidence / identity revisions | **accept — the load-bearing finding** | Claim arguments carry optional mention anchors + identity-revision stamp; projections resolve through the active revision; split routes ambiguous unanchored claims to re-adjudication — ADR-029; P2 task T17b. Adopted the hybrid claim-argument design, **not** mention-only references |
 
@@ -72,6 +72,28 @@ recommendation reduced/changed) · **reject** (not adopted, reason given) ·
   runtime blur, and it ships in P5. M-19 → no external tile or geocoding service
   is contacted, by default or by accident; sending a selector to a public
   geocoder is prohibited outright.
+- **H-22 / H-23 / H-24 / M-11 / M-13 / M-16** (search quality goals deferred
+  too late; analytic reproducibility and promotion underspecified; watchlists
+  missing the constitutional lifecycle; basic vs full search overlap; "strictly
+  fewer" misused; set algebra lacks snapshot semantics): all six **closed
+  2026-08-23 by specs 11 and 12 (T66)**. H-22 → numeric targets per script and
+  resource type exist *before* the implementation, in code
+  (`aegis/search/targets.py`), and the OpenSearch trigger is written beside
+  them; the normalization pipeline is versioned and stamped (ADR-052), and
+  wholesale diacritic stripping is refused with a regression fixture that
+  proves it would *lower* the score. H-23 → an immutable run manifest, and
+  reproducibility redefined as **equal manifests produce equal finding
+  digests** — which is testable, unlike "the same inputs" (ADR-055); it also
+  caught a silent Leiden→Louvain fallback and closed P5's `is_stale` carryover
+  without changing what `is_stale` means. H-24 → a detection is a typed alert
+  suggestion in the queue that already exists, with dedupe key, exactness and
+  an audited triage lifecycle, and evaluation ownership is **decided**:
+  explicit or scheduled, never a write-path hook (ADR-056). M-11 → one route,
+  `GET /v1/search`, with the P2 route removed rather than left beside it
+  (ADR-050). M-13 → the assertion is *subset always, strict subset on a seeded
+  restricted hit*. M-16 → one repeatable-read snapshot and one authorization
+  context per evaluation, composed subsets included, and a set never evaluates
+  with its owner's clearance except the watchlist sweep, which says so.
 - **M-01** (stale statuses): accepted — statuses corrected in this pass; spec
   status lines now name the ADRs that amend them.
 - **M-12** (pagination too late): accepted — cursor pagination is a P2 task
