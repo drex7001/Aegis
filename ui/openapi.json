@@ -4791,6 +4791,170 @@
         "title": "TaskUpdateIn",
         "type": "object"
       },
+      "TimelineItemOut": {
+        "description": "One claim on the timeline (spec 10 §11.1).\n\nTimeline items are **claims**, not events: an event appears through the\nclaims that assert it, which is what makes \"no duplicates\" structural\nrather than a de-duplication pass.\n\n`certainty` is derived from the interval, never asserted — so nothing\ndownstream can render \"some time in March\" as 1 March.",
+        "properties": {
+          "certainty": {
+            "title": "Certainty",
+            "type": "string"
+          },
+          "claim_id": {
+            "title": "Claim Id",
+            "type": "string"
+          },
+          "earliest": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Earliest"
+          },
+          "handling_code": {
+            "title": "Handling Code",
+            "type": "string"
+          },
+          "latest": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest"
+          },
+          "object_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Object Id"
+          },
+          "object_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Object Label"
+          },
+          "object_value": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Object Value"
+          },
+          "predicate": {
+            "title": "Predicate",
+            "type": "string"
+          },
+          "record_id": {
+            "title": "Record Id",
+            "type": "string"
+          },
+          "recorded_at": {
+            "format": "date-time",
+            "title": "Recorded At",
+            "type": "string"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "string"
+          },
+          "subject_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Label"
+          },
+          "subject_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Type"
+          }
+        },
+        "required": [
+          "claim_id",
+          "subject_id",
+          "predicate",
+          "certainty",
+          "record_id",
+          "handling_code",
+          "recorded_at"
+        ],
+        "title": "TimelineItemOut",
+        "type": "object"
+      },
+      "TimelinePageOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TimelineItemOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "stamp": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AsOfStampOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "undated_count": {
+            "default": 0,
+            "title": "Undated Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "TimelinePageOut",
+        "type": "object"
+      },
       "ValidationError": {
         "additionalProperties": false,
         "description": "One field-level failure from request-model validation.",
@@ -11272,6 +11436,211 @@
         "summary": "Update Task",
         "tags": [
           "tasks"
+        ]
+      }
+    },
+    "/v1/timeline": {
+      "get": {
+        "description": "Claims on one timeline, with the certainty their sources actually stated.\n\nIn the geo router rather than a module of its own because it answers the\nsame question the map does — *what happened, where and when* — through the\nsame filters and the same window rule. Splitting them would be two places\nfor \"a claim is in the window when its interval intersects it\" to drift.\n\nAn **undated** claim is not in a bounded window (§11.2) and is not silently\ndropped either: `undated_count` says how many there are, so a narrow window\ncan never look like a complete account of everything known.",
+        "operationId": "getTimeline",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "entityId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entityid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "caseId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Caseid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asOf",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Asof"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asOfRevision",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Asofrevision"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimelinePageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "No credentials, or a token that does not verify."
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "The body or parameters did not validate."
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Per-caller rate limit exceeded (spec 06 §1.6)."
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Timeline",
+        "tags": [
+          "geo"
         ]
       }
     }

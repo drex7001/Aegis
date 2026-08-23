@@ -182,6 +182,22 @@ export async function geoEvents(params: {
   return unwrap(await api.GET("/v1/geo/events", { params: { query: params } }));
 }
 
+export type TimelineItem = components["schemas"]["TimelineItemOut"];
+export type TimelinePage = components["schemas"]["TimelinePageOut"];
+
+export async function getTimeline(params: {
+  entityId?: string;
+  caseId?: string;
+  from?: string;
+  to?: string;
+  limit?: number;
+  cursor?: string;
+  asOf?: string;
+  asOfRevision?: number;
+} = {}): Promise<TimelinePage> {
+  return unwrap(await api.GET("/v1/timeline", { params: { query: params } }));
+}
+
 /* ── ingestion (T23a) ──────────────────────────────────────────────────── */
 
 /**

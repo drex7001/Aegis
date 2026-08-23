@@ -793,6 +793,45 @@ class FeatureCollectionOut(BaseModel):
     stamp: AsOfStampOut | None = None
 
 
+class TimelineItemOut(BaseModel):
+    """One claim on the timeline (spec 10 §11.1).
+
+    Timeline items are **claims**, not events: an event appears through the
+    claims that assert it, which is what makes "no duplicates" structural
+    rather than a de-duplication pass.
+
+    `certainty` is derived from the interval, never asserted — so nothing
+    downstream can render "some time in March" as 1 March.
+    """
+
+    claim_id: str
+    subject_id: str
+    subject_label: str | None = None
+    subject_type: str | None = None
+    predicate: str
+    object_id: str | None = None
+    object_label: str | None = None
+    object_value: Any | None = None
+    earliest: datetime | None = None
+    latest: datetime | None = None
+    #: `exact` | `bounded` | `open` | `undated`.
+    certainty: str
+    record_id: str
+    handling_code: str
+    recorded_at: datetime
+
+
+class TimelinePageOut(BaseModel):
+    items: list[TimelineItemOut]
+    next_cursor: str | None = None
+    #: How many readable claims state no time at all. Returned rather than
+    #: folded into `items`, because an undated claim is *excluded* from a
+    #: bounded window and must still be surfaced — silently dropping it would
+    #: let a narrow window look like a complete account (spec 10 §11.2).
+    undated_count: int = 0
+    stamp: AsOfStampOut | None = None
+
+
 class IdentityDecisionOut(BaseModel):
     """A human's identity decision: who, when, why, and which revision."""
 
