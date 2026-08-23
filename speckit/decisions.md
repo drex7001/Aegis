@@ -1991,11 +1991,15 @@ unanswerable question at the moment of a run — it records *which* projection w
 read. Freshness is an operator's question about a cache; provenance is a
 finding's question about its own inputs, and they are different questions.
 
-It also closes a defect found during re-validation: `aegis/analytics/clustering.py`
-falls back from Leiden to NetworkX Louvain when igraph is unavailable, printing a
-warning and producing a different partition from a different algorithm. Under
-the manifest, the fallback is a different `implementation` value and therefore a
-different run — visible rather than silent.
+It also closes a gap found during re-validation. `aegis/analytics/clustering.py`
+falls back from Leiden to NetworkX Louvain when igraph is unavailable, and it
+already stamps each returned cell with `algorithm: "louvain-fallback"` — more
+than the first reading of it credited. What is missing is what makes that
+durable: the label carries **no library version**, it rides on a summary **no
+caller is obliged to persist**, and there is no run record for it to belong to.
+Under the manifest the fallback is a required `implementation` field with its
+version, so it is a different run rather than a differently-labelled result
+somebody may have thrown away.
 
 **Consequences.** A run is cheap to record and expensive to fake. A finding
 whose manifest cannot be reconstructed is a finding nobody should promote, and
