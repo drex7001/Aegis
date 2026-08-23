@@ -8,7 +8,7 @@ import maplibregl, {
 import type { Feature, FeatureCollection as GeoJsonCollection, Geometry } from "geojson";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import {
   geoEvents,
@@ -18,6 +18,7 @@ import {
   type PlaceProperties,
 } from "../../api/client";
 import { entityPath } from "../../routing";
+import { SurfaceLinks, TimeFilter, useSharedFilter } from "../TimeFilter";
 import { OFFLINE_STYLE, configureWorker } from "./style";
 import { describeMark, markFor, type Mark, type MarkInput } from "./marks";
 
@@ -156,15 +157,15 @@ function sourcesFor(drawn: Drawn[]) {
 
 export function MapView() {
   const navigate = useNavigate();
-  const [search, setSearch] = useSearchParams();
   const container = useRef<HTMLDivElement | null>(null);
   const map = useRef<MapLibreMap | null>(null);
   const [ready, setReady] = useState(false);
-  const [selected, setSelected] = useState<Drawn | null>(null);
 
-  const from = search.get("from") ?? undefined;
-  const to = search.get("to") ?? undefined;
-  const asOf = search.get("asOf") ?? undefined;
+  // One window, read from the URL, shared with the timeline and the graph
+  // (T62). Not synchronized between three components — *the same* window,
+  // which is why they cannot disagree.
+  const { window: shared, selection, select } = useSharedFilter();
+  const { from, to, asOf } = shared;
 
   const places = useQuery({
     queryKey: ["geo", "locations", asOf ?? null],
@@ -187,6 +188,8 @@ export function MapView() {
   }, [places.data, events.data]);
 
   const undrawable = drawn.filter((item) => item.mark.kind === "none");
+  const selected =
+    drawn.find((item) => item.feature.properties.entity_id === selection.entityId) ?? null;
 
   useEffect(() => {
     if (!container.current || map.current) return;
@@ -229,7 +232,10 @@ export function MapView() {
         const match = drawnRef.current.find(
           (item) => item.feature.properties.entity_id === entityId,
         );
-        if (match) setSelected(match);
+        // Into the URL, so the timeline and the graph highlight the same thing
+        // (T62). Local state alone would make the selection this surface's,
+        // and the criterion is that it is the workspace's.
+        if (match) select(match.feature.properties.entity_id);
       });
     }
   }, [drawn, ready]);
@@ -243,36 +249,8 @@ export function MapView() {
     <section className="map" data-testid="map-view">
       <header className="map__header">
         <h1>Map</h1>
-        <form
-          className="map__filter"
-          data-testid="map-time-filter"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const form = new FormData(event.currentTarget);
-            const next = new URLSearchParams(search);
-            for (const [key, field] of [
-              ["from", "from"],
-              ["to", "to"],
-            ] as const) {
-              const value = String(form.get(field) ?? "");
-              if (value) next.set(key, new Date(value).toISOString());
-              else next.delete(key);
-            }
-            setSearch(next);
-          }}
-        >
-          <label>
-            <span>From</span>
-            <input type="date" name="from" defaultValue={from?.slice(0, 10)} data-testid="map-from" />
-          </label>
-          <label>
-            <span>To</span>
-            <input type="date" name="to" defaultValue={to?.slice(0, 10)} data-testid="map-to" />
-          </label>
-          <button type="submit" data-testid="map-apply">
-            Apply
-          </button>
-        </form>
+        <TimeFilter testId="map-time-filter" />
+        <SurfaceLinks current="map" />
       </header>
 
       {(places.data?.stamp || events.data?.stamp) && (
@@ -310,6 +288,9 @@ export function MapView() {
           .map((item) => (
             <li
               key={item.feature.id}
+              data-selected={
+                item.feature.properties.entity_id === selection.entityId ? "true" : undefined
+              }
               /*
                * The feature id, not the place id: an event at a place is a
                * separate row here (it has a time and participants the place
@@ -344,6 +325,9 @@ export function MapView() {
             onClick={() => navigate(entityPath(selected.feature.properties.entity_id))}
           >
             Open object view
+          </button>
+          <button type="button" data-testid="map-detail-clear" onClick={() => select(null)}>
+            Clear selection
           </button>
         </aside>
       )}

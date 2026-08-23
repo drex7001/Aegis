@@ -155,9 +155,9 @@ test("every item links to the entity it is about", async ({ page }) => {
 test("the window lives in the URL, like the map's", async ({ page }) => {
   await stubTimeline(page);
   await page.goto("/timeline");
-  await page.getByTestId("timeline-from").fill("2019-01-01");
-  await page.getByTestId("timeline-to").fill("2019-12-31");
-  await page.getByTestId("timeline-apply").click();
+  await page.getByTestId("timeline-filter-from").fill("2019-01-01");
+  await page.getByTestId("timeline-filter-to").fill("2019-12-31");
+  await page.getByTestId("timeline-filter-apply").click();
 
   await expect(page).toHaveURL(/from=2019-01-01/);
   await expect(page).toHaveURL(/to=2019-12-31/);

@@ -137,6 +137,15 @@ export async function expandGraph(body: {
   categories?: string[];
   /** Narrow to one case's own evidence (T46) — a claim filter, not a display one. */
   case_id?: string;
+  /**
+   * The **event-time** window the map and timeline share (T62). Distinct from
+   * `valid_from`/`valid_to`, which is when a relationship was true: one control
+   * answering both would mean different things on different surfaces.
+   */
+  event_from?: string;
+  event_to?: string;
+  as_of?: string;
+  as_of_revision?: number;
 }): Promise<GraphView> {
   return unwrap(await api.POST("/v1/graph/expand", { body }));
 }

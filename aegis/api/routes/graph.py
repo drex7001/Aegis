@@ -16,7 +16,7 @@ may actually read.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from aegis.api.deps import (
     AuthContext,
@@ -33,6 +33,8 @@ from aegis.api.schemas import (
     GraphViewOut,
 )
 from aegis.authz.filters import claim_filters
+from aegis.er.ledger import active_revision_id
+from aegis.queries.window import intersects_window
 from aegis.queries import graph as graph_query
 from aegis.store import Claim
 
@@ -63,8 +65,21 @@ def expand_graph(
     makes "the case graph never renders out-of-case data" a property of the
     query: edge visibility and every support summary are computed from the same
     narrowed set (spec 09 §2.4).
+
+    ``event_from``/``event_to`` and ``as_of`` are threaded the same way and for
+    the same reason (T62). The event-time window is deliberately **not**
+    ``valid_from``/``valid_to``: validity is when a relationship was true and
+    event time is when something happened, and a single parameter answering both
+    would mean different things on the graph than on the map — which is the
+    inconsistency this task exists to remove.
     """
-    filters = list(claim_filters(session, auth.user, ontology))
+    if body.as_of_revision is not None and body.as_of_revision > active_revision_id(session):
+        # A revision that has not happened cannot be pinned. 422 rather than
+        # clamping, exactly as the entity route decided at T49.
+        raise HTTPException(422, "identity revision does not exist")
+    filters = list(claim_filters(session, auth.user, ontology, as_of=body.as_of))
+    if body.event_from is not None or body.event_to is not None:
+        filters.append(intersects_window(body.event_from, body.event_to))
     if body.case_id is not None:
         # 404-not-403, like every other case-scoped read: asking must not
         # confirm that a case exists.

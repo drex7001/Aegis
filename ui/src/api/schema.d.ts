@@ -565,6 +565,13 @@ export interface paths {
          *     makes "the case graph never renders out-of-case data" a property of the
          *     query: edge visibility and every support summary are computed from the same
          *     narrowed set (spec 09 §2.4).
+         *
+         *     ``event_from``/``event_to`` and ``as_of`` are threaded the same way and for
+         *     the same reason (T62). The event-time window is deliberately **not**
+         *     ``valid_from``/``valid_to``: validity is when a relationship was true and
+         *     event time is when something happened, and a single parameter answering both
+         *     would mean different things on the graph than on the map — which is the
+         *     inconsistency this task exists to remove.
          */
         post: operations["expandGraph"];
         delete?: never;
@@ -2027,10 +2034,18 @@ export interface components {
          *     useful than a 422 that teaches nothing about the limit.
          */
         GraphExpandIn: {
+            /** As Of */
+            as_of?: string | null;
+            /** As Of Revision */
+            as_of_revision?: number | null;
             /** Case Id */
             case_id?: string | null;
             /** Categories */
             categories?: string[];
+            /** Event From */
+            event_from?: string | null;
+            /** Event To */
+            event_to?: string | null;
             /**
              * Max Elements
              * @default 2000

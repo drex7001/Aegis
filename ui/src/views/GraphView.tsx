@@ -5,6 +5,7 @@ import { useAuth } from "react-oidc-context";
 import { ApiError, expandGraph, rebuildProjections } from "../api/client";
 import { EntitySearch } from "./EntitySearch";
 import { GraphCanvas } from "./GraphCanvas";
+import { SurfaceLinks, TimeFilter, useSharedFilter } from "./TimeFilter";
 import { ProvenancePanel, type PanelSelection } from "./ProvenancePanel";
 
 /**
@@ -28,12 +29,35 @@ export function GraphView() {
   const [maxHops, setMaxHops] = useState(1);
   const [selection, setSelection] = useState<PanelSelection | null>(null);
 
+  /*
+   * The same window and the same selection the map and the timeline read
+   * (T62). A selected entity seeds the expansion, so choosing an incident on
+   * the map focuses the graph on it rather than leaving the reader to find it
+   * again — which is what "one selection model" has to mean to be worth having.
+   */
+  const { window: shared, selection: shared_selection, select } = useSharedFilter();
+  // Named apart from the panel's `selection`, which predates T62 and means
+  // something else entirely: which drill-down is open, not which entity the
+  // workspace has selected.
+  const seed = shared_selection.entityId ?? seedId;
+
   const query = useQuery({
-    queryKey: ["graph", seedId, maxHops],
+    queryKey: [
+      "graph",
+      seed,
+      maxHops,
+      shared.from ?? null,
+      shared.to ?? null,
+      shared.asOf ?? null,
+    ],
     queryFn: () =>
       expandGraph({
-        seed_ids: seedId ? [seedId] : [],
-        max_hops: seedId ? maxHops : 0,
+        seed_ids: seed ? [seed] : [],
+        max_hops: seed ? maxHops : 0,
+        event_from: shared.from,
+        event_to: shared.to,
+        as_of: shared.asOf,
+        as_of_revision: shared.asOfRevision,
       }),
   });
   const roles = (
@@ -60,19 +84,28 @@ export function GraphView() {
     [query.data],
   );
 
-  const focus = useCallback((entityId: string) => {
-    setSeedId(entityId);
-    setSelection(null);
-  }, []);
+  const focus = useCallback(
+    (entityId: string) => {
+      // Into the shared selection, not local state: focusing here is the same
+      // act as selecting on the map, and two places to record it is two places
+      // for them to disagree (T62).
+      select(entityId);
+      setSeedId(entityId);
+      setSelection(null);
+    },
+    [select],
+  );
 
   return (
     <div className="graph">
       <div className="graph__toolbar">
         <EntitySearch onPick={focus} />
+        <TimeFilter testId="graph-time-filter" />
+        <SurfaceLinks current="graph" />
         <span className="muted" data-testid="graph-mode">
-          {seedId ? `Expanding from ${seedId}` : "Bounded overview"}
+          {seed ? `Expanding from ${seed}` : "Bounded overview"}
         </span>
-        {seedId && (
+        {seed && (
           <>
             <label>
               Hops
@@ -87,7 +120,14 @@ export function GraphView() {
                 ))}
               </select>
             </label>
-            <button type="button" onClick={() => setSeedId(null)}>
+            <button
+              type="button"
+              data-testid="graph-back-to-overview"
+              onClick={() => {
+                setSeedId(null);
+                select(null);
+              }}
+            >
               Back to overview
             </button>
           </>

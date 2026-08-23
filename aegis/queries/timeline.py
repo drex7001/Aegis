@@ -29,7 +29,7 @@ from typing import Any, Literal, Sequence
 from sqlalchemy import ColumnElement, func, select
 from sqlalchemy.orm import Session
 
-from aegis.queries.geo import _intersects_window
+from aegis.queries.window import intersects_window
 from aegis.store import Claim, Entity
 
 Certainty = Literal["exact", "bounded", "open", "undated"]
@@ -112,7 +112,7 @@ def timeline_items(
     undated_count = _count_undated(session, query)
 
     if since is not None or until is not None:
-        query = query.where(_intersects_window(since, until))
+        query = query.where(intersects_window(since, until))
     # Order by time, then id: two claims stating the same instant need a stable
     # order or a cursor cannot resume without repeating or skipping one.
     ordering = (

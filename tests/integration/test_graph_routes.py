@@ -560,3 +560,96 @@ def test_a_path_cannot_be_built_through_claims_the_caller_cannot_read(
 
     assert len(cleared["paths"]) == 1
     assert low["paths"] == []
+
+
+# ── the shared window and as-of (T62, spec 10 §11.2) ────────────────────────
+
+
+@pytest.mark.requirement("B-11", "T62")
+def test_the_graph_takes_the_same_event_time_window_as_the_map(client, world) -> None:
+    """One window, three surfaces — and it is a *claim* filter here.
+
+    Threaded into `claim_filters` rather than applied to the result, so an
+    edge's support summary is computed from the same narrowed set its
+    visibility is. A filter applied afterwards would overstate the evidence
+    inside the window, which is the mistake `case_id` already exists against.
+    """
+    inside = client.post(
+        "/v1/graph/expand",
+        json={
+            "seed_ids": [],
+            "max_hops": 0,
+            "event_from": "1900-01-01T00:00:00Z",
+            "event_to": "2100-01-01T00:00:00Z",
+        },
+        headers=auth("analyst", "analyst"),
+    )
+    assert inside.status_code == 200, inside.text
+
+    outside = client.post(
+        "/v1/graph/expand",
+        json={
+            "seed_ids": [],
+            "max_hops": 0,
+            "event_from": "1800-01-01T00:00:00Z",
+            "event_to": "1801-01-01T00:00:00Z",
+        },
+        headers=auth("analyst", "analyst"),
+    )
+    assert outside.status_code == 200
+    # Undated claims are outside every bounded window (§11.2), and the seeded
+    # graph states no event times — so a window excludes all of it.
+    assert outside.json()["edges"] == []
+
+
+@pytest.mark.requirement("B-11", "T62")
+def test_the_graph_answers_as_of(client, world) -> None:
+    """Closes the graph half of Phase 4's carryover.
+
+    A time-synced map beside a graph that silently answered as-of-now would be
+    exactly the inconsistency this phase set out to remove.
+    """
+    before = client.post(
+        "/v1/graph/expand",
+        json={"seed_ids": [], "max_hops": 0, "as_of": "2000-01-01T00:00:00Z"},
+        headers=auth("analyst", "analyst"),
+    )
+    assert before.status_code == 200
+    assert before.json()["edges"] == []
+
+    now = client.post(
+        "/v1/graph/expand",
+        json={"seed_ids": [], "max_hops": 0},
+        headers=auth("analyst", "analyst"),
+    )
+    assert now.status_code == 200
+
+
+@pytest.mark.requirement("B-11", "T62")
+def test_a_revision_above_the_head_is_422_not_clamped(client, world) -> None:
+    """Answering about *now* under a heading that says otherwise is the failure
+    this parameter exists against (T49's decision, applied here)."""
+    response = client.post(
+        "/v1/graph/expand",
+        json={"seed_ids": [], "max_hops": 0, "as_of_revision": 99999},
+        headers=auth("analyst", "analyst"),
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.requirement("T62")
+def test_validity_and_event_time_stay_separate_parameters(client, world) -> None:
+    """"Was a member during 2019" and "an arrest happened in 2019" are different
+    questions, and one parameter answering both would mean different things on
+    the graph than on the map."""
+    response = client.post(
+        "/v1/graph/expand",
+        json={
+            "seed_ids": [],
+            "max_hops": 0,
+            "valid_from": "2019-01-01",
+            "valid_to": "2019-12-31",
+        },
+        headers=auth("analyst", "analyst"),
+    )
+    assert response.status_code == 200, response.text

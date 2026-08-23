@@ -119,9 +119,9 @@ test("the legend names every mark the map can draw", async ({ page }) => {
 
 test("the time filter lives in the URL, so a view can be sent to someone", async ({ page }) => {
   await page.goto("/map");
-  await page.getByTestId("map-from").fill("2019-01-01");
-  await page.getByTestId("map-to").fill("2019-12-31");
-  await page.getByTestId("map-apply").click();
+  await page.getByTestId("map-time-filter-from").fill("2019-01-01");
+  await page.getByTestId("map-time-filter-to").fill("2019-12-31");
+  await page.getByTestId("map-time-filter-apply").click();
 
   await expect(page).toHaveURL(/from=2019-01-01/);
   await expect(page).toHaveURL(/to=2019-12-31/);

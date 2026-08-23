@@ -1058,8 +1058,30 @@ class GraphExpandIn(BaseModel):
     max_elements: int = Field(default=MAX_ELEMENTS, ge=1)
     #: Ontology predicate categories; unknown names simply match nothing.
     categories: list[str] = Field(default_factory=list)
+    #: The **validity** window — when the relationship was true. Filters
+    #: `edge_projection.segment_*`, which is derived from `claim.valid_from/to`.
     valid_from: date | None = None
     valid_to: date | None = None
+    #: The **event-time** window — when the thing happened (T62, spec 10 §11.2).
+    #:
+    #: A different axis from `valid_from`/`valid_to`, and kept separate for that
+    #: reason: "was a member during 2019" and "an arrest happened in 2019" are
+    #: different questions, and one parameter answering both would mean
+    #: different things on different surfaces — the inconsistency T62 exists to
+    #: remove. This is the window the map and the timeline share, applied here
+    #: as a **claim filter** so an edge's support summary is computed from the
+    #: same narrowed set the edge's visibility is.
+    #:
+    #: Intersection, not containment, and an **undated** claim is outside every
+    #: bounded window (§11.2).
+    event_from: datetime | None = None
+    event_to: datetime | None = None
+    #: The claim-recording snapshot (B-11, spec 09 §7). Closes the graph half of
+    #: Phase 4's `?asOf=` carryover: a time-synced map beside a graph that
+    #: silently answered as-of-now would be exactly the inconsistency this phase
+    #: is trying to eliminate.
+    as_of: datetime | None = None
+    as_of_revision: int | None = None
     #: Restrict to the evidence **this case recorded** (T46, spec 09 §2.4).
     #:
     #: Not a display filter: it is added to `claim_filters`, so it narrows edge
