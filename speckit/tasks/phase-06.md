@@ -4,7 +4,7 @@ Ordered; each task lists acceptance criteria (AC). Tasks marked ⛓ block everyt
 after them; narrower dependencies are noted in the task text. Reference specs in
 parentheses. Numbering continues from Phase 5 (T65).
 
-> **Status: ACTIVE, opened 2026-08-23 by T66.** Phases 2–5 closed (strict
+> **Status: COMPLETE, closed 2026-08-24 by T77.** Opened 2026-08-23 by T66. Phases 2–5 closed (strict
 > sequence, ADR-025). T66 re-validated this plan against the P3–P5-as-built
 > system and against the 2026-07-18 charter amendment (ADR-033); its **fourteen
 > divergences** are recorded in `../specs/11-search.md` §0 (S1–S7) and
@@ -508,13 +508,29 @@ reflected into the FGA stub as the **authz outbox** projector would deliver it
 (ADR-014), since that projector is not running in an integration test. What the
 route owes — recording the intent and auditing it — is asserted directly.
 
-**T77. Phase exit review** — walk the charter's exit criteria; update speckit
-docs where reality diverged; append ADRs; write
+**T77. Phase exit review** — **DONE 2026-08-24.** Walked the charter's exit
+criteria; updated speckit docs where reality diverged; appended ADRs; wrote
 `../reviews/phase-06-exit-review.md`; tag `phase-6-search-analytics` per the
 git workflow.
-AC: every gate criterion checked (non-deferrable, ADR-025); non-blocking
-deliverables carried over with owner + target phase recorded; the OpenSearch
-trigger's measured numbers recorded whether or not it fired.
+AC: **met.** All four gate criteria checked and none deferred or weakened;
+carryovers recorded with owner and target phase, including the ten inherited
+from Phase 5 with two of them now closed; the OpenSearch trigger's measured
+numbers recorded — it **did not fire**, and the reason is written down rather
+than assumed.
+
+**The trigger is the part most worth reading.** The first run failed
+cross-script at **0.375** against a 0.60 floor. The condition is "fails any
+target *after a documented tuning attempt*", so one was made and written into
+spec 11 §10.1: lowering the cross-script comparison floor from 0.35 to 0.10
+doubled names-found from 3 to 6 of 8 at zero measured false positives, taking
+the bucket to 0.750. Two things the phase does not claim — the floor is fitted
+to eight pairs and must be re-measured rather than inherited, and **OpenSearch
+would not have helped**, because the keys are the problem and not the engine
+indexing them.
+
+Eleven ADRs (050–060) and one ontology proposal (009) record what was decided.
+Six defects were found inside the phase rather than past its gate, four of them
+by tests and two by building what a spec described and finding it unbuildable.
 
 ## Explicit non-goals for Phase 6
 

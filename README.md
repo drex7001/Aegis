@@ -80,12 +80,20 @@ the *recorded* coarser geometry the ordinary filter left, never a shape the
 server invented. Verdict and evidence:
 [`speckit/reviews/phase-05-exit-review.md`](speckit/reviews/phase-05-exit-review.md).
 
-**Next phase: Phase 6 — search, object sets & governed analytics** — **in
-progress since 2026-08-23.** It began with T66's re-validation, which authored
-[`speckit/specs/11-search.md`](speckit/specs/11-search.md) and
-[`speckit/specs/12-object-sets-analytics.md`](speckit/specs/12-object-sets-analytics.md)
-and recorded fourteen divergences from the pre-authored plan as ADR-050…ADR-057.
-The full
+**Phase 6 — search, object sets & governed analytics — is complete**
+(2026-08-24). You can find anything you are allowed to find, save and share what
+you found, and compute metrics that explain themselves. The phase's rule held
+throughout: *a set is a question, a finding is an answer with its working shown,
+and neither is ever a claim.* Search applies authorization while **choosing
+candidates**, so a result you may not see is absent from the scan rather than
+removed from the answer; an object set stores an AST and never results, so
+sharing one hands over the question and not the sharer's clearance; every
+finding carries its caveat as a copied column, so no render path can skip it;
+and a computation becomes an assertion only when a person says so, through the
+review queue. Verdict and evidence:
+[`speckit/reviews/phase-06-exit-review.md`](speckit/reviews/phase-06-exit-review.md).
+
+**Next phase: Phase 7 — sharing & governance hardening.** The full
 roadmap to production is [`speckit/roadmap.md`](speckit/roadmap.md); the
 external-review disposition is
 [`speckit/reviews/2026-07-18-external-review-disposition.md`](speckit/reviews/2026-07-18-external-review-disposition.md).

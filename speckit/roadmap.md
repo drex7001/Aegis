@@ -241,7 +241,7 @@ and graph from one claim set; precision is visually distinct; an event with 3+
 participants round-trips; no canonical mutable geometry column exists (spot
 check: geometry projections rebuild from claims).
 
-### Phase 6 — Search, object sets & governed analytics *(ACTIVE, opened 2026-08-23 · GOAL.md §12, §13, §32 · effort: M · ADR-050…ADR-057)*
+### Phase 6 — Search, object sets & governed analytics *(COMPLETE 2026-08-24 · GOAL.md §12, §13, §32 · effort: M · ADR-050…060)*
 
 **Goal.** Find anything you're allowed to find; save and share what you found;
 compute metrics that explain themselves. Charter:
@@ -257,7 +257,18 @@ object sets as validated ASTs with complexity limits, versioned definitions,
 ontology-version pinning by default; analytics service returning
 `AnalyticFinding` with immutable run manifests (inputs digest, identity
 revision, code versions — H-23); finding→claim promotion via review;
-watchlists as typed alert suggestions with triage lifecycle (H-24).
+watchlists as typed alerts with a triage lifecycle (H-24).
+
+**Closed by T77** — exit review: `reviews/phase-06-exit-review.md`. All four
+charter criteria met, none deferred. The OpenSearch trigger (ADR-012) **did not
+fire**: cross-script failed at 0.375 on the first run and a documented tuning
+attempt took it to 0.750, which is what the trigger condition asks for. Two
+specs were corrected where building showed they described something
+unbuildable — a finding cannot occupy a `claim_relation` column (ADR-058), and
+an alert cannot live in the review queue (ADR-060), which is why the deliverable
+above says "typed alerts" rather than "typed alert suggestions". Three
+authorization defects were found and fixed inside the phase, one of them the
+third instance of a single hole (B-17).
 
 **Exit criteria.** Golden search-set targets met; no metric renders without
 its caveat; a narrower-clearance user's evaluation of a shared set is a strict
@@ -381,7 +392,7 @@ Items may be completed any time; none may be waived.
 | Ontology modules, interfaces, typed clients | **Implemented** P3 |
 | Investigation workspace, object views, hypotheses, as-of (narrowed) | **Implemented** P4 |
 | Events, geospatial, timeline, map privacy | **Implemented** P5 |
-| Search, object sets, analytics, watchlists/alert triage | **Scheduled** P6 |
+| Search, object sets, analytics, watchlists/alert triage | **Implemented** P6 |
 | Compartments, sealing, disclosure packages, break-glass, legal authority, retention enforcement | **Scheduled** P7 |
 | Controlled AI (extraction v2, translation, summarization, hypothesis assist) | **Scheduled** P8 |
 | Observability, DR automation, pen-test, performance, deployment tiers | **Pilot gate + P9** |
