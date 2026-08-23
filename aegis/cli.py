@@ -25,6 +25,9 @@ authz_app = typer.Typer(help="OpenFGA projection tools (ADR-014)", no_args_is_he
 identity_app = typer.Typer(
     help="Identity ledger maintenance (spec 05)", no_args_is_help=True
 )
+migrate_app = typer.Typer(
+    help="One-time, reviewed data transformations", no_args_is_help=True
+)
 app.add_typer(db_app, name="db")
 app.add_typer(ontology_app, name="ontology")
 app.add_typer(audit_app, name="audit")
@@ -33,6 +36,7 @@ app.add_typer(projections_app, name="projections")
 app.add_typer(ingest_app, name="ingest")
 app.add_typer(authz_app, name="authz")
 app.add_typer(identity_app, name="identity")
+app.add_typer(migrate_app, name="migrate")
 
 
 @app.callback()
@@ -962,3 +966,60 @@ def ingest_extract(
 
 if __name__ == "__main__":
     app()
+
+
+@migrate_app.command("arrests-to-events")
+def migrate_arrests_to_events(
+    actor: str = typer.Option(..., "--actor", help="Who is performing the migration."),
+    apply: bool = typer.Option(
+        False, "--apply", help="Write. Without it, print what would change and stop."
+    ),
+) -> None:
+    """Turn co-arrest claims into arrest events (T63, spec 10 §2.4).
+
+    Dry by default. A one-time transformation over a real corpus should have to
+    be asked for twice — once to see it, once to mean it.
+
+    Nothing is deleted: each original claim is **retracted** with a reason naming
+    the event it became, so an auditor still reads it and the record says why.
+    """
+    from aegis.actions import ActionContext
+    from aegis.migration.arrests import migrate_co_arrests
+    from aegis.store import get_sessionmaker
+
+    settings = get_settings()
+    ontology_path = Path(settings.ontology_path)
+    ontology = load(
+        ontology_path if ontology_path.is_absolute() else REPO_ROOT / ontology_path
+    )
+    context = ActionContext(
+        actor=actor,
+        purpose="co-arrest to arrest-event migration (T63)",
+        # The migration runs as an operator, not as a role-holder: the actions
+        # layer skips the human-facing criteria for an empty role set
+        # (spec 08 §6.3), and every write it makes is still audited under this
+        # actor.
+        roles=frozenset(),
+    )
+    with get_sessionmaker()() as session:
+        report = migrate_co_arrests(
+            session, context=context, ontology=ontology, dry_run=not apply
+        )
+        if apply:
+            session.commit()
+
+    verb = "would migrate" if not apply else "migrated"
+    typer.secho(
+        f"{verb} {len(report.events)} arrest event(s) from "
+        f"{report.claims_considered} co-arrest claim(s)",
+        fg=typer.colors.GREEN if apply else typer.colors.YELLOW,
+    )
+    for event in report.events:
+        typer.echo(f"  {event.summary}")
+        typer.echo(f"    participants: {', '.join(event.participants)}")
+        typer.echo(f"    retracting:   {', '.join(event.source_claim_ids)}")
+        if event.new_claim_ids:
+            typer.echo(f"    wrote:        {len(event.new_claim_ids)} claim(s)")
+    if not apply and report.events:
+        typer.echo("")
+        typer.echo("Re-run with --apply to write.")
