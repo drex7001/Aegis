@@ -16,7 +16,13 @@
 # (requires migration + copy in ontology/history/). The composition's class is
 # the strongest class among its modules' changes plus its own manifest changes.
 
-version: 2.0.0   # MAJOR: `location.precision` is removed (T55, proposal 007,
+version: 2.1.0   # minor: the `event_draft` suggestion kind (T58, proposal
+                 # 008).  Additive — a producer may now propose a whole
+                 # occurrence, and acceptance dispatches to `record_event`
+                 # exactly as a claim draft dispatches to `record_claim`.
+                 # No existing kind, action or parameter moved.
+                 #
+                 # 2.0.0: MAJOR — `location.precision` is removed (T55, proposal 007,
                  # ADR-048).  It conflated epistemic precision, geometric
                  # representation and administrative granularity in one string,
                  # so no consumer could reason about any of the three (H-21).
@@ -97,8 +103,8 @@ namespace: aegis.lk
 # missing, when the proposal file does not exist, or when the diff against the
 # previous released artifact is stronger than the class declared here.
 release:
-  proposal: 007-events-and-geometry
-  compatibility: major
+  proposal: 008-event-draft-suggestions
+  compatibility: minor
 
 composition:
   # Platform first by convention, not by requirement — the loader resolves
@@ -106,7 +112,7 @@ composition:
   # vocabulary every domain module imports.
   - module: platform
     path: modules/platform.yaml
-    version: "1.4.0"
+    version: "1.5.0"
 
   # The first domain module. A second domain is added by appending an entry
   # here and writing its file; no code under `aegis/` changes (Article XIV,

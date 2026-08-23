@@ -1,0 +1,22 @@
+FICTIONAL BORDER LIAISON BULLETIN — TEST FIXTURE, NOT A REAL RECORD
+Bulletin 2019/114 · Circulated to district liaison officers
+
+This document is invented for automated testing (see data/sample/README.md).
+Every name, place and date in it is fictional. It exists so the travel
+extraction pass has text with the sentence shapes it is written to read, and so
+a reviewer's journey through the queue can be demonstrated end to end without
+touching the real corpus.
+
+1. Nimal Perera and Kamala Silva travelled from Colombo to Chennai on 4 April
+   2019. Both were recorded as departing on the evening service.
+
+2. Ranjan Fernando flew to Dubai from Katunayake in June 2019. The bulletin
+   notes the booking was made the same week.
+
+3. A party of unnamed men crossed from Mannar to Rameswaram. No names were
+   recorded, so this line is reported here without attribution.
+
+4. Kamala Silva journeyed from Chennai to Colombo, date not stated.
+
+5. The liaison officer observed no unusual traffic through Galle during the
+   reporting period.

@@ -43,11 +43,22 @@ EXPECTED = {
     "listTasks": (set(), False),
     "updateTask": ({"analyst", "investigator"}, False),
     "createClaim": ({"analyst", "investigator"}, False),
+    # An event *is* claims (ADR-046), so it is gated exactly as recording one:
+    # the same roles, the same case check, and no privilege of its own. A
+    # narrower or wider gate here would mean an occurrence could be asserted by
+    # someone who may not assert its parts.
+    "recordEvent": ({"analyst", "investigator"}, False),
     "getClaim": (set(), False),
     "claimProvenance": (set(), False),
     "linkClaim": ({"analyst"}, False),
     "retractClaim": ({"analyst", "supervisor"}, False),
     "getEntity": (set(), False),
+    # The map is not a side door (spec 10 §7.1). Both geo routes are ordinary
+    # authenticated reads — no role of their own, because a viewer who may
+    # read a claim may see where it says something happened, and one who may
+    # not sees neither.
+    "geoLocations": (set(), False),
+    "geoEvents": (set(), False),
     "listEntityCases": (set(), False),
     "identityHistory": (set(), False),
     "whyConnected": (set(), False),

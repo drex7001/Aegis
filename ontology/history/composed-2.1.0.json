@@ -14,7 +14,7 @@
       "imports": {},
       "name": "platform",
       "namespace": "aegis.lk/platform",
-      "version": "1.4.0"
+      "version": "1.5.0"
     }
   ],
   "namespace": "aegis.lk",
@@ -804,7 +804,8 @@
             "values": [
               "claim_draft",
               "identity_candidate",
-              "claim_relation"
+              "claim_relation",
+              "event_draft"
             ]
           },
           "supersedes": {
@@ -1812,5 +1813,5 @@
     "update_task": "platform",
     "vehicle": "criminal_network"
   },
-  "version": "2.0.0"
+  "version": "2.1.0"
 }

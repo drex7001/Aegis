@@ -80,6 +80,36 @@ test("an organization renders through the same component", async ({ page }) => {
   await expect(page.getByTestId("object-view-properties")).toContainText("Fictional Co");
 });
 
+test("one claim reaches both pages: a link here, a reference there", async ({ page }) => {
+  /*
+   * T57, spec 10 §13. `member_of` points from the person to the organization,
+   * so before the inbound set the organization's page showed no members at all.
+   * Phase 5 made this acute rather than creating it — participation claims are
+   * subjected to the *event*, so an arrest would have listed its participants
+   * and each participant's page would have shown no arrest.
+   */
+  await stubEntityRoutes(page);
+
+  await page.goto("/entities/ent_person");
+  await expect(
+    page.getByTestId("object-view-links").getByTestId("predicate-member_of"),
+  ).toBeVisible();
+  // Nothing refers to this person, and the region still renders saying so — an
+  // absent heading would read as "the question was never asked".
+  await expect(page.getByTestId("object-view-inbound")).toContainText(
+    "Nothing you are cleared to see refers to this",
+  );
+
+  await page.goto("/entities/ent_org");
+  const inbound = page.getByTestId("object-view-inbound");
+  await expect(inbound.getByTestId("predicate-member_of")).toBeVisible();
+  // Under "Referenced by", not under Links: who asserted what about whom is the
+  // distinction a reader most needs, and merging the two would erase it.
+  await expect(page.getByTestId("object-view-links")).toContainText(
+    "No links you are cleared to see",
+  );
+});
+
 test("links are grouped by the ontology's own category", async ({ page }) => {
   await stubEntityRoutes(page);
   await page.goto("/entities/ent_person");

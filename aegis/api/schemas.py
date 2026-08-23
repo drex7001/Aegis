@@ -32,6 +32,71 @@ class ClaimIn(BaseModel):
     location_text: str | None = None
 
 
+class EventLinkIn(BaseModel):
+    """One participant or place on a `record_event` call (spec 10 §3.2).
+
+    `role` is a **predicate name**, which is the whole design: an undeclared
+    role is an undeclared predicate, so the vocabulary is governed by an
+    ontology proposal rather than by an enum somebody can widen in Python.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    role: str
+    entity_id: str
+    #: The text this reference was read from, when there is one. Same meaning
+    #: and same rules as a claim's object anchor (ADR-029).
+    mention_id: str | None = None
+
+
+class EventIn(BaseModel):
+    """Create or extend an occurrence (spec 10 §3.4).
+
+    `summary` is required because it becomes the claim that makes the event
+    exist: an entity row is not an assertion and carries no source, so an event
+    no claim asserts would be a fact with no provenance (Article I).
+
+    `event_id` extends an occurrence already recorded — the reviewer's move when
+    a second report describes the same arrest. There is no automatic occurrence
+    merging, because that would be a machine making an identity decision
+    (Article VII, spec 10 §3.5).
+    """
+
+    event_type: str
+    record_id: str
+    summary: str
+    event_id: str | None = None
+    label: str | None = None
+    participants: list[EventLinkIn] = Field(default_factory=list)
+    places: list[EventLinkIn] = Field(default_factory=list)
+    #: The occurrence's time, applied to every claim the call writes. No new
+    #: column and no time predicate: the claim envelope has carried intervals
+    #: with uncertainty since P1 (spec 10 §3.3).
+    event_time_earliest: datetime | None = None
+    event_time_latest: datetime | None = None
+    assertion_type: str = "reported"
+    excerpt: str | None = None
+    credibility_normalized: str = "cannot_judge"
+    verification_status: str = "unverified"
+    analytic_confidence: str | None = None
+    handling_code: str = "open"
+    case_id: str | None = None
+
+
+class EventOut(BaseModel):
+    """What one `record_event` call created.
+
+    The claim ids are here rather than only the entity id because they are what
+    a caller has to be able to point at: every assertion the call made is an
+    ordinary claim with its own provenance, and returning the entity alone would
+    suggest the occurrence itself was the record.
+    """
+
+    entity_id: str
+    entity_type: str
+    claim_ids: list[str]
+
+
 class ClaimOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -609,14 +674,49 @@ class EntityDetail(BaseModel):
 
     entity: EntityOut
     claims_by_predicate: dict[str, list[ClaimProvenanceOut]]
+    #: Claims where this entity is the **object** — what others assert about it
+    #: (T57, spec 10 §13). Separate from `claims_by_predicate` on purpose: a
+    #: reader has to be able to tell who asserted what about whom, and merging
+    #: the two would make "this arrest has Nimal as an arrestee" indistinguishable
+    #: from a statement Nimal makes.
+    #:
+    #: Without it an event's participants would appear on the event's page and on
+    #: nobody else's, because participation claims are subjected to the event.
+    #: The same hole has always existed for `member_of` — an organization's page
+    #: never showed its members — which is why the region is generic rather than
+    #: event-shaped.
+    inbound_claims_by_predicate: dict[str, list[ClaimProvenanceOut]] = Field(
+        default_factory=dict
+    )
     #: Set when the requested id has been merged away, so a caller following a
     #: stale link is told rather than quietly answered about a different id.
     resolved_entity_id: str
     #: True when the claim cap was reached — a thin panel is never mistaken for
     #: thin evidence.
     truncated: bool = False
+    inbound_truncated: bool = False
     #: What this answer was computed against (T49). Optional in the schema only
     #: so a client built before T49 keeps type-checking; the route always sets it.
+    stamp: AsOfStampOut | None = None
+
+
+class FeatureCollectionOut(BaseModel):
+    """An RFC 7946 `FeatureCollection`, with two foreign members.
+
+    `next_cursor` and `stamp` are foreign members, which §6.1 permits: a client
+    that only knows GeoJSON ignores them, and a client that knows this API gets
+    its page cursor and the as-of stamp in the same response as the features
+    rather than having to correlate two calls.
+
+    `features` is untyped `dict` deliberately. A Feature's `properties` is
+    open-ended by the standard, and pinning it here would mean a second schema
+    to keep in step with `PlaceFeature`/`EventFeature` for no type-safety a
+    caller could use — the generated TS client reads it as JSON either way.
+    """
+
+    type: Literal["FeatureCollection"] = "FeatureCollection"
+    features: list[dict[str, Any]]
+    next_cursor: str | None = None
     stamp: AsOfStampOut | None = None
 
 

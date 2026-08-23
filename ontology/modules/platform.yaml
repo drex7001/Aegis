@@ -12,11 +12,14 @@
 module:
   name: platform
   namespace: aegis.lk/platform
-  version: 1.4.0
+  version: 1.5.0
   label: Platform governance vocabulary
   # No imports: platform is the root of the composition. Everything else
   # imports it, which is why a cycle here would be a contradiction.
   #
+  # 1.5.0 (T58): additive — the `event_draft` suggestion kind. A producer
+  #               may propose an occurrence; acceptance dispatches to
+  #               `record_event`, so no machine writes canon (Article VII).
   # 1.4.0 (T55): additive — the `event` and `place` interfaces, the `summary`
   #               and `geometry` shared properties, and the `record_event`
   #               action. Nothing existing moved. Places and occurrences are
@@ -209,9 +212,11 @@ actions:
       # [{role: <predicate>, entity_id, mention_id?}] — the role IS the
       # predicate, so an undeclared role is an undeclared predicate and the
       # P1 claim validator rejects it with no new code (spec 10 §3.2).
-      participants:        {type: json, payload_schema: event_participants}
+      # `many: true` because the value is a *list* of them: an occurrence with
+      # one participant is the uninteresting case.
+      participants:        {type: json, payload_schema: event_participants, many: true}
       # [{role: <predicate>, entity_id}] — took_place_at, travelled_from, …
-      places:              {type: json, payload_schema: event_places}
+      places:              {type: json, payload_schema: event_places, many: true}
       # The occurrence's time, applied to every claim the action writes. No new
       # column and no time predicate: the claim envelope has carried intervals
       # with uncertainty since P1 (spec 10 §3.3).
@@ -255,7 +260,11 @@ actions:
       producer:         {type: text, required: true}
       producer_version: {type: text, default: unversioned}
       producer_meta:    {type: json, payload_schema: suggestion_payload}
-      suggestion_kind:  {type: enum, values: [claim_draft, identity_candidate, claim_relation], default: claim_draft}
+      # `event_draft` (T58): a producer proposing a whole occurrence — the
+      # travel path's kind. Acceptance dispatches to `record_event` like
+      # every other kind dispatches to its action, so Article VII holds for
+      # events without a new mechanism (ADR-031 §2).
+      suggestion_kind:  {type: enum, values: [claim_draft, identity_candidate, claim_relation, event_draft], default: claim_draft}
       suggestion_id:    {type: identifier}
       idempotency_key:  {type: text}
       record_id:        {type: ref, to: source_record}

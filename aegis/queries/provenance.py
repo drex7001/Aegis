@@ -75,7 +75,21 @@ class EntityProvenance:
     #: has since been merged away. Reported rather than silently substituted.
     resolved_entity_id: str
     claims: list[ClaimProvenance] = field(default_factory=list)
+    #: Claims where this entity is the **object** — what others assert about it
+    #: (T57, spec 10 §13). Kept as a separate list rather than merged into
+    #: ``claims``, because a reader has to be able to tell who asserted what
+    #: about whom: "this arrest has Nimal as an arrestee" and "Nimal was an
+    #: arrestee at this arrest" are the same claim seen from two ends, and only
+    #: one of them is a statement this entity makes.
+    #:
+    #: Phase 5 made this acute rather than creating it — participation claims
+    #: are subjected to the *event*, so without the inbound set an arrest would
+    #: list its participants and each participant's page would show no arrest at
+    #: all. The same hole has always existed for `member_of`: an organization's
+    #: page never showed its members.
+    inbound_claims: list[ClaimProvenance] = field(default_factory=list)
     truncated: bool = False
+    inbound_truncated: bool = False
 
 
 @dataclass
@@ -338,11 +352,23 @@ def entity_provenance(
     ).all()
     truncated = len(rows) > limit
 
+    # The same query from the other end, through the same filters and the same
+    # resolved ids, so an inbound claim can never be visible on a page where the
+    # outbound one would have been hidden.
+    inbound = session.scalars(
+        select(Claim)
+        .where(Claim.object_id.in_(entity_ids), *filters)
+        .order_by(Claim.predicate, Claim.recorded_at, Claim.claim_id)
+        .limit(limit + 1)
+    ).all()
+
     return EntityProvenance(
         entity_id=entity_id,
         resolved_entity_id=resolved,
         claims=_hydrate(session, list(rows[:limit])),
+        inbound_claims=_hydrate(session, list(inbound[:limit])),
         truncated=truncated,
+        inbound_truncated=len(inbound) > limit,
     )
 
 
