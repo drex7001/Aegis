@@ -471,13 +471,42 @@ answer to "where does this value appear"; starting silent would hide everything
 already in the corpus at the moment somebody starts watching. Recorded as its
 own test so the behaviour is a decision rather than an artefact.
 
-**T76. End-to-end proof** (charter exit №4; needs T70, T72, T75) — the owning
-task for the headline criterion, scripted: create a set → share it case-scoped
+**T76. End-to-end proof** (charter exit №4; needs T70, T72, T75) — **DONE
+2026-08-24.** The owning task for the headline criterion, scripted: create a set → share it case-scoped
 → drive an analytic run and a watchlist from it → a second user with narrower
 clearance sees a correctly narrower evaluation of the *same* set.
-AC: the full chain passes as a repeatable test including the two-user
-assertion, seeded so the narrower evaluation is a **strict** subset; the script
-joins the demo runbook.
+AC: **met.** `tests/integration/test_phase06_exit.py` walks the chain in the
+order the criterion states it, and `docs/MVP_DEMO.md` §3b is the version a
+person walks — the criterion is about what a second reader can and cannot find
+out, and only a second reader can check that.
+
+**"Strictly fewer" is asserted three ways, because M-13 warned about this one.**
+`narrow ⊆ wide` passes when `narrow` is empty, and it passes when the two are
+equal. So the test requires all of: `narrow` is **non-empty** (the narrower
+analyst still has a working view, rather than a broken one that trivially
+satisfies "fewer"); `narrow ⊂ wide` **properly**; and the withheld entity is
+**named** — the one whose only claims are `sensitive` — so the test fails if the
+wrong thing goes missing rather than merely if the count changes.
+
+**The digest is what makes the property checkable rather than asserted.** Two
+analysts evaluating one set produce different `evaluation_digest` *and*
+`authorization_digest` values on their runs. If a set stored members instead of
+a question, both runs would carry the same digest and the difference would have
+to appear somewhere downstream, where nobody looks. A separate test pins that it
+is the **same** set — same id, same version — because "a second user sees a
+narrower evaluation" would also be satisfied by handing them a different set,
+which is how this property is usually lost.
+
+**A set and a watchlist point opposite ways, on purpose.** A set evaluates as
+the **caller**; a watchlist sweeps as its **owner** (spec 12 §11.3). Both are
+deliberate, so the test asserts both rather than letting one be inferred from
+two docstrings: a watchlist owned by the narrower analyst, over the same set,
+produces no alert from evidence they cannot read.
+
+The share step goes through the real route and is audited; the grant is then
+reflected into the FGA stub as the **authz outbox** projector would deliver it
+(ADR-014), since that projector is not running in an integration test. What the
+route owes — recording the intent and auditing it — is asserted directly.
 
 **T77. Phase exit review** — walk the charter's exit criteria; update speckit
 docs where reality diverged; append ADRs; write

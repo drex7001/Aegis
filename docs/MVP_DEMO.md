@@ -256,6 +256,73 @@ criterion is about what a reader can find out, and only a reader can check that.
 Record pass/fail per step. A defect here is a phase-gate defect, not a polish
 item.
 
+## 3b. One set, two analysts (P6, T76)
+
+Added by Phase 6, and it proves that phase's headline criterion — **a set stores
+a question, never an answer**, so sharing one hands over the question and not
+the sharer's clearance.
+
+The automated form is `tests/integration/test_phase06_exit.py`, and that is what
+CI runs. This is the version a person walks, because the criterion is about what
+a second reader can and cannot find out, and only a second reader can check it.
+
+You need two accounts on one case with **different clearances**. Everything else
+must be held equal — same case membership, same role — so that a narrower answer
+cannot be explained by anything except the filter.
+
+1. **Create the set, case-scoped.** As the cleared analyst, build a set in the
+   Set Builder (`type: person` is enough) and scope it to the case. Note the set
+   id.
+
+2. **Share it.** Grant the narrower analyst **`evaluator`**, not `viewer`. That
+   is the weaker grant on purpose: running somebody's saved query and reading it
+   are different disclosures, so a colleague can be given the answer without
+   being given the question (spec 12 §5.2).
+
+3. **Drive an analytic from it.** Run a metric over the set. The finding panel
+   shows each finding **with its caveat**, and the manifest names the set, its
+   pinned version, and an `evaluation_digest`.
+
+4. **Drive a watchlist from it.** Create a watchlist over the same set, then
+   sweep it explicitly:
+
+   ```bash
+   aegis watchlists evaluate --watchlist <id>
+   ```
+
+   Nothing fires on the write path — that is ADR-056, and the watermark on the
+   watchlist is how you can tell a sweep happened. Before the first sweep it is
+   **null**, which reads as a gap rather than as "nothing found".
+
+5. **Now sign in as the narrower analyst and evaluate the same set.** Not a
+   copy — the same set id, the same version. Three things must be true at once,
+   and checking only one of them is how this property is usually lost:
+
+   - the narrower analyst still sees **something** (an empty answer would pass a
+     careless "fewer results" check while proving nothing);
+   - they see **strictly fewer** members than the cleared analyst; and
+   - the members missing are exactly the ones whose only claims are above their
+     clearance — an entity carries no handling code of its own, so "exists, for
+     this caller" means "some claim they may read mentions it".
+
+6. **Compare the two runs.** Run the same metric over the same set as the
+   narrower analyst. The two `analytic_run` rows carry **different**
+   `evaluation_digest` and `authorization_digest` values. That is the tell that
+   the filters ran during evaluation: if the set had stored members, both runs
+   would carry the same digest and the difference would have to show up
+   somewhere downstream, where nobody looks.
+
+7. **A watchlist points the other way, deliberately.** A set evaluates as the
+   **caller**; a watchlist sweeps as its **owner** (spec 12 §11.3), because an
+   alert nobody may read is not an alert. Create a watchlist as the narrower
+   analyst over the same set and sweep it: it produces no alert from evidence
+   they cannot read. Both behaviours are intended, and they point opposite ways,
+   so confirm both rather than assuming one from the other.
+
+Record pass/fail and counts only. Do not paste member lists, matched identifier
+values, or alert contents into the test record — the whole point of the step is
+that some of them are not for every reader.
+
 ## 4. Cleanup
 
 Stop `aegis serve` with Ctrl+C. Then remove only the disposable demo database
