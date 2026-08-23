@@ -1,11 +1,13 @@
 """The Phase 5 release status is one consistent, executable contract (T65).
 
-Mirrors `test_phase_04_exit.py` for the phase that just closed, and **takes over
-the two claims that belong to whichever phase is current**: where work is, and
-what version the repository is at. That hand-off is the pattern — T40 gave them
-to T53, T53 to this file — and it exists because a test asserting "the current
-phase is N" belongs to exactly one file at a time. Two files claiming it is how
-they come to disagree.
+Mirrors `test_phase_04_exit.py` for the phase that just closed.
+
+**The two current-phase claims moved on at T77** — where work is, and what
+version the repository is at — and now live in `test_phase_06_exit.py`. That
+hand-off is the pattern: T40 gave them to T53, T53 to this file, this file to
+T77. It exists because a test asserting "the current phase is N" belongs to
+exactly one file at a time, and two files claiming it is how they come to
+disagree. What stays here is what stays true about Phase 5 forever.
 
 The gate criteria themselves are proved by their own suites; this checks that
 the documents agree about what those suites established (M-01: code moves,
@@ -50,16 +52,15 @@ def test_every_phase_5_gate_is_checked_and_reviewed() -> None:
     assert "none is deferred or weakened" in review
 
 
-def test_status_surfaces_agree_on_the_current_phase() -> None:
-    """The claim this file takes over from `test_phase_04_exit.py`."""
-    root_readme = _read("README.md")
-    kit_readme = _read("speckit/README.md")
+def test_phase_5_stays_closed() -> None:
+    """What remains here after the hand-off: Phase 5's own status, forever.
+
+    The *current*-phase half of this claim went to `test_phase_06_exit.py`;
+    "Phase 5 is complete" is not a claim about the present and does not move.
+    """
     roadmap = _read("speckit/roadmap.md")
     phase_5_tasks = _read("speckit/tasks/phase-05.md")
 
-    assert "Phase 5 — events, geospatial & time — is complete" in root_readme
-    assert "Next phase: Phase 6" in root_readme
-    assert "**DONE**, all five gate criteria checked" in kit_readme
     assert "COMPLETE 2026-08-23" in roadmap
     assert "Status: COMPLETE 2026-08-23" in phase_5_tasks
 
@@ -72,20 +73,19 @@ def test_the_roadmap_records_the_capability_as_implemented() -> None:
     )
 
 
-def test_the_release_version_is_the_one_this_phase_shipped() -> None:
-    project = tomllib.loads(_read("pyproject.toml"))
-    lock = tomllib.loads(_read("uv.lock"))
-    review = _read("speckit/reviews/phase-05-exit-review.md")
-    locked = [package for package in lock["package"] if package["name"] == "aegis"]
+def test_the_version_phase_5_shipped_is_still_recorded() -> None:
+    """The *repository's* version moved to `test_phase_06_exit.py` at T77.
 
-    assert project["project"]["version"] == "0.5.0"
-    assert len(locked) == 1
-    assert locked[0]["version"] == "0.5.0"
+    What does not move is what Phase 5 released, which its own review states —
+    and the monotonicity the hand-off is supposed to preserve.
+    """
+    project = tomllib.loads(_read("pyproject.toml"))
+    review = _read("speckit/reviews/phase-05-exit-review.md")
+
     assert "Release: Aegis 0.5.0" in review
     assert "`phase-5-events-geo`" in review
-    # The version only ever goes up, which the next phase's exit test inherits
-    # when this one hands the claim over.
-    assert Version(project["project"]["version"]) > Version("0.4.0")
+    # Never backwards. The next phase's exit test owns the exact value.
+    assert Version(project["project"]["version"]) >= Version("0.5.0")
 
 
 def test_the_review_names_its_decisions_and_its_defects() -> None:

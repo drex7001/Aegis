@@ -80,12 +80,12 @@ for analytics, watchlists, and bulk operations.
 
 ## Exit criteria
 
-- [ ] Golden search-set precision/recall targets met in CI.
-- [ ] No metric renders without its caveat text; findings and claims are
+- [x] Golden search-set precision/recall targets met in CI.
+- [x] No metric renders without its caveat text; findings and claims are
       different tables with different lifecycles (Article IX test).
-- [ ] Promoting a finding requires an actor and survives in audit with its
+- [x] Promoting a finding requires an actor and survives in audit with its
       analytic basis attached.
-- [ ] An object set is created, shared case-scoped, and drives both an
+- [x] An object set is created, shared case-scoped, and drives both an
       analytic run and a watchlist; a second user with narrower clearance sees
       a correctly narrower evaluation of the *same* set.
 
