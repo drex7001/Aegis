@@ -357,9 +357,21 @@ before the commit exists.
 > `declaring_commit()` now scans `baseline..HEAD`. The scope is the rule: a
 > marker may only accept a break made on the branch that declared it. A stale
 > marker licensing every later break would read as governance while enforcing
-> nothing. Where the range is not computable — CI clones shallow, leaving no
-> common ancestor — it falls back to the tip commit, which is enough for the
-> hatch to work and too narrow to reach history it was never given.
+> nothing.
+>
+> **The workflow had the other half of the gap.** On a `pull_request` event
+> GitHub checks out a synthetic merge commit; at `fetch-depth: 1` the commit
+> carrying the declaration is a parent that was never fetched. The gate
+> rejected a break the branch declared, while the `push` run on the same
+> commits accepted it — a verdict that depends on which event triggered it is
+> not a verdict. The fast-tests job now checks out at `fetch-depth: 0`; the
+> other jobs stay shallow, because they run tests rather than read history.
+>
+> When the gate still fails in a shallow clone it **says so** and names the
+> fix, rather than leaving the next reader to rediscover this. It does not
+> deepen the clone itself: a read-only check that fetches would mutate the
+> repository and touch the network, and treating an unreachable commit as
+> probably-declared would defeat the point of asking.
 
 > **Corrected at T36 (ADR-042).** This section previously called the check "the
 > API-side analogue of the ontology compatibility diff… comparison against a
