@@ -31,6 +31,16 @@ class Settings(BaseSettings):
         default="postgresql+psycopg://aegis:aegis-dev@127.0.0.1:5433/aegis",
         validation_alias="AEGIS_DATABASE_URL",
     )
+    # libpq's default is 0 — wait for the OS TCP timeout, which on a dropped
+    # (rather than refused) connection is minutes. Every connect this process
+    # makes serves a request or the authorization-outbox dispatcher, and
+    # neither has minutes: an unreachable database must surface as an error a
+    # caller can act on and a shutdown that completes, not as a hang.
+    database_connect_timeout_seconds: int = Field(
+        default=10,
+        ge=1,
+        validation_alias="AEGIS_DATABASE_CONNECT_TIMEOUT_SECONDS",
+    )
     ontology_path: str = Field(default="ontology/aegis.yaml", validation_alias="AEGIS_ONTOLOGY_PATH")
 
     fga_api_url: str = Field(default="http://127.0.0.1:8082", validation_alias="FGA_API_URL")
