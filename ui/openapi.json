@@ -30,6 +30,349 @@
         "title": "AcceptIn",
         "type": "object"
       },
+      "AnalyticFindingOut": {
+        "description": "One result, carrying the caveat it was issued with (Article IX).\n\n`caveat_text` is stored on the row and returned from it — never looked up\nwhen it renders. There is no render path that fetches a caveat, so there\nis no render path that can fail to (spec 12 §9.3).",
+        "properties": {
+          "caveat_text": {
+            "title": "Caveat Text",
+            "type": "string"
+          },
+          "caveat_version": {
+            "title": "Caveat Version",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "finding_digest": {
+            "title": "Finding Digest",
+            "type": "string"
+          },
+          "finding_id": {
+            "title": "Finding Id",
+            "type": "string"
+          },
+          "finding_type": {
+            "title": "Finding Type",
+            "type": "string"
+          },
+          "handling_code": {
+            "title": "Handling Code",
+            "type": "string"
+          },
+          "promoted_claim_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Promoted Claim Id"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "subjects": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Subjects",
+            "type": "array"
+          },
+          "value": {
+            "additionalProperties": true,
+            "title": "Value",
+            "type": "object"
+          }
+        },
+        "required": [
+          "finding_id",
+          "run_id",
+          "finding_type",
+          "subjects",
+          "value",
+          "caveat_text",
+          "caveat_version",
+          "finding_digest",
+          "handling_code",
+          "created_at"
+        ],
+        "title": "AnalyticFindingOut",
+        "type": "object"
+      },
+      "AnalyticFindingPageOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AnalyticFindingOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "AnalyticFindingPageOut",
+        "type": "object"
+      },
+      "AnalyticRunIn": {
+        "description": "What to run it over. Omitting the set runs over the whole readable graph.",
+        "properties": {
+          "object_set_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Object Set Id"
+          },
+          "object_set_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Object Set Version"
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "title": "Parameters",
+            "type": "object"
+          }
+        },
+        "title": "AnalyticRunIn",
+        "type": "object"
+      },
+      "AnalyticRunOut": {
+        "description": "The manifest, as a reader sees it (spec 12 §8.2).\n\nComplete enough that \"reproduce this\" is a mechanical instruction, which\nis what ADR-055 replaced \"rerunning the same inputs reproduces the\nfinding\" with — the second was not testable, because neither an object set\nnor a projection is immutable.",
+        "properties": {
+          "actor": {
+            "title": "Actor",
+            "type": "string"
+          },
+          "authorization_digest": {
+            "title": "Authorization Digest",
+            "type": "string"
+          },
+          "caveat_version": {
+            "title": "Caveat Version",
+            "type": "string"
+          },
+          "code_version": {
+            "title": "Code Version",
+            "type": "string"
+          },
+          "edge_digest": {
+            "title": "Edge Digest",
+            "type": "string"
+          },
+          "evaluation_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evaluation Digest"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "identity_revision_id": {
+            "title": "Identity Revision Id",
+            "type": "integer"
+          },
+          "implementation": {
+            "title": "Implementation",
+            "type": "string"
+          },
+          "input_kind": {
+            "title": "Input Kind",
+            "type": "string"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "method_version": {
+            "title": "Method Version",
+            "type": "string"
+          },
+          "object_set_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Object Set Id"
+          },
+          "object_set_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Object Set Version"
+          },
+          "ontology_version": {
+            "title": "Ontology Version",
+            "type": "string"
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "title": "Parameters",
+            "type": "object"
+          },
+          "projection_aggregation_method_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Projection Aggregation Method Version"
+          },
+          "projection_builder_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Projection Builder Version"
+          },
+          "projection_built_at_revision_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Projection Built At Revision Id"
+          },
+          "purpose": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purpose"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed"
+          },
+          "settings_digest": {
+            "title": "Settings Digest",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "method",
+          "method_version",
+          "implementation",
+          "parameters",
+          "input_kind",
+          "edge_digest",
+          "ontology_version",
+          "identity_revision_id",
+          "code_version",
+          "settings_digest",
+          "actor",
+          "authorization_digest",
+          "caveat_version",
+          "started_at"
+        ],
+        "title": "AnalyticRunOut",
+        "type": "object"
+      },
+      "AnalyticRunResultOut": {
+        "description": "A run and what it found. The manifest always ships with the findings.\n\nTogether rather than separately, because a finding without its manifest is\na number whose provenance a reader has to go and look for — and the going\nand looking is exactly what does not happen.",
+        "properties": {
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/AnalyticFindingOut"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "run": {
+            "$ref": "#/components/schemas/AnalyticRunOut"
+          }
+        },
+        "required": [
+          "run",
+          "findings"
+        ],
+        "title": "AnalyticRunResultOut",
+        "type": "object"
+      },
       "AsOfStampOut": {
         "description": "What an answer was computed against (B-11, spec 09 §7).\n\nPresent on **every** response that can take `?asOf=`, not only on the ones\nthat did. A stamp that appeared only in as-of mode would leave a caller\nunable to tell a current answer from a historical one without re-reading its\nown request, and the identity revision is the field that makes the\ndifference legible: `asOf` alone resolves identity as it is *now*, which is\nalmost never what a historical question means.",
         "properties": {
@@ -5636,6 +5979,124 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/v1/analytics/{metric}": {
+      "post": {
+        "description": "Run a metric and record what it found.\n\nWhen an object set is named, it is **evaluated first under the caller's own\nfilters** and the metric runs over those members — so a shared set drives\nan analytic without lending its owner's clearance, and the evaluation\ndigest that lands in the manifest is the caller's.",
+        "operationId": "runAnalytic",
+        "parameters": [
+          {
+            "description": "One of the recorded metrics",
+            "in": "path",
+            "name": "metric",
+            "required": true,
+            "schema": {
+              "description": "One of the recorded metrics",
+              "title": "Metric",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyticRunIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticRunResultOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "No credentials, or a token that does not verify."
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Authenticated, but the role gate refused."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4)."
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "The body or parameters did not validate."
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Per-caller rate limit exceeded (spec 06 §1.6)."
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Run",
+        "tags": [
+          "analytics"
+        ]
+      }
+    },
     "/v1/audit": {
       "get": {
         "operationId": "queryAudit",
@@ -8371,6 +8832,238 @@
         "summary": "Add Custody Event",
         "tags": [
           "evidence"
+        ]
+      }
+    },
+    "/v1/findings": {
+      "get": {
+        "description": "Findings the caller may read. No total — a count is an existence leak.",
+        "operationId": "listFindings",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "run",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Run"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticFindingPageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "No credentials, or a token that does not verify."
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "The body or parameters did not validate."
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Per-caller rate limit exceeded (spec 06 §1.6)."
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Findings",
+        "tags": [
+          "analytics"
+        ]
+      }
+    },
+    "/v1/findings/{finding_id}": {
+      "get": {
+        "description": "One finding **with its manifest**.\n\nTogether, always. A finding without its manifest is a number whose\nprovenance the reader has to go and look for, and the going and looking is\nexactly what does not happen.",
+        "operationId": "getFinding",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "finding_id",
+            "required": true,
+            "schema": {
+              "title": "Finding Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticRunResultOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "No credentials, or a token that does not verify."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4)."
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "The body or parameters did not validate."
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Per-caller rate limit exceeded (spec 06 §1.6)."
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Finding",
+        "tags": [
+          "analytics"
         ]
       }
     },

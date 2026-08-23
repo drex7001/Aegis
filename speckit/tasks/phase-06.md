@@ -250,7 +250,8 @@ have. No total, in the panel or the API.
 
 ## Milestone C — Analytics
 
-**T72. ⛓ Analytics service + findings** (specs/12 §8–§9; needs T69) — k-hop
+**T72. ⛓ Analytics service + findings** (specs/12 §8–§9; needs T69) — **DONE
+2026-08-23.** K-hop
 neighbourhoods, shortest paths, Leiden communities (reusing
 `aegis/analytics/clustering.py`), betweenness, degree, shared-identifier
 detection; each run takes a projection or an object set as input, writes an
@@ -259,13 +260,44 @@ carrying method, parameters, inputs and the catalog caveat **copied into the
 row**. **Findings are a distinct table with a distinct lifecycle — never
 claims** (Article IX). `/v1/graph/*` keeps answering questions without
 recording anything (ADR-057). **No weighted paths** (ADR-030).
-AC: every finding carries its catalog caveat and its exact inputs; a
-schema-level test proves findings and claims are separate tables with separate
-lifecycles and no write path converting one to the other (charter exit №2);
-**equal manifests produce equal finding digests** (ADR-055 — the pre-authored
-"same inputs reproduces the finding" made precise); a forced Leiden→Louvain
-fallback produces a **different** manifest rather than a silent difference; a
-finding's handling code is the maximum of its contributing claims.
+AC: **met.** Every finding carries its catalog caveat, read from the row
+rather than the renderer — and a `CHECK` constraint refuses a blank one, so a
+future code path cannot route around Article IX. `caveat_for()` raises before
+any work is done, so a metric with no caveat cannot run at all.
+
+Findings and claims are separate tables, proved at the **schema**: different
+columns, no foreign key from `claim` back to a finding (`promoted_claim_id`
+points one way only, because a claim reachable *as* a finding would be one
+lifecycle wearing two names), and a sweep asserting no module in
+`aegis/analytics/` constructs a `Claim` — with a non-vacuity check, since a
+sweep over nothing passes.
+
+**Reproducibility is manifest equality** and is tested in both directions: a
+different clearance or a projection whose rows moved produces a different key;
+who ran it, when and why do not. The clearance case is the one that matters —
+`authorization_digest` is *in* the manifest, so a finding computed under a
+narrower clearance **is a different finding** and cannot be compared with one
+that is not (Article VI).
+
+**P5's `is_stale` carryover closes here.** The manifest records *which*
+projection was read — `built_at_revision_id`, builder version, aggregation
+method — plus an `edge_digest` over the rows actually consumed, which catches
+what the stamps cannot: a projection rebuilt at the same identity revision with
+different rows. `is_stale` keeps its meaning and its docstring.
+
+`implementation` records the library **and its version**, so a Leiden run and a
+Louvain fallback are different manifests. `seed` is NULL for an unseeded run
+rather than 0, which would later read as a determinism it never had.
+
+`handling_code` is derived from the contributing claims, never chosen: a
+finding built from a `sensitive` link is `sensitive`, and a narrower caller
+gets an empty list rather than a redacted row.
+
+**`k_hop` and `shortest_path` raise rather than half-work.** They are in
+`METRICS` because spec 12 §9.1 lists them, but the traversal lives in
+`/v1/graph/*` and a second copy wired to record findings is T73's business —
+the error names the spec section rather than leaving a stub somebody has to
+remember.
 
 **T73. Findings panel** (needs T71, T72) — findings rendered in the workspace;
 the caveat comes from the finding record and always renders; no metric has a

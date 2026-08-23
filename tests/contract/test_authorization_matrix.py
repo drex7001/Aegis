@@ -85,6 +85,12 @@ EXPECTED = {
     # authorization: `viewer` reads the definition, `evaluator` only runs it,
     # and every check is 404-on-failure so an unshared set is absent rather
     # than forbidden (spec 12 §5.1).
+    # Analytics (T72). Running a metric is the one read here that *records*,
+    # so it takes a purpose: a recorded answer outlives the question and gets
+    # forwarded to people who never saw the query (ADR-057, Article X).
+    "runAnalytic": ({"analyst"}, True),
+    "listFindings": (set(), False),
+    "getFinding": (set(), False),
     "createObjectSet": ({"analyst", "investigator"}, False),
     "listObjectSets": (set(), False),
     "getObjectSet": (set(), False),
