@@ -44,6 +44,7 @@ from aegis.api.routes import (
     provenance,
     review,
     search,
+    sets,
     sources,
     tasks,
 )
@@ -192,6 +193,7 @@ def create_app() -> FastAPI:
         ingest.router,
         identity.router,
         search.router,
+        sets.router,
         projections.router,
         ontology_routes.router,
     ):

@@ -1206,3 +1206,111 @@ class GraphPathOut(BaseModel):
 
 class GraphPathsOut(GraphViewOut):
     paths: list[GraphPathOut]
+
+
+class ObjectSetIn(BaseModel):
+    """A new set. The AST is validated against the ontology before it is stored."""
+
+    name: str = Field(min_length=1, max_length=200)
+    description: str | None = None
+    case_id: str | None = None
+    #: The filter tree (spec 12 §2.1). A dict rather than a typed union here
+    #: because the grammar is the authority: `aegis.sets.grammar.parse` refuses
+    #: anything it does not recognise, with the path that refused it, and a
+    #: second definition of the same shape in this file would be a second
+    #: definition to keep in step.
+    ast: dict[str, Any]
+    #: Off by default (ADR-054). A saved set that widens when a domain module
+    #: lands changes the meaning of findings people already acted on.
+    track_interface_members: bool = False
+    note: str | None = None
+
+
+class ObjectSetVersionIn(BaseModel):
+    ast: dict[str, Any]
+    track_interface_members: bool = False
+    note: str | None = None
+
+
+class ObjectSetVersionOut(BaseModel):
+    """One immutable version, as this reader may see it.
+
+    A `property` node above the reader's clearance arrives shape-intact and
+    value-empty — `{property, op, value: null, withheld: true}`. Removing it
+    would misdescribe the set, since the evaluation still uses the condition;
+    showing the value would be the leak B-17 names (spec 12 §5.2).
+    """
+
+    set_id: str
+    version: int
+    ast: dict[str, Any]
+    ontology_version: str
+    track_interface_members: bool
+    as_of: datetime | None = None
+    as_of_revision: int | None = None
+    note: str | None = None
+    created_by: str
+    created_at: datetime
+
+
+class ObjectSetOut(BaseModel):
+    set_id: str
+    name: str
+    description: str | None = None
+    case_id: str | None = None
+    owner: str
+    created_at: datetime
+    latest: ObjectSetVersionOut
+
+
+class ObjectSetPageOut(BaseModel):
+    """Sets the caller may see. **No total** — a count is an existence leak."""
+
+    items: list[ObjectSetOut]
+    next_cursor: str | None = None
+
+
+class ObjectSetMemberOut(BaseModel):
+    entity_id: str
+    label: str
+    entity_type: str
+
+
+class ObjectSetEvaluationOut(BaseModel):
+    """What a set evaluates to **for this caller**.
+
+    Never for its owner: a shared set is a shared question, not lent clearance
+    (spec 12 §6). `truncated` is the honest alternative to a count — it says
+    there is more without saying how much more.
+    """
+
+    set_id: str
+    version: int
+    members: list[ObjectSetMemberOut]
+    truncated: bool
+    #: SHA-256 over the sorted member ids. Two callers evaluating one set get
+    #: different digests, which is what makes it usable as an analytic input:
+    #: a finding computed under a narrower clearance is a different finding
+    #: (ADR-055).
+    evaluation_digest: str
+
+
+class ObjectSetShareIn(BaseModel):
+    user_sub: str
+    #: `viewer` reads the definition, `evaluator` only runs it, `editor`
+    #: writes a version. The weaker grant exists because running a saved query
+    #: and reading it are different disclosures (spec 12 §5.2).
+    relation: str = "viewer"
+    revoke: bool = False
+
+
+class ObjectSetNoticeOut(BaseModel):
+    notice_id: str
+    set_id: str
+    version: int
+    interface: str
+    member: str
+    ontology_version: str
+    #: Whether this set actually widened, or merely could have.
+    tracking: bool
+    created_at: datetime

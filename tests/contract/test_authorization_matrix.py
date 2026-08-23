@@ -81,6 +81,17 @@ EXPECTED = {
     "acceptSuggestion": ({"analyst"}, False),
     "rejectSuggestion": ({"analyst"}, False),
     "search": (set(), False),
+    # Object sets (T71). Reads carry no role because the FGA relation is the
+    # authorization: `viewer` reads the definition, `evaluator` only runs it,
+    # and every check is 404-on-failure so an unshared set is absent rather
+    # than forbidden (spec 12 §5.1).
+    "createObjectSet": ({"analyst", "investigator"}, False),
+    "listObjectSets": (set(), False),
+    "getObjectSet": (set(), False),
+    "addObjectSetVersion": ({"analyst", "investigator"}, False),
+    "evaluateObjectSet": (set(), False),
+    "shareObjectSet": ({"analyst", "investigator"}, False),
+    "listObjectSetNotices": (set(), False),
     "listSourceRecords": ({"analyst"}, False),
     # `False` is the truth about the **gate**, and is not the whole story:
     # T67 makes purpose mandatory *conditionally*, when the record's handling
