@@ -712,6 +712,38 @@ space.
 Map, timeline and graph share one time window held in the workspace router state
 and passed to every read as `from`/`to`.
 
+**Corrected at T62: "one filter" is one *event-time* filter, and the graph keeps
+its validity filter beside it.** This section was written as though the three
+surfaces had one time axis between them. They do not. The map and the timeline
+filter `event_time_earliest`/`event_time_latest` — when the thing happened — and
+the graph's existing `valid_from`/`valid_to` filters `edge_projection.segment_*`,
+derived from `claim.valid_from`/`valid_to` — when a relationship was *true*
+(ADR-008 has kept those axes apart since P1).
+
+Collapsing them into one control would have produced exactly the failure this
+task exists to remove: a single window that meant "was a member during 2019" on
+the graph and "an arrest happened in 2019" on the map, so the same slider would
+narrow three surfaces to three different things.
+
+So the graph gains `event_from`/`event_to` as a **claim filter** — threaded into
+`claim_filters`, so an edge's support summary is computed from the same narrowed
+set its visibility is — and keeps `valid_from`/`valid_to` for the different
+question it answers. The shared control drives the first. The second remains
+available to the graph alone, because it is the only surface with a validity
+model to filter.
+
+The window rule itself lives in **one function**, `aegis/queries/window.py`,
+which all three surfaces call. That is what makes "nothing renders on one
+surface that the filter excludes on another" a property rather than a promise:
+there is nothing to keep in step.
+
+**The selection is shared the same way, and for the same reason.** Both the
+window and the selected entity live in the **URL** rather than in component
+state — three surfaces reading one `useSearchParams` cannot disagree, whereas
+three surfaces pushing updates to each other can, on whichever path someone
+forgets. It also makes a view a link: an analyst who has narrowed to a fortnight
+and selected an incident can send that, and the recipient sees the same thing.
+
 **Membership rule:** a claim is in the window when its asserted interval
 **intersects** it. A claim with no event time is **not** in a bounded window and
 is surfaced through a separate "undated" affordance with its count — never
@@ -895,7 +927,7 @@ geometry (§7.3 — P7, H-25). Compartments and sealing (P7).
 
 | Carryover | Disposition |
 |---|---|
-| `?asOf=` on graph and search | **Geo routes: closed at T59** (§8.3). **Graph: closed at T62**, because a time-synced map beside an as-of-now graph is the inconsistency this phase exists to remove. **Search: stays with P6** |
+| `?asOf=` on graph and search | **Geo routes: closed at T59** (§8.3). **Graph: closed at T62** — `as_of` and `as_of_revision` on `POST /v1/graph/expand`, threaded through `claim_filters` like every other read, with a revision above the head a 422 rather than clamped. **Search: stays with P6** |
 | Claims picker for hypothesis links | Unchanged — P6, with object sets |
 | Audit console | Unchanged — P7 (ADR-045) |
 | `hypothesis`/`investigation_task` FGA types declared but not queried | Unchanged — P7 |

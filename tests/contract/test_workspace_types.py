@@ -65,6 +65,13 @@ LOCAL_TYPES = {
     "MarkKind",
     "MarkInput",
     "Mark",
+    # T62. The workspace's own URL state, which is the opposite of a payload:
+    # the server never sends these, it *receives* query parameters derived from
+    # them, and each surface derives a different subset. A generated shape for
+    # "what the analyst has narrowed to" would have to be invented on the server
+    # for the client's benefit, which is the tail wagging the contract.
+    "TimeWindow",
+    "Selection",
 }
 
 

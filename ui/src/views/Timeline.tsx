@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
 
 import { getTimeline, type TimelineItem } from "../api/client";
 import { entityPath } from "../routing";
 import { predicateLabel } from "./claims/ClaimGroup";
+import { SurfaceLinks, TimeFilter, useSharedFilter } from "./TimeFilter";
 
 /**
  * The timeline (T61, spec 10 §11).
@@ -76,11 +76,10 @@ function describe(item: TimelineItem): string {
 }
 
 export function Timeline() {
-  const [search, setSearch] = useSearchParams();
-  const from = search.get("from") ?? undefined;
-  const to = search.get("to") ?? undefined;
-  const entityId = search.get("entityId") ?? undefined;
-  const asOf = search.get("asOf") ?? undefined;
+  // The same window and the same selection the map and graph read (T62).
+  const { window: shared, selection, select } = useSharedFilter();
+  const { from, to, asOf } = shared;
+  const entityId = selection.entityId;
 
   const query = useQuery({
     queryKey: ["timeline", from ?? null, to ?? null, entityId ?? null, asOf ?? null],
@@ -94,34 +93,18 @@ export function Timeline() {
     <section className="timeline-view" data-testid="timeline-view">
       <header className="map__header">
         <h1>Timeline</h1>
-        <form
-          className="map__filter"
-          data-testid="timeline-filter"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const form = new FormData(event.currentTarget);
-            const next = new URLSearchParams(search);
-            for (const field of ["from", "to"] as const) {
-              const value = String(form.get(field) ?? "");
-              if (value) next.set(field, new Date(value).toISOString());
-              else next.delete(field);
-            }
-            setSearch(next);
-          }}
-        >
-          <label>
-            <span>From</span>
-            <input type="date" name="from" defaultValue={from?.slice(0, 10)} data-testid="timeline-from" />
-          </label>
-          <label>
-            <span>To</span>
-            <input type="date" name="to" defaultValue={to?.slice(0, 10)} data-testid="timeline-to" />
-          </label>
-          <button type="submit" data-testid="timeline-apply">
-            Apply
-          </button>
-        </form>
+        <TimeFilter testId="timeline-filter" />
+        <SurfaceLinks current="timeline" />
       </header>
+
+      {entityId && (
+        <p className="notice" data-testid="timeline-selection">
+          Showing only what involves the selected entity.{" "}
+          <button type="button" onClick={() => select(null)} data-testid="timeline-clear-selection">
+            Show everything
+          </button>
+        </p>
+      )}
 
       {query.data?.stamp && (
         <p className="muted" data-testid="timeline-stamp">
@@ -156,6 +139,12 @@ export function Timeline() {
                     className="timeline__row"
                     data-testid={`timeline-item-${item.claim_id}`}
                     data-certainty={item.certainty}
+                    data-selected={
+                      item.subject_id === selection.entityId ||
+                      item.object_id === selection.entityId
+                        ? "true"
+                        : undefined
+                    }
                   >
                     <span className="timeline__label">
                       <a href={entityPath(item.subject_id)}>

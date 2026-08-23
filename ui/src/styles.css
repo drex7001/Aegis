@@ -1775,3 +1775,27 @@ button:hover {
   background: linear-gradient(90deg, rgba(27, 94, 32, 0.45), rgba(27, 94, 32, 0));
   border-left: 1px solid #1b5e20;
 }
+
+/* ── the shared surfaces (T62, spec 10 §11.2) ──────────────────────────── */
+
+.surface-links {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+}
+
+/*
+ * The current surface is marked with `aria-current`, so a screen reader is
+ * told which of the three it is on — and the styling follows the attribute
+ * rather than a class, which is what keeps the two from drifting.
+ */
+.surface-links a[aria-current="page"] {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* One selection across three surfaces: it has to look the same on each. */
+[data-selected="true"] {
+  outline: 2px solid #1565c0;
+  outline-offset: 1px;
+}

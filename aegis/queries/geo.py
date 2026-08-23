@@ -29,7 +29,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal, Sequence
 
-from sqlalchemy import ColumnElement, Select, and_, func, or_, select, text
+from sqlalchemy import ColumnElement, Select, func, select
 from sqlalchemy.orm import Session
 
 from aegis.ontology import Ontology
@@ -39,6 +39,7 @@ from aegis.ontology.shapes import (
     event_place_predicates,
     place_object_types,
 )
+from aegis.queries.window import intersects_window
 from aegis.store import Claim, Entity, LocationGeometryProjection
 
 #: Coarse → fine. A viewer sees the **finest** geometry among the rows they may
@@ -392,7 +393,7 @@ def _intervals_by_event(
     """Every asserted interval, per event, with the claim that asserts it."""
     query = select(Claim).where(Claim.subject_id.in_(event_ids), *filters)
     if since is not None or until is not None:
-        query = query.where(_intersects_window(since, until))
+        query = query.where(intersects_window(since, until))
     result: dict[str, list[dict[str, Any]]] = {}
     for claim in session.scalars(query.order_by(Claim.claim_id)):
         if claim.event_time_earliest is None and claim.event_time_latest is None:
@@ -410,36 +411,6 @@ def _intervals_by_event(
         if span not in spans:
             spans.append(span)
     return result
-
-
-def _intersects_window(
-    since: datetime | None, until: datetime | None
-) -> ColumnElement[bool]:
-    """A claim is in the window when its asserted interval **intersects** it.
-
-    An open-ended interval intersects anything after its bound, which is why the
-    null cases are written out rather than left to SQL's three-valued logic.
-    """
-    conditions: list[ColumnElement[bool]] = []
-    if until is not None:
-        conditions.append(
-            or_(
-                Claim.event_time_earliest.is_(None),
-                Claim.event_time_earliest <= until,
-            )
-        )
-    if since is not None:
-        conditions.append(
-            or_(Claim.event_time_latest.is_(None), Claim.event_time_latest >= since)
-        )
-    # Undated is *not* in a bounded window (§11.2).
-    conditions.append(
-        or_(
-            Claim.event_time_earliest.is_not(None),
-            Claim.event_time_latest.is_not(None),
-        )
-    )
-    return and_(*conditions)
 
 
 def _participant_counts(
