@@ -35,10 +35,20 @@ SPEC = REPO_ROOT / "speckit" / "specs" / "11-search.md"
 
 
 def _section_8() -> str:
+    """The **targets**, stopping before §8.1's measurements.
+
+    §8.1 records what the gate actually scored, in a table whose rows carry the
+    same bucket names. Reading both would compare a target against a
+    measurement and report drift every time the numbers move — which is the one
+    thing that is supposed to be allowed to happen.
+    """
     text = SPEC.read_text(encoding="utf-8")
     start = text.index("## 8. Numeric targets")
     rest = text[start:]
-    return rest[: rest.index("\n## 9.")]
+    for boundary in ("\n### 8.1", "\n## 9."):
+        if boundary in rest:
+            return rest[: rest.index(boundary)]
+    return rest
 
 
 def _rows() -> list[list[str]]:

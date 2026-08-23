@@ -1,0 +1,95 @@
+{
+  "schema": "aegis.search-golden/v1",
+  "description": "Fictional T68 search golden set: Sinhala/Tamil/English name variants, a known-distinct near-spelling pair, cross-script retrieval across eight name shapes, claim excerpts and literal values, document text, and exact/near-miss identifier queries. Every person, organisation, place, identifier and document here is invented. The eight cross-script pairs were chosen for plausibility and variety BEFORE any of them was measured, so the score they produce is evidence rather than a fixture tuned to a number.",
+
+  "entities": [
+    {"id": "e_sinhala_1", "type": "person", "label": "නිමල් වීරසිංහ", "mentions": ["නිමල් වීරසිංහ"]},
+    {"id": "e_sinhala_2", "type": "person", "label": "පේමා ගුණසේකර", "mentions": ["පේමා ගුණසේකර"]},
+    {"id": "e_sinhala_3", "type": "person", "label": "සමන් ජයවර්ධන", "mentions": ["සමන් ජයවර්ධන"]},
+    {"id": "e_sinhala_4", "type": "person", "label": "කුමාරි දිසානායක", "mentions": ["කුමාරි දිසානායක"]},
+
+    {"id": "e_tamil_1", "type": "person", "label": "அருள் ராஜேந்திரன்", "mentions": ["அருள் ராஜேந்திரன்"]},
+    {"id": "e_tamil_2", "type": "person", "label": "மாலதி செல்வம்", "mentions": ["மாலதி செல்வம்"]},
+    {"id": "e_tamil_3", "type": "person", "label": "கண்ணன் முருகேசன்", "mentions": ["கண்ணன் முருகேசன்"]},
+    {"id": "e_tamil_4", "type": "person", "label": "வசந்தா நடராஜன்", "mentions": ["வசந்தா நடராஜன்"]},
+
+    {"id": "e_latin_1", "type": "person", "label": "Tharindu Abeynayake", "mentions": ["Tharindu Abeynayake"], "aliases": ["Tharu"]},
+    {"id": "e_latin_2", "type": "person", "label": "Chandrika Vitharana", "mentions": ["Chandrika Vitharana"]},
+
+    {"id": "e_distinct_a", "type": "person", "label": "Sunil Perera", "mentions": ["Sunil Perera"]},
+    {"id": "e_distinct_b", "type": "person", "label": "Sunil Pereira", "mentions": ["Sunil Pereira"]},
+
+    {"id": "e_org", "type": "organization", "label": "Fictional Harbour Holdings", "mentions": ["Fictional Harbour Holdings"]},
+    {"id": "e_place", "type": "location", "label": "Fictional North Jetty", "mentions": ["Fictional North Jetty"]},
+
+    {"id": "bg_01", "type": "person", "label": "Quillon Abarde", "mentions": ["Quillon Abarde"]},
+    {"id": "bg_02", "type": "person", "label": "Ravorn Bexil", "mentions": ["Ravorn Bexil"]},
+    {"id": "bg_03", "type": "person", "label": "Sefrin Cudal", "mentions": ["Sefrin Cudal"]},
+    {"id": "bg_04", "type": "person", "label": "Talgor Dovin", "mentions": ["Talgor Dovin"]},
+    {"id": "bg_05", "type": "person", "label": "Ulden Eramis", "mentions": ["Ulden Eramis"]},
+    {"id": "bg_06", "type": "person", "label": "Vorin Feskal", "mentions": ["Vorin Feskal"]},
+    {"id": "bg_07", "type": "person", "label": "Wexler Gabin", "mentions": ["Wexler Gabin"]},
+    {"id": "bg_08", "type": "person", "label": "Xemil Hodar", "mentions": ["Xemil Hodar"]},
+    {"id": "bg_09", "type": "person", "label": "Yordel Ivena", "mentions": ["Yordel Ivena"]},
+    {"id": "bg_10", "type": "person", "label": "Zafri Jorun", "mentions": ["Zafri Jorun"]}
+  ],
+
+  "claims": [
+    {"id": "c_excerpt_1", "subject": "e_latin_1", "predicate": "has_role", "value": "person of interest",
+     "excerpt": "the consignment was transferred at the northern jetty before dawn"},
+    {"id": "c_excerpt_2", "subject": "e_latin_2", "predicate": "has_role", "value": "witness",
+     "excerpt": "she described a meeting in the customs shed that lasted twenty minutes"},
+    {"id": "c_alias_1", "subject": "e_latin_1", "predicate": "aliases", "value": "Tharu"},
+    {"id": "c_identifier_1", "subject": "e_distinct_a", "predicate": "has_nic", "value": "FIXTURE-ID-SUNIL-0001"},
+    {"id": "c_identifier_2", "subject": "e_distinct_b", "predicate": "has_nic", "value": "FIXTURE-ID-SUNIL-0002"}
+  ],
+
+  "documents": [
+    {"id": "d_report", "text": "A fictional press report. The northern jetty consignment was described by two witnesses, one of whom named Fictional Harbour Holdings as the consignee. No charge has been laid."},
+    {"id": "d_judgment", "text": "A fictional judgment. The court recorded that the customs shed meeting took place, and that the evidence before it did not establish who convened it."},
+    {"id": "d_annex", "text": "A fictional annex listing vessel movements at the northern jetty across a single week, with no names attached to any movement."}
+  ],
+
+  "queries": [
+    {"q": "Tharindu Abeynayake", "script": "latin", "resource": "entity", "relevant": ["e_latin_1"]},
+    {"q": "Chandrika Vitharana", "script": "latin", "resource": "entity", "relevant": ["e_latin_2"]},
+    {"q": "Fictional Harbour Holdings", "script": "latin", "resource": "entity", "relevant": ["e_org"]},
+    {"q": "Fictional North Jetty", "script": "latin", "resource": "entity", "relevant": ["e_place"]},
+    {"q": "Sunil Perera", "script": "latin", "resource": "entity", "relevant": ["e_distinct_a", "e_distinct_b"],
+     "note": "Two different fictional people, one letter apart. BOTH are relevant: search must surface them so an analyst can tell them apart, and must never pick one (Article V). A result set holding only one would score worse here, which is the intent."},
+    {"q": "Tharu", "script": "latin", "resource": "entity", "relevant": ["e_latin_1"],
+     "note": "An alias, which is an ordinary claim and therefore authorization-filtered like one."},
+
+    {"q": "නිමල් වීරසිංහ", "script": "sinhala", "resource": "entity", "relevant": ["e_sinhala_1"]},
+    {"q": "පේමා ගුණසේකර", "script": "sinhala", "resource": "entity", "relevant": ["e_sinhala_2"]},
+    {"q": "සමන් ජයවර්ධන", "script": "sinhala", "resource": "entity", "relevant": ["e_sinhala_3"]},
+    {"q": "කුමාරි දිසානායක", "script": "sinhala", "resource": "entity", "relevant": ["e_sinhala_4"]},
+
+    {"q": "அருள் ராஜேந்திரன்", "script": "tamil", "resource": "entity", "relevant": ["e_tamil_1"]},
+    {"q": "மாலதி செல்வம்", "script": "tamil", "resource": "entity", "relevant": ["e_tamil_2"]},
+    {"q": "கண்ணன் முருகேசன்", "script": "tamil", "resource": "entity", "relevant": ["e_tamil_3"]},
+    {"q": "வசந்தா நடராஜன்", "script": "tamil", "resource": "entity", "relevant": ["e_tamil_4"]},
+
+    {"q": "Nimal Weerasinghe", "script": "cross_script", "resource": "entity", "relevant": ["e_sinhala_1"]},
+    {"q": "Pema Gunasekara", "script": "cross_script", "resource": "entity", "relevant": ["e_sinhala_2"]},
+    {"q": "Saman Jayawardena", "script": "cross_script", "resource": "entity", "relevant": ["e_sinhala_3"]},
+    {"q": "Kumari Dissanayake", "script": "cross_script", "resource": "entity", "relevant": ["e_sinhala_4"]},
+    {"q": "Arul Rajendran", "script": "cross_script", "resource": "entity", "relevant": ["e_tamil_1"]},
+    {"q": "Malathi Selvam", "script": "cross_script", "resource": "entity", "relevant": ["e_tamil_2"]},
+    {"q": "Kannan Murugesan", "script": "cross_script", "resource": "entity", "relevant": ["e_tamil_3"]},
+    {"q": "Vasantha Natarajan", "script": "cross_script", "resource": "entity", "relevant": ["e_tamil_4"]},
+
+    {"q": "consignment was transferred at the northern jetty", "script": "latin", "resource": "claim", "relevant": ["c_excerpt_1"]},
+    {"q": "meeting in the customs shed that lasted", "script": "latin", "resource": "claim", "relevant": ["c_excerpt_2"]},
+    {"q": "FIXTURE-ID-SUNIL-0001", "script": "latin", "resource": "claim", "relevant": ["c_identifier_1"],
+     "identifier": true,
+     "note": "Exact match. The one identifier in the corpus one character away is FIXTURE-ID-SUNIL-0002, and it belongs to a different fictional person — returning it would be a confident wrong answer."},
+    {"q": "FIXTURE-ID-SUNIL-0009", "script": "latin", "resource": "claim", "relevant": [],
+     "identifier": true,
+     "note": "Near miss: no such identifier exists. The correct answer is nothing (ADR-053). A trigram matcher would score this above 0.9 against both real identifiers and return a person."},
+
+    {"q": "vessel movements across a single week", "script": "latin", "resource": "document", "relevant": ["d_annex"]},
+    {"q": "court recorded that the customs shed meeting", "script": "latin", "resource": "document", "relevant": ["d_judgment"]},
+    {"q": "press report consignee no charge has been laid", "script": "latin", "resource": "document", "relevant": ["d_report"]}
+  ]
+}

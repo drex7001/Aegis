@@ -80,6 +80,19 @@ jobs:
           path: output/er-evaluation.json
           if-no-files-found: error
           retention-days: 30
+      - name: Search numeric quality gates (T68)
+        run: make test-search-quality
+      - name: Publish search evaluation report
+        # `always()` so a failing gate still publishes the numbers that failed.
+        # A quality gate whose evidence disappears on failure is a gate that
+        # gets argued with instead of read (H-22).
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: search-evaluation
+          path: output/search-evaluation.json
+          if-no-files-found: error
+          retention-days: 30
       - run: make test-integration
 
   system-tests:

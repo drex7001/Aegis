@@ -24,7 +24,7 @@ DOCUMENT_GROUP = "document"
 #: is an exact equality and nothing else (ADR-053). A result list that renders
 #: them alike invites the reader to treat them alike.
 MATCHED_KINDS = frozenset(
-    {"label", "alias", "mention", "phonetic", "identifier", "excerpt", "value", "text"}
+    {"label", "alias", "mention", "transliterated", "phonetic", "identifier", "excerpt", "value", "text"}
 )
 
 

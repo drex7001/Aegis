@@ -124,6 +124,12 @@ backups/
 # T26 fictional ER golden set (committed numeric quality-gate input)
 !data/sample/mvp/er-golden-set.json
 
+# T68 fictional search golden set (committed numeric quality-gate input).
+# Without this line `*.json` above swallows it and the gate fails in CI
+# with "cannot read golden set" — a quality gate whose input is not
+# committed is not a gate.
+!data/sample/search/golden-set.json
+
 # T33 generated ontology artifacts (spec 08 §8). Committed on purpose: the
 # release chain and the compatibility diff compare against a *committed*
 # artifact rather than reading git history (H-16), and `aegis ontology generate

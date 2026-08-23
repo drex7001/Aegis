@@ -39,10 +39,21 @@ from aegis.store import DocumentTextProjection, SourceRecord
 #: not a shared scale. Documented in PostgreSQL's ranking section.
 _RANK_NORMALIZATION = 32
 
-#: Below this a full-text hit is a stray token, not a document about the query.
-#: Deliberately low: `ts_rank_cd/(rank+1)` compresses hard, so 0.05 here is not
-#: the same kind of number as the trigram floor and is not comparable to it.
-RANK_FLOOR = 0.02
+#: **No rank floor.** T67 set one at 0.02, and T68's golden set found it
+#: discarding true positives: `plainto_tsquery` already requires *every* term to
+#: be present, so `@@` had matched the right document and nothing else — and the
+#: floor then threw two of three away for being wordy.
+#:
+#: Measured on the golden corpus, correct matches ranked 0.005, 0.020 and 0.091
+#: — a twentyfold spread, because `ts_rank_cd` normalized by `rank/(rank+1)`
+#: falls as a query gets longer. Any single floor over that spread is arbitrary,
+#: and an arbitrary threshold on top of AND semantics can only subtract.
+#:
+#: So `@@` decides membership and `ts_rank_cd` decides order, which is the
+#: division of labour each is actually good at. The constant stays as a named
+#: zero rather than disappearing, because the next person to reach for a floor
+#: should find this note first.
+RANK_FLOOR = 0.0
 
 #: The text-search configuration, cast to `regconfig` where it is used.
 _SIMPLE = literal_column("'simple'::regconfig")
