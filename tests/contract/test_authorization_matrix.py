@@ -59,6 +59,9 @@ EXPECTED = {
     # not sees neither.
     "geoLocations": (set(), False),
     "geoEvents": (set(), False),
+    # Same gate for the same reason: the timeline answers "what happened and
+    # when" through the same filter as the map answers "and where".
+    "getTimeline": (set(), False),
     "listEntityCases": (set(), False),
     "identityHistory": (set(), False),
     "whyConnected": (set(), False),

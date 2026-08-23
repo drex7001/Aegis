@@ -8,6 +8,7 @@ import { CaseView } from "./views/CaseView";
 import { CasesView } from "./views/CasesView";
 import { GraphView } from "./views/GraphView";
 import { MapView } from "./views/map/MapView";
+import { Timeline } from "./views/Timeline";
 import { HypothesisView } from "./views/HypothesisView";
 import { InterfaceView } from "./views/InterfaceView";
 import { ObjectTypeView } from "./views/ObjectTypeView";
@@ -33,6 +34,7 @@ export function App() {
         <Route element={<Shell />}>
           <Route path={ROUTES.graph} element={<GraphView />} />
           <Route path={ROUTES.map} element={<MapView />} />
+          <Route path={ROUTES.timeline} element={<Timeline />} />
           <Route path={ROUTES.sources} element={<SourcesView />} />
           <Route path={ROUTES.review} element={<ReviewView />} />
           <Route path={ROUTES.cases} element={<CasesView />} />

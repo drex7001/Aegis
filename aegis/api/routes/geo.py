@@ -30,15 +30,22 @@ from aegis.api.pagination import (
     encode_cursor,
     page_limit,
 )
-from aegis.api.schemas import AsOfStampOut, FeatureCollectionOut
+from aegis.api.schemas import (
+    AsOfStampOut,
+    FeatureCollectionOut,
+    TimelineItemOut,
+    TimelinePageOut,
+)
 from aegis.authz.filters import claim_filters
 from aegis.er.ledger import active_revision_id
 from aegis.queries.geo import event_features, place_features
+from aegis.queries.timeline import timeline_items
 
 router = APIRouter(tags=["geo"])
 
 _PLACE_CURSOR = "geo.locations"
 _EVENT_CURSOR = "geo.events"
+_TIMELINE_CURSOR = "timeline"
 
 
 def _bbox(raw: str | None) -> list[float] | None:
@@ -198,3 +205,67 @@ def geo_events(
         else None
     )
     return _collection(features, stamp, next_cursor)
+
+
+@router.get(
+    "/timeline",
+    response_model=TimelinePageOut,
+    operation_id="getTimeline",
+)
+def get_timeline(
+    session: DbSession,
+    ontology: OntologyDep,
+    entity_id: Annotated[str | None, Query(alias="entityId")] = None,
+    case_id: Annotated[str | None, Query(alias="caseId")] = None,
+    since: Annotated[datetime | None, Query(alias="from")] = None,
+    until: Annotated[datetime | None, Query(alias="to")] = None,
+    limit: Annotated[int, Query(ge=1, le=200)] = DEFAULT_LIMIT,
+    cursor: Annotated[str | None, Query()] = None,
+    as_of: Annotated[datetime | None, Query(alias="asOf")] = None,
+    as_of_revision: Annotated[int | None, Query(alias="asOfRevision", ge=0)] = None,
+    auth: AuthContext = Depends(authorize()),
+) -> TimelinePageOut:
+    """Claims on one timeline, with the certainty their sources actually stated.
+
+    In the geo router rather than a module of its own because it answers the
+    same question the map does — *what happened, where and when* — through the
+    same filters and the same window rule. Splitting them would be two places
+    for "a claim is in the window when its interval intersects it" to drift.
+
+    An **undated** claim is not in a bounded window (§11.2) and is not silently
+    dropped either: `undated_count` says how many there are, so a narrow window
+    can never look like a complete account of everything known.
+    """
+    stamp = _stamp(session, ontology, as_of, as_of_revision)
+    if since is not None and until is not None and since > until:
+        raise HTTPException(422, "`from` is after `to`")
+    after = decode_cursor(cursor, _TIMELINE_CURSOR, 2)
+    items, truncated, undated = timeline_items(
+        session,
+        filters=claim_filters(session, auth.user, ontology, as_of=as_of),
+        entity_id=entity_id,
+        case_id=case_id,
+        since=since,
+        until=until,
+        after=(after[0], after[1]) if after else None,
+        limit=page_limit(limit),
+    )
+    next_cursor = (
+        encode_cursor(
+            _TIMELINE_CURSOR,
+            [
+                (items[-1].earliest or items[-1].latest or "").isoformat()
+                if (items[-1].earliest or items[-1].latest)
+                else "",
+                items[-1].claim_id,
+            ],
+        )
+        if truncated and items
+        else None
+    )
+    return TimelinePageOut(
+        items=[TimelineItemOut(**item.to_dict()) for item in items],
+        next_cursor=next_cursor,
+        undated_count=undated,
+        stamp=stamp,
+    )

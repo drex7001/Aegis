@@ -1743,3 +1743,35 @@ button:hover {
   border-radius: 4px;
   padding: 0.75rem 1rem;
 }
+
+/* ── timeline v2 (T61, spec 10 §11) ────────────────────────────────────── */
+
+.timeline-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+/*
+ * The certainty is in the *shape*, not only in a tooltip. A reader scanning
+ * the axis has to be able to tell a stated instant from a stated range
+ * without hovering, or the honesty is only available to someone who already
+ * suspected there was something to check.
+ */
+.timeline__bar--exact {
+  width: 2px;
+  background: #1b5e20;
+}
+
+.timeline__bar--bounded {
+  background: rgba(27, 94, 32, 0.35);
+  border-left: 1px solid #1b5e20;
+  border-right: 1px solid #1b5e20;
+}
+
+/* One bound known. Fades at the end nobody stated. */
+.timeline__bar--open {
+  background: linear-gradient(90deg, rgba(27, 94, 32, 0.45), rgba(27, 94, 32, 0));
+  border-left: 1px solid #1b5e20;
+}

@@ -1073,6 +1073,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Timeline
+         * @description Claims on one timeline, with the certainty their sources actually stated.
+         *
+         *     In the geo router rather than a module of its own because it answers the
+         *     same question the map does — *what happened, where and when* — through the
+         *     same filters and the same window rule. Splitting them would be two places
+         *     for "a claim is in the window when its interval intersects it" to drift.
+         *
+         *     An **undated** claim is not in a bounded window (§11.2) and is not silently
+         *     dropped either: `undated_count` says how many there are, so a narrow window
+         *     can never look like a complete account of everything known.
+         */
+        get: operations["getTimeline"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2812,6 +2841,63 @@ export interface components {
             owner?: string | null;
             /** Status */
             status?: ("open" | "in_progress" | "blocked" | "done" | "dropped") | null;
+        };
+        /**
+         * TimelineItemOut
+         * @description One claim on the timeline (spec 10 §11.1).
+         *
+         *     Timeline items are **claims**, not events: an event appears through the
+         *     claims that assert it, which is what makes "no duplicates" structural
+         *     rather than a de-duplication pass.
+         *
+         *     `certainty` is derived from the interval, never asserted — so nothing
+         *     downstream can render "some time in March" as 1 March.
+         */
+        TimelineItemOut: {
+            /** Certainty */
+            certainty: string;
+            /** Claim Id */
+            claim_id: string;
+            /** Earliest */
+            earliest?: string | null;
+            /** Handling Code */
+            handling_code: string;
+            /** Latest */
+            latest?: string | null;
+            /** Object Id */
+            object_id?: string | null;
+            /** Object Label */
+            object_label?: string | null;
+            /** Object Value */
+            object_value?: unknown | null;
+            /** Predicate */
+            predicate: string;
+            /** Record Id */
+            record_id: string;
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+            /** Subject Id */
+            subject_id: string;
+            /** Subject Label */
+            subject_label?: string | null;
+            /** Subject Type */
+            subject_type?: string | null;
+        };
+        /** TimelinePageOut */
+        TimelinePageOut: {
+            /** Items */
+            items: components["schemas"]["TimelineItemOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+            stamp?: components["schemas"]["AsOfStampOut"] | null;
+            /**
+             * Undated Count
+             * @default 0
+             */
+            undated_count?: number;
         };
         /**
          * ValidationError
@@ -6517,6 +6603,64 @@ export interface operations {
             };
             /** @description Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4). */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    getTimeline: {
+        parameters: {
+            query?: {
+                entityId?: string | null;
+                caseId?: string | null;
+                from?: string | null;
+                to?: string | null;
+                limit?: number;
+                cursor?: string | null;
+                asOf?: string | null;
+                asOfRevision?: number | null;
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimelinePageOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
