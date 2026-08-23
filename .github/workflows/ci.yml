@@ -16,6 +16,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The contract gate reads the commit that declares a break
+          # (ADR-042, `BREAKING API CHANGE`). On a pull_request event the
+          # checkout is a synthetic merge commit, so at the default depth of 1
+          # the commit carrying the declaration is a parent that was never
+          # fetched — the gate then rejects a break its own branch declared.
+          # Found at T67, the project's first breaking change.
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -26,9 +34,10 @@ jobs:
       - run: uv sync --locked --extra dev
       - run: make test-fast
       - name: Fail on a breaking API contract change (T36)
-        # Needs the baseline branch, which the default shallow fetch omits.
+        # Needs the baseline branch, which the checkout does not create a local
+        # ref for even at full depth.
         run: |
-          git fetch --no-tags --depth=1 origin master
+          git fetch --no-tags origin master
           uv run aegis api check-contract --baseline origin/master
 
   integration-tests:
