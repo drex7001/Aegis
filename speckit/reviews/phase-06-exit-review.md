@@ -56,8 +56,12 @@ remains open and untouched (§Deployment boundary).
   rather than inherit it. And **OpenSearch would not have helped**: the keys are
   the problem, not the engine indexing them, so a different backend fed the same
   lossy romanization returns the same answers. The remediation for the residual
-  gap is a better transliterator, which `aegis/er/translit.py` already records as
-  waiting on exactly this evidence.
+  gap is a **better transliterator**. `aegis/er/translit.py` already records
+  the shape of that decision — PyICU would give a better romanizer and is
+  deliberately not a dependency, with the module stating that a *measurement*
+  rather than a library name decides when to take it on. It names T26's
+  evaluation harness as that measurement; the search gate is now a second
+  source of the same evidence, and both point the same way.
 
 - [x] **No metric renders without its caveat text; findings and claims are
   different tables with different lifecycles (Article IX test).**
