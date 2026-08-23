@@ -140,19 +140,39 @@ for *differing scripts*, symmetrically, is what recovered cross-script.
 
 ## Milestone B — Object sets
 
-**T69. ⛓ Object-set model + grammar** (specs/12 §2–§4; needs T66) —
+**T69. ⛓ Object-set model + grammar** (specs/12 §2–§4; needs T66) — **DONE
+2026-08-23.**
 filter-tree definitions over ontology types *and interfaces* (type, predicate,
 property, time, case scope, search, composition); stored as a **validated
 AST**, never SQL; saved and versioned; **sets store queries, never results**,
 enforced by there being nowhere to put them; complexity limits and cycle
 detection at **save**, not at run time.
-AC: a stored definition contains no result rows (schema makes it impossible)
-and no SQL text; the AST compiler is total over the grammar and undefined
-outside it; depth, node count, composition depth and cycles are refused with a
-`422` naming the offending path; **a set filtering on an interface does _not_
-pick up a new member type after a minor bump** (ADR-054 — the pre-authored AC
-inverted), a set with `track_interface_members` does, and both receive a
-notice; edits create a new immutable version.
+AC: **met.** A stored definition contains no result rows because
+`object_set_version` has nowhere to put them — the only durable way to meet
+that criterion, since a column with a comment saying not to use it is still a
+column. No node carries SQL because the grammar has **no free-text field** that
+reaches a query: every string either names ontology vocabulary, is an opaque
+id, or is `search.q`, which goes through the spec 11 pipeline to a bound
+parameter. Asserted over the grammar's own field types, with a non-vacuity
+check that the grammar actually has nodes.
+
+The compiler raises `CompileError` on anything it cannot compile, including an
+unexpanded interface — because a compiler that treated an unknown node as "no
+constraint" would evaluate a **wider** set than the one saved, and the
+definition would still read correctly. Depth, node count, set references,
+composition depth, self-reference and dangling references are all refused **at
+save**, each naming its path; a cycle caught at evaluation would be a request
+that times out differently every time while the definition sits in the database
+being shared.
+
+**The inverted criterion holds** (ADR-054): with a fictional `port`
+implementing `place`, the pinned set does *not* gain it, the tracking set
+does, and **both owners are notified** — a pinned set could have widened, and
+finding that out is as useful as finding out that it did. The notice carries a
+uniqueness constraint so a second sweep cannot multiply what an owner sees.
+
+Edits append; nothing updates a version, because a finding names
+`(set_id, version)` and must name something that cannot change under it.
 
 **T70. Sharing + evaluation under caller filters** (specs/12 §5–§7; needs T69)
 — FGA `object_set` type (viewer/editor); composition (union / intersect /
