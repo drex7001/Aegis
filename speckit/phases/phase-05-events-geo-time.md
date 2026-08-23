@@ -1,6 +1,7 @@
 # Phase 5 Charter — Events, geospatial & time
 
-Status: **open — T54 complete 2026-08-19** (charter amended 2026-07-18, ADR-033
+Status: **COMPLETE 2026-08-23** — all five gate criteria checked
+(`../reviews/phase-05-exit-review.md`). Opened 2026-08-19 (charter amended 2026-07-18, ADR-033
 — claims-first storage, B-13; re-validated 2026-08-19 by T54, whose six
 divergences are recorded in `../specs/10-events-geospatial.md` §0 and
 ADR-046…ADR-049) · tasks: `../tasks/phase-05.md` (T54–T65) · spec:
@@ -83,16 +84,16 @@ ontology change (or a migration lands first), never a minor bump.
 
 ## Exit criteria
 
-- [ ] The same incident renders consistently on map, timeline, and graph from
+- [x] The same incident renders consistently on map, timeline, and graph from
       one claim set; uncertainty is visually distinct at every zoom.
-- [ ] An event with 3+ participants round-trips through API and UI (create via
+- [x] An event with 3+ participants round-trips through API and UI (create via
       action, render in object view, appear on map + timeline).
-- [ ] A location known only at admin-area level never renders as a point; a
+- [x] A location known only at admin-area level never renders as a point; a
       low-clearance viewer sees the authorized generalization, not exact
       geometry (M-18).
-- [ ] A travel event ingested from a press report carries its source and
+- [x] A travel event ingested from a press report carries its source and
       appears only after review (Article VII unchanged for events).
-- [ ] No canonical mutable geometry/precision column exists — geometry
+- [x] No canonical mutable geometry/precision column exists — geometry
       projections rebuild from claims alone (B-13 spot check).
 
 ## Risks

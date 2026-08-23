@@ -28,7 +28,7 @@ external-review disposition (`reviews/2026-07-18-external-review-disposition.md`
 Milestone I    Governed foundation      P0 governance ▸ P1 claim store + RBAC     [COMPLETE]
 Milestone II   MVP                      P2 identity, provenance & workspace       [COMPLETE — ★ MVP]
 Milestone III  Ontology platform        P3 modules & contracts [COMPLETE] ▸ P4 workspace v2 & object views [COMPLETE]
-Milestone IV   Intelligence domain      P5 events, geo & time [IN PROGRESS] ▸ P6 search, object sets & analytics
+Milestone IV   Intelligence domain      P5 events, geo & time [COMPLETE] ▸ P6 search, object sets & analytics
 Milestone V    Trust boundaries & AI    P7 sharing & governance ▸ P8 controlled AI & reasoning
 Milestone VI   Production               P9 production certification & scale-out
 
@@ -212,7 +212,7 @@ working object view.
 
 ## Milestone IV — Intelligence domain
 
-### Phase 5 — Events, geospatial & time *(IN PROGRESS · GOAL.md §7.3, §16, §17 · effort: M · ADR-046…049)*
+### Phase 5 — Events, geospatial & time *(COMPLETE 2026-08-23 · GOAL.md §7.3, §16, §17 · effort: M · ADR-046…049)*
 
 **Goal.** Places and events become first-class, with honest precision —
 **claims-first**: asserted geometry, precision, participation, and time are
@@ -241,7 +241,7 @@ and graph from one claim set; precision is visually distinct; an event with 3+
 participants round-trips; no canonical mutable geometry column exists (spot
 check: geometry projections rebuild from claims).
 
-### Phase 6 — Search, object sets & governed analytics *(GOAL.md §12, §13, §32 · effort: M)*
+### Phase 6 — Search, object sets & governed analytics *(NEXT · GOAL.md §12, §13, §32 · effort: M)*
 
 **Goal.** Find anything you're allowed to find; save and share what you found;
 compute metrics that explain themselves. Charter:
@@ -377,7 +377,7 @@ Items may be completed any time; none may be waived.
 | Reversible identity, ER, multilingual matching | **Implemented** P2 |
 | Ontology modules, interfaces, typed clients | **Implemented** P3 |
 | Investigation workspace, object views, hypotheses, as-of (narrowed) | **Implemented** P4 |
-| Events, geospatial, timeline, map privacy | **In progress** P5 (spec 10 final; T54 closed) |
+| Events, geospatial, timeline, map privacy | **Implemented** P5 |
 | Search, object sets, analytics, watchlists/alert triage | **Scheduled** P6 |
 | Compartments, sealing, disclosure packages, break-glass, legal authority, retention enforcement | **Scheduled** P7 |
 | Controlled AI (extraction v2, translation, summarization, hypothesis assist) | **Scheduled** P8 |

@@ -4,7 +4,10 @@ Ordered; each task lists acceptance criteria (AC). Tasks marked ⛓ block everyt
 after them; narrower dependencies are noted in the task text. Reference specs in
 parentheses. Numbering continues from Phase 4 (T53).
 
-> **Status: ACTIVE — T54 complete 2026-08-19.** Phases 2–4 closed. T54
+> **Status: COMPLETE 2026-08-23.** All twelve tasks landed and all five gate
+> criteria are checked — `../reviews/phase-05-exit-review.md`.
+>
+> Opened 2026-08-19 by T54. Phases 2–4 closed. T54
 > re-validated this plan against the P3/P4-as-built system and against the
 > 2026-07-18 charter amendment (ADR-033); its **six divergences** are recorded
 > in `../specs/10-events-geospatial.md` §0 and in ADR-046…ADR-049, and the task
