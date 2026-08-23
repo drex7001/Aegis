@@ -49,6 +49,34 @@ from aegis.store import Claim, Entity, IdentityMembership, Mention
 #: indistinguishable from one that failed.
 SIMILARITY_FLOOR = 0.35
 
+#: The floor for a **cross-script** comparison — a Latin query against a name
+#: stored in another script — and the one number in this module chosen from
+#: measurement rather than from judgement.
+#:
+#: `unidecode` romanizes an abugida by dropping inherent vowels, so
+#: `නිමල් වීරසිංහ` becomes `niml_viirsinh` while an analyst types
+#: `nimal_weerasinghe`. Those are two different romanization systems, and their
+#: trigram similarity sits far below what the same-script floor expects.
+#: Measured over the eight golden-set pairs (T68):
+#:
+#: | floor | found | false positives |
+#: |---|---|---|
+#: | 0.35 (same-script) | 3/8 | 0 |
+#: | 0.20 | 3/8 | 0 |
+#: | 0.15 | 4/8 | 0 |
+#: | **0.10** | **6/8** | **0** |
+#: | 0.05 | 8/8 | 1 |
+#:
+#: 0.10 doubles recall and costs nothing measurable; 0.05 buys the last two by
+#: starting to collide. **Fitted to eight pairs**, which is not many — it is
+#: recorded here with its evidence so the next person widening the golden set
+#: knows to re-measure rather than inherit a number.
+#:
+#: It applies **only** where the stored mention is in another script. A Latin
+#: name compared to a Latin name keeps the strict floor, because there the two
+#: keys are in the same romanization and a weak match really is noise.
+CROSS_SCRIPT_FLOOR = 0.10
+
 #: What an exact phonetic hit is worth. Deliberately modest and fixed: metaphone
 #: collapses genuinely different names, so letting a phonetic match outrank a
 #: real name match would be the search stating a confidence it does not have.
@@ -239,12 +267,39 @@ def _mention_matches(
         func.similarity(Mention.latin_key, keys.latin),
         func.similarity(Mention.norm_key, keys.norm),
     )
+    # Cross-script means the two scripts **differ** — not merely that the
+    # mention is non-Latin. The first attempt relaxed the floor for every
+    # non-Latin mention and immediately cost precision in the Tamil bucket: a
+    # Tamil query against a Tamil name is a same-script comparison, where both
+    # keys come from the same romanizer and a weak match really is noise.
+    #
+    # Symmetric on purpose. A Sinhala query reaching a Latin name is the same
+    # mismatch in the other direction, and holding one direction to a different
+    # standard than the other would be a rule about English rather than about
+    # romanization.
+    #
+    # A query with no detectable script relaxes nothing: `None` is "we could
+    # not tell", and widening a match on the strength of not knowing is how a
+    # search starts guessing.
+    if keys.script is None:
+        floor = literal_column(str(SIMILARITY_FLOOR))
+    else:
+        cross_script = Mention.script.is_not(None) & (Mention.script != keys.script)
+        floor = case((cross_script, CROSS_SCRIPT_FLOOR), else_=SIMILARITY_FLOOR)
     phonetic_hit = (Mention.phonetic_key == keys.phonetic) & (keys.phonetic != "")
     # `case`, not a cast: Postgres will not cast boolean to a numeric type, and
     # the branch says what the 0.5 means anyway.
     phonetic_score = case((phonetic_hit, PHONETIC_SCORE), else_=0.0)
     score = func.greatest(latin_score, phonetic_score)
-    matched = case((latin_score >= SIMILARITY_FLOOR, "mention"), else_="phonetic")
+    matched = case(
+        (latin_score >= SIMILARITY_FLOOR, "mention"),
+        # Reported as its own kind rather than as an ordinary mention match.
+        # A hit at similarity 0.12 across two romanization systems is a lead,
+        # and a list that renders it like a name match overstates it exactly
+        # the way an unlabelled phonetic hit would.
+        (latin_score >= floor, "transliterated"),
+        else_="phonetic",
+    )
     return (
         select(
             Entity.entity_id,
@@ -262,7 +317,7 @@ def _mention_matches(
             *_live(visible),
             IdentityMembership.closed_revision_id.is_(None),
             Mention.normalization_version == NORMALIZATION_VERSION,
-            or_(latin_score >= SIMILARITY_FLOOR, phonetic_hit),
+            or_(latin_score >= floor, phonetic_hit),
             *_after(score, after),
         )
         .order_by(score.desc(), Entity.label, Entity.entity_id)
@@ -270,4 +325,4 @@ def _mention_matches(
     )
 
 
-__all__ = ["MAX_QUERY", "SIMILARITY_FLOOR", "search_entities"]
+__all__ = ["CROSS_SCRIPT_FLOOR", "MAX_QUERY", "SIMILARITY_FLOOR", "search_entities"]

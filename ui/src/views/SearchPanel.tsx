@@ -204,6 +204,7 @@ const MATCHED_LABELS: Record<string, string> = {
   label: "name",
   alias: "alias",
   mention: "mentioned as",
+  transliterated: "romanized as",
   phonetic: "sounds like",
   identifier: "exact match",
   excerpt: "in the excerpt",
@@ -211,11 +212,22 @@ const MATCHED_LABELS: Record<string, string> = {
   text: "in the text",
 };
 
+/**
+ * Matches that are a lead rather than an answer, drawn dashed so the list does
+ * not present them as equally strong evidence.
+ *
+ * `transliterated` joins `phonetic` here because it is the same kind of claim:
+ * a Latin query reached a name written in another script through two different
+ * romanization systems, at a similarity the same-script floor would reject
+ * outright (T68 measured 6 of 8 such names found, and 2 not found at all).
+ */
+const WEAK = new Set(["phonetic", "transliterated"]);
+
 function MatchedBy({ matched }: { matched: string }) {
   const label = MATCHED_LABELS[matched] ?? matched;
   return (
     <span
-      className={`chip chip--match${matched === "phonetic" ? " chip--weak" : ""}`}
+      className={`chip chip--match${WEAK.has(matched) ? " chip--weak" : ""}`}
       data-testid={`matched-${matched}`}
     >
       {label}

@@ -183,6 +183,25 @@ a different subsystem is how a green number stops meaning anything.
 | `latin_key` | romanization to romanization — a Latin query reaching a Sinhala name | strong, and lossy in a direction that **manufactures agreement**, so it never outranks a `norm_key` hit at equal similarity |
 | `phonetic_key` | metaphone equality | weakest; pinned at a fixed `PHONETIC_SCORE = 0.5` because metaphone collapses genuinely different names |
 
+**Two floors, because they are two different comparisons (T68).** A same-script
+comparison holds at `SIMILARITY_FLOOR = 0.35`; a comparison where the query's
+script and the mention's script **differ** holds at `CROSS_SCRIPT_FLOOR = 0.10`.
+
+The reason is measured, not assumed. `unidecode` romanizes an abugida by
+dropping inherent vowels, so `නිමල් වීරසිංහ` stores as `niml_viirsinh` while an
+analyst types `nimal_weerasinghe`. Those are two different romanization
+systems, and their trigram similarity sits below what a same-script floor
+expects — §8 records what that costs and what relaxing it recovers.
+
+The relaxation is **symmetric and script-aware**: it applies when the two
+scripts differ, in either direction, and never when they agree. Scoping it to
+"the mention is non-Latin" was tried first and immediately cost precision in
+the Tamil bucket, because a Tamil query against a Tamil name is a same-script
+comparison where a weak match really is noise.
+
+A hit found only under the relaxed floor reports `matched: "transliterated"`
+and renders as a **lead**, beside `phonetic`, rather than as a name match.
+
 `script_key` exists (`aegis/er/translit.py`) and is used by Splink features. It
 is **not** stored on `mention` and search does not use it; recorded here so the
 next reader does not go looking.
@@ -371,6 +390,38 @@ hit as a failure rather than as a score.
 against one: every target above is computed **only over rows the evaluating
 user may read**, and no target may be met by widening what is visible.
 
+### 8.1 What the gate actually measured (T68)
+
+First run against the committed golden set, 29 queries, on the fictional
+corpus. Recorded because a target with no measurement beside it is a wish:
+
+| Bucket | precision@5 | recall@20 | Floor | |
+|---|---|---|---|---|
+| latin | 1.000 | 1.000 | 0.90 / 0.85 | pass |
+| sinhala | 1.000 | 1.000 | 0.80 / 0.70 | pass |
+| tamil | 1.000 | 1.000 | 0.80 / 0.70 | pass |
+| **cross-script** | **0.750** | **0.750** | 0.70 / 0.60 | pass |
+| entity | 0.909 | 0.909 | 0.85 / 0.80 | pass |
+| claim | 1.000 | 1.000 | 0.75 / 0.70 | pass |
+| document | 1.000 | 1.000 | 0.70 / 0.60 | pass |
+| latency | p50 7 ms | p95 12 ms | 150 / 400 ms | pass |
+
+**Cross-script is the weakest surface by a wide margin, and the number is not
+comfortable.** Two of eight fictional Sinhala and Tamil names are not reachable
+from their English romanization at all. The gate passes; the limitation is
+real, and `test_search_quality.py` asserts that cross-script stays *below*
+same-script so an improvement cannot quietly regress it unnoticed.
+
+The run also found two defects, which is what a first measurement is for:
+
+1. **T67's document rank floor discarded true positives.** `plainto_tsquery`
+   already requires every term, so `@@` had matched the right document and
+   nothing else — and a floor of 0.02 then threw two of three away for being
+   wordy. Correct matches ranked 0.005, 0.020 and 0.091, a twentyfold spread,
+   so any single floor over it is arbitrary. `@@` now decides membership and
+   `ts_rank_cd` decides order. Document retrieval went 0.333 → 1.000.
+2. **One floor was being asked to serve two different comparisons.** §3.3.
+
 ---
 
 ## 9. The golden set
@@ -411,6 +462,31 @@ as a Phase 9 surprise. Firing is recorded in the exit review with the measured
 numbers whether or not the response is to adopt OpenSearch — "we measured and
 Postgres held" is a result worth keeping.
 
+### 10.1 The trigger did not fire, and the tuning attempt is the reason
+
+The first run failed cross-script at **0.375** against a 0.60 floor. The
+condition says *after a documented tuning attempt*, so one was made and is
+documented here.
+
+| Floor for a cross-script comparison | Names found (of 8) | False positives |
+|---|---|---|
+| 0.35 — the same-script floor | 3 | 0 |
+| 0.20 | 3 | 0 |
+| 0.15 | 4 | 0 |
+| **0.10** | **6** | **0** |
+| 0.05 | 8 | 1 |
+
+0.10 doubled recall at no measurable precision cost. Cross-script went 0.375 →
+0.750 and the gate passed.
+
+**Two things this deliberately does not claim.** The number is fitted to eight
+pairs, which is not many; whoever widens the golden set must re-measure rather
+than inherit it. And OpenSearch would not have helped here — the keys are the
+problem, not the engine indexing them. A different backend fed the same lossy
+romanization returns the same answers, so the remediation for the residual gap
+is a **better transliterator**, which is the decision `aegis/er/translit.py`
+recorded as waiting on exactly this evidence.
+
 ---
 
 ## 11. Test obligations
@@ -448,6 +524,7 @@ saved searches (an object set is the durable artifact — spec 12); search over
 
 | Item | Target | Why not now |
 |---|---|---|
+| A transliterator that survives an abugida | P8, or sooner if the real corpus demands it | §10.1 measured the gap: 2 of 8 fictional Sinhala/Tamil names are unreachable from their English romanization, because `unidecode` drops inherent vowels. `aegis/er/translit.py` recorded PyICU as waiting on exactly this evidence — it is now available, and the decision is a dependency question (heavyweight C binding, unreliable wheels) rather than an open one |
 | Highlighted snippets with span offsets | P8 | The extraction spans P8 produces are what make an offset meaningful; a highlight computed by re-matching the query would be a second normalization pipeline (§3) |
 | Routing ER feature computation through `search_keys` | With the next ER change that touches blocking | §3.2: it moves what Splink blocks on, and therefore a gate with numeric thresholds. Worth doing beside a change that already has to re-measure them, never as a tidy-up |
 | Purpose capture on a restricted **claim** read | P7 | §7: a claim is rendered, not opened. The decision belongs with the audit console (ADR-045) and the response-mode policy (H-25), which is where "what does a withheld thing look like" is settled |

@@ -518,6 +518,109 @@ def projections_rebuild(
         typer.echo(f"  wrote {path}")
 
 
+@search_app.command("evaluate")
+def search_evaluate(
+    golden_set: Path = typer.Option(
+        None,
+        "--golden-set",
+        help="Fictional aegis.search-golden/v1 JSON (default: the T68 set).",
+    ),
+    output: Path = typer.Option(
+        None,
+        "--output",
+        help="Machine-readable report path (default: output/search-evaluation.json).",
+    ),
+    keep: bool = typer.Option(
+        False,
+        "--keep",
+        help="Commit the seeded corpus instead of rolling it back.",
+    ),
+) -> None:
+    """Measure search against the targets defined at phase start (T68, H-22).
+
+    Seeds the golden corpus, runs the **real** search path over it, and scores
+    the answers against `aegis/search/targets.py`. The seed is rolled back
+    unless `--keep`: a quality gate that leaves fixtures behind in whatever
+    database it was pointed at is a gate people stop running.
+    """
+    import json
+
+    from aegis.api.auth import UserContext
+    from aegis.config import get_settings
+    from aegis.ontology import load
+    from aegis.search.evaluation import evaluate
+    from aegis.search.quality import DEFAULT_GOLDEN_SET, DEFAULT_REPORT, QualityError
+    from aegis.store import get_sessionmaker
+
+    golden_path = golden_set if golden_set is not None else DEFAULT_GOLDEN_SET
+    output_path = output if output is not None else DEFAULT_REPORT
+
+    settings = get_settings()
+    ontology_path = Path(settings.ontology_path)
+    ontology = load(
+        ontology_path if ontology_path.is_absolute() else REPO_ROOT / ontology_path
+    )
+    # Evaluated as an ordinary cleared analyst, never as a superuser: every
+    # target is computed over one authorized view, so a number can never be
+    # met by widening what is visible (spec 11 §8).
+    user = UserContext(
+        sub="user:search-evaluation",
+        username="search-evaluation",
+        roles=frozenset({"analyst"}),
+        clearance=len(ontology.handling_codes) - 1,
+        claims={},
+    )
+
+    try:
+        with get_sessionmaker()() as session:
+            report = evaluate(
+                session, user=user, ontology=ontology, path=golden_path
+            )
+            if keep:
+                session.commit()
+            else:
+                session.rollback()
+    except QualityError as exc:
+        typer.secho(f"search evaluation failed: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(
+        json.dumps(report.to_dict(), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    typer.echo(f"search evaluation over {report.query_count} queries:")
+    for label, bucket in (("script", report.by_script), ("resource", report.by_resource)):
+        for name, scores in sorted(bucket.items()):
+            typer.echo(
+                f"  {label} {name:<14} p@5={scores['precision_at_5']:.3f} "
+                f"r@20={scores['recall_at_20']:.3f} "
+                f"({int(scores['queries'])} queries)"
+            )
+    typer.echo(
+        f"  latency p50={report.latency_p50_ms:.0f} ms "
+        f"p95={report.latency_p95_ms:.0f} ms"
+    )
+    typer.echo(f"  report: {output_path}")
+
+    if not report.passed:
+        for failure in report.failures:
+            typer.secho(f"  ! {failure}", fg=typer.colors.RED, err=True)
+        typer.secho("SEARCH QUALITY GATE FAILED", fg=typer.colors.RED, err=True)
+        typer.secho(
+            "  This is the ADR-012 trigger condition. Remediation lands inside",
+            fg=typer.colors.YELLOW,
+            err=True,
+        )
+        typer.secho(
+            "  this phase, before its gate (H-22, spec 11 §10) — not later.",
+            fg=typer.colors.YELLOW,
+            err=True,
+        )
+        raise typer.Exit(code=1)
+    typer.secho("SEARCH QUALITY GATE PASSED", fg=typer.colors.GREEN)
+
 @search_app.command("check-index")
 def search_check_index() -> None:
     """Fail when any stored key was produced by an older pipeline (ADR-052).

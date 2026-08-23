@@ -1,5 +1,5 @@
 # Aegis dev workflow (speckit T1/T2). Run from repo root.
-.PHONY: up down nuke bootstrap ps logs install test test-fast test-integration test-mvp test-er-evaluation test-system test-coverage lint-ontology ontology-generate ui-install ui-build ui-test openapi check-contract
+.PHONY: up down nuke bootstrap ps logs install test test-fast test-integration test-mvp test-er-evaluation test-search-quality test-system test-coverage lint-ontology ontology-generate ui-install ui-build ui-test openapi check-contract
 
 ENVFILE := $(wildcard .env)
 COMPOSE = docker compose $(if $(ENVFILE),--env-file $(ENVFILE)) -f infra/docker-compose.yml
@@ -44,6 +44,12 @@ test-integration:
 
 test-mvp:          ## deterministic offline ingest → review → accept → projection smoke (T25)
 	$(PYTEST) -q tests/integration/test_mvp_fixture.py
+
+test-search-quality:   ## blocking search precision/recall/latency gates + report (T68)
+	# The gate runs as tests, not through `aegis search evaluate`: the CLI reads
+	# AEGIS_DATABASE_URL while this suite migrates its own test database. The
+	# report lands in output/ either way, written by the fixture.
+	$(PYTEST) -q tests/unit/test_search_quality_math.py tests/integration/test_search_quality.py
 
 test-er-evaluation:    ## blocking precision/recall/review-load gates + report (T26)
 	uv run aegis identity evaluate --output output/er-evaluation.json

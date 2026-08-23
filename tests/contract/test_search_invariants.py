@@ -83,7 +83,20 @@ def test_the_module_list_matches_what_is_actually_there() -> None:
     present = {
         path.name
         for path in SEARCH_PACKAGE.glob("*.py")
-        if path.name not in {"__init__.py", "pipeline.py", "results.py", "service.py", "targets.py"}
+        # Not backends: none of these generates a candidate query of its own.
+        # `service` merges and pages, `pipeline` and `results` are pure
+        # functions, `targets` and `quality` are the numbers and the
+        # arithmetic, and `evaluation` seeds a fixture and calls `search()` —
+        # so it inherits the rule rather than needing its own.
+        if path.name not in {
+            "__init__.py",
+            "evaluation.py",
+            "pipeline.py",
+            "quality.py",
+            "results.py",
+            "service.py",
+            "targets.py",
+        }
     }
     assert present == set(CANDIDATE_MODULES), (
         "a search backend was added or removed; add it to CANDIDATE_MODULES "
