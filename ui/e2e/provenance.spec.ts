@@ -184,11 +184,16 @@ test("a search below the minimum length does not query", async ({ page }) => {
   await signedInGraph(page);
 
   let calls = 0;
-  await page.route("**/v1/search/entities**", (route) => {
+  // The pattern has to match the route that exists, or the assertion below
+  // passes because nothing was ever intercepted rather than because nothing
+  // was ever requested. T67 renamed it (`/v1/search/entities` -> `/v1/search`,
+  // ADR-050), and this counter is exactly the kind of check that would have
+  // gone green while proving nothing.
+  await page.route("**/v1/search**", (route) => {
     calls += 1;
     return route.fulfill({
       contentType: "application/json",
-      body: JSON.stringify({ query: "f", results: [], next_cursor: null }),
+      body: JSON.stringify({ query: "f", groups: [], next_cursor: null }),
     });
   });
 

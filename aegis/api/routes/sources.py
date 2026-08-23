@@ -93,12 +93,42 @@ def get_source_record(
     ontology: OntologyDep,
     auth: AuthContext = Depends(authorize()),
 ) -> SourceRecord:
+    """One record's provenance envelope. Opening a restricted one needs a purpose.
+
+    Purpose is captured **here, at the open**, not at the search that found it
+    (spec 11 §7). Requiring a reason to type a name trains users to supply a
+    meaningless one, and the audit value is in knowing why a *specific*
+    restricted record was read.
+
+    "Restricted" means any handling code above the least restrictive one the
+    ontology declares — an index, not a name, so a deployment that renames its
+    ladder keeps the rule (Article XIV).
+    """
     record = session.get(SourceRecord, record_id)
     # handling floor applies to provenance too (no existence leaks)
     if record is None or record.handling_code not in allowed_handling_codes(
         ontology, auth.user.clearance
     ):
         raise HTTPException(404, "not found")
+
+    if ontology.handling_rank(record.handling_code) > 0:
+        if not auth.purpose or not auth.purpose.strip():
+            # 422 and not 403: the caller is permitted, the request is
+            # incomplete. A 403 here would also be a weaker signal about
+            # whether the record exists than the 404 above already gives.
+            raise HTTPException(
+                422, "a purpose query parameter is required to open a restricted record"
+            )
+        append_audit(
+            session,
+            actor=auth.user.sub,
+            action=f"read:source-record:{record.handling_code}",
+            decision="allow",
+            purpose=auth.purpose,
+            resource_type="source_record",
+            resource_id=record.record_id,
+        )
+        session.commit()
     return record
 
 

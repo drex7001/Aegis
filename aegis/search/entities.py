@@ -1,4 +1,4 @@
-"""Entity search over names, aliases and mention keys (spec 06 §2.1, T23c).
+"""Entity search over names, aliases and mention keys (spec 11 §2.1, T23c/T67).
 
 **Authorization is applied in candidate generation, not in hydration**
 (ADR-012, B-17). That is the whole shape of this module: an entity carries no
@@ -12,11 +12,17 @@ Cross-script matching reads the stored ``latin_key``/``phonetic_key``
 (ADR-035). ``norm_key`` preserves non-Latin script deliberately, so it can
 match a romanization to a romanization and never a Latin query to a Sinhala
 name; the stored keys are what can.
+
+T67 changed three things and no behaviour a user would notice: keys come from
+the one versioned pipeline (:mod:`aegis.search.pipeline`) rather than three
+direct calls, mention rows at an older pipeline version are excluded from the
+scan (ADR-052), and hits are the shared :class:`SearchHit` so entities, claims
+and documents land in one ranked sequence rather than three.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from datetime import datetime
 
 from sqlalchemy import (
     and_,
@@ -33,9 +39,9 @@ from sqlalchemy.orm import Session
 
 from aegis.api.auth import UserContext
 from aegis.authz.filters import claim_filters
-from aegis.er.normalize import norm_key
-from aegis.er.translit import latin_key, phonetic_key
 from aegis.ontology import Ontology
+from aegis.search.pipeline import NORMALIZATION_VERSION, SearchKeys
+from aegis.search.results import SearchHit
 from aegis.store import Claim, Entity, IdentityMembership, Mention
 
 #: Below this, a trigram match is noise. Postgres' own default is 0.3; this is
@@ -56,22 +62,12 @@ ALIAS_PREDICATE = "aliases"
 MAX_QUERY = 200
 
 
-@dataclass(frozen=True, slots=True)
-class EntityHit:
-    entity_id: str
-    label: str
-    entity_type: str
-    #: Best trigram similarity across every field that matched, 0–1. Reported
-    #: so a caller can see *how* close a hit is rather than only its rank.
-    score: float
-    #: Which surface matched — `label`, `alias`, `mention` or `phonetic`. A
-    #: phonetic hit is a much weaker claim than a name hit, and a list that
-    #: does not say so invites a reader to treat them alike.
-    matched: str
-
-
 def _visible_entity_ids(
-    session: Session, user: UserContext, ontology: Ontology
+    session: Session,
+    user: UserContext,
+    ontology: Ontology,
+    *,
+    as_of: datetime | None = None,
 ) -> Select[tuple[str]]:
     """Entities the caller can reach through at least one readable claim.
 
@@ -80,7 +76,7 @@ def _visible_entity_ids(
     only through restricted claims is absent from the scan rather than removed
     from its result.
     """
-    filters = claim_filters(session, user, ontology)
+    filters = claim_filters(session, user, ontology, as_of=as_of)
     subject = select(Claim.subject_id.label("entity_id")).where(*filters)
     obj = select(Claim.object_id.label("entity_id")).where(
         Claim.object_id.is_not(None), *filters
@@ -91,62 +87,54 @@ def _visible_entity_ids(
 def search_entities(
     session: Session,
     *,
-    query: str,
+    keys: SearchKeys,
     user: UserContext,
     ontology: Ontology,
-    limit: int = 20,
+    limit: int,
+    as_of: datetime | None = None,
     after: tuple[float, str, str] | None = None,
-) -> list[EntityHit]:
+) -> list[SearchHit]:
     """Rank entities against a free-text query.
 
     Every branch below is scoped by the same visibility subquery, so widening
     the search can never widen what a caller may see.
     """
-    text = query.strip()[:MAX_QUERY]
+    text = keys.text.strip()[:MAX_QUERY]
     if not text:
         return []
 
-    visible = _visible_entity_ids(session, user, ontology)
-    filters = claim_filters(session, user, ontology)
-    keys = {
-        "norm": norm_key(text),
-        "latin": latin_key(text),
-        "phonetic": phonetic_key(text),
-    }
+    visible = _visible_entity_ids(session, user, ontology, as_of=as_of)
+    filters = claim_filters(session, user, ontology, as_of=as_of)
 
-    hits: dict[str, EntityHit] = {}
+    hits: dict[str, SearchHit] = {}
     branch_limit = max(limit * 3, limit + 1)
     for row in session.execute(_label_matches(text, visible, branch_limit, after)):
-        _record(hits, row.entity_id, row.label, row.entity_type, float(row.score), "label")
+        _record(hits, row, "label")
     for row in session.execute(
         _alias_matches(text, visible, filters, branch_limit, after)
     ):
-        _record(hits, row.entity_id, row.label, row.entity_type, float(row.score), "alias")
+        _record(hits, row, "alias")
     for row in session.execute(_mention_matches(keys, visible, branch_limit, after)):
-        _record(
-            hits, row.entity_id, row.label, row.entity_type, float(row.score), row.matched
-        )
-
-    ranked = sorted(hits.values(), key=lambda hit: (-hit.score, hit.label, hit.entity_id))
-    return ranked[:limit]
+        _record(hits, row, row.matched)
+    return list(hits.values())
 
 
-def _record(
-    hits: dict[str, EntityHit],
-    entity_id: str,
-    label: str,
-    entity_type: str,
-    score: float,
-    matched: str,
-) -> None:
+def _record(hits: dict[str, SearchHit], row, matched: str) -> None:
     """Keep the strongest evidence for each entity, not the first found."""
-    current = hits.get(entity_id)
+    score = float(row.score)
+    current = hits.get(row.entity_id)
     if current is not None and current.score >= score:
         return
-    hits[entity_id] = EntityHit(
-        entity_id=entity_id,
-        label=label,
-        entity_type=entity_type,
+    hits[row.entity_id] = SearchHit(
+        kind="entity",
+        id=row.entity_id,
+        # The group *is* the ontology type. Nothing here enumerates types, so a
+        # new domain module's objects are searchable and grouped the day they
+        # are declared (Article XIV).
+        group=row.entity_type,
+        label=row.label,
+        detail=None,
+        parent_id=None,
         score=score,
         matched=matched,
     )
@@ -229,7 +217,7 @@ def _alias_matches(
 
 
 def _mention_matches(
-    keys: dict[str, str],
+    keys: SearchKeys,
     visible: Select[tuple[str]],
     limit: int,
     after: tuple[float, str, str] | None,
@@ -241,12 +229,17 @@ def _mention_matches(
     deliberately modest 0.5. Metaphone collapses genuinely different names, so
     letting a phonetic hit outrank a real name match would be the search
     telling a confident lie.
+
+    Rows stamped with an older pipeline version are excluded rather than
+    compared (ADR-052): a key produced by different rules is not comparable to
+    one produced by these, and comparing them anyway is how a reindex people
+    forgot becomes silent under-retrieval.
     """
     latin_score = func.greatest(
-        func.similarity(Mention.latin_key, keys["latin"]),
-        func.similarity(Mention.norm_key, keys["norm"]),
+        func.similarity(Mention.latin_key, keys.latin),
+        func.similarity(Mention.norm_key, keys.norm),
     )
-    phonetic_hit = (Mention.phonetic_key == keys["phonetic"]) & (keys["phonetic"] != "")
+    phonetic_hit = (Mention.phonetic_key == keys.phonetic) & (keys.phonetic != "")
     # `case`, not a cast: Postgres will not cast boolean to a numeric type, and
     # the branch says what the 0.5 means anyway.
     phonetic_score = case((phonetic_hit, PHONETIC_SCORE), else_=0.0)
@@ -268,6 +261,7 @@ def _mention_matches(
         .where(
             *_live(visible),
             IdentityMembership.closed_revision_id.is_(None),
+            Mention.normalization_version == NORMALIZATION_VERSION,
             or_(latin_score >= SIMILARITY_FLOOR, phonetic_hit),
             *_after(score, after),
         )
@@ -276,4 +270,4 @@ def _mention_matches(
     )
 
 
-__all__ = ["EntityHit", "SIMILARITY_FLOOR", "search_entities"]
+__all__ = ["MAX_QUERY", "SIMILARITY_FLOOR", "search_entities"]

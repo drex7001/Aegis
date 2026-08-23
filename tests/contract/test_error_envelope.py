@@ -195,9 +195,17 @@ def test_a_renamed_operation_is_breaking(document: dict) -> None:
 
 
 def test_a_removed_operation_is_breaking(document: dict) -> None:
+    """Removing a route is breaking — which is why T67 declared it (ADR-050).
+
+    This case used to pop `/v1/search`, the route T67 removed. The
+    replacement is `/v1/search`, and the point of the test is unchanged: a
+    disappearing operation must be reported, so `BREAKING API CHANGE` in a
+    commit message is a decision somebody made rather than an accident CI
+    failed to notice.
+    """
     changed = copy.deepcopy(document)
-    changed["paths"].pop("/v1/search/entities")
-    assert any("searchEntities" in line for line in compare(document, changed).breaking)
+    changed["paths"].pop("/v1/search")
+    assert any("search" in line for line in compare(document, changed).breaking)
 
 
 def test_a_moved_operation_is_breaking(document: dict) -> None:
@@ -226,7 +234,7 @@ def test_a_new_required_parameter_is_breaking(document: dict) -> None:
 
 def test_a_parameter_becoming_required_is_breaking(document: dict) -> None:
     changed = copy.deepcopy(document)
-    for parameter in changed["paths"]["/v1/search/entities"]["get"]["parameters"]:
+    for parameter in changed["paths"]["/v1/search"]["get"]["parameters"]:
         parameter["required"] = True
     diff = compare(document, changed)
     assert any("became required" in line for line in diff.breaking)
@@ -234,7 +242,7 @@ def test_a_parameter_becoming_required_is_breaking(document: dict) -> None:
 
 def test_a_removed_parameter_is_breaking(document: dict) -> None:
     changed = copy.deepcopy(document)
-    changed["paths"]["/v1/search/entities"]["get"]["parameters"] = []
+    changed["paths"]["/v1/search"]["get"]["parameters"] = []
     assert any("parameter" in line and "removed" in line for line in compare(document, changed).breaking)
 
 

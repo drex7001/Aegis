@@ -99,7 +99,7 @@ the thing Article III exists to prevent.
 | `content_hash` | the hash of the **text**, so a rebuild is verifiable |
 | `text` | the extracted text, `tsvector`-indexed |
 | `handling_code` | **copied from the record**, so the row filters like the record |
-| `case_id` | copied from the record's recording scope; `NULL` for the general pool |
+| *(no `case_id`)* | **`source_record` carries no case scope.** Records live in the general pool and are filtered by handling code alone (spec 06 §2.3). Deriving a scope by aggregating a record's claims would over-restrict (take the max) or leak (take NULL) for any record cited by more than one case, so the column does not exist rather than existing and always being NULL |
 | `normalization_version` | §3.4 |
 | `built_at` | Article XIII stamp |
 
@@ -123,26 +123,57 @@ Rules:
 
 ### 3.1 The stages, in order
 
-| Stage | What it does | Why it is not something else |
-|---|---|---|
-| 1. Unicode normalization | NFKC | Gives canonically equivalent sequences one form. NFKD would decompose the Sinhala and Tamil vowel signs this corpus depends on |
-| 2. Format-character removal | strips `Cf` (zero-width joiner/non-joiner, bidi marks) | Invisible, inconsistently present in pasted web text, and not letters |
-| 3. Separator collapse | `collapse_separators` — anything that is not a letter, mark or digit becomes one space | Keeps `Mn`/`Mc` marks, which `\w` drops. A naive `[^\w]+` mangles exactly the two scripts the corpus needs |
-| 4. Case folding | lowercase | — |
-| 5. Key generation | `norm_key` (script preserved), `latin_key` (romanized), `phonetic_key` (metaphone) | Three keys, three different claims about similarity. §3.3 |
+Corrected against the code on 2026-08-23. The first draft of this section
+described a pipeline that does not exist — it said stage 1 was NFKC and that
+diacritics are never stripped, and `norm_key` does neither. A spec that
+misdescribes a shipped function is worse than no spec, so what follows is what
+the code does, and the one change T67 makes to it is marked.
 
-**Diacritics are not stripped.** H-22 is explicit and so is this spec:
-wholesale diacritic removal collapses distinct Sinhala and Tamil names rather
-than normalizing equivalent encodings. Any future proposal to strip must arrive
-with labelled evidence from the golden set (§9) showing recall gained exceeds
-precision lost, and must be recorded as an ADR.
+| # | Stage | What actually happens | Why |
+|---|---|---|---|
+| 1 | Decompose | NFKD (`norm_key`); NFKC (`script_key`, Splink only) | `norm_key` needs marks *separable* so stage 2 can act on them; `script_key` compares Sinhala to Sinhala and must not separate them |
+| 2 | **Fold Latin diacritics** | a combining mark is dropped **only when the character it follows is ASCII** — `José` → `jose` | Latin diacritics in this corpus are transliteration noise, and folding keeps `norm_key` identical to the prototype's `slugify` on ASCII, so keys written by the Phase-1 migration still match |
+| 3 | **Preserve non-Latin marks** | `Mn`/`Mc` following a non-ASCII base are kept | In Sinhala and Tamil these are **vowel signs that carry meaning**. This is the half of H-22 that matters |
+| 4 | Case fold | lowercase | — |
+| 5 | Collapse separators | every run of non-letter, non-mark, non-digit characters becomes one `_` | `\w` excludes `Mn`/`Mc`, so a naive `[^\w]+` replaces every Sinhala and Tamil vowel sign with an underscore — mangling exactly the scripts the key exists to preserve |
+| 6 | **Ignore format characters** (T67) | `Cf` — ZWJ, ZWNJ, bidi marks — is **removed**, not treated as a separator | Today a zero-width joiner inside a Sinhala word becomes `_` and **splits the token**, so the same name pasted from two web pages produces two keys. This is the one behavioural change T67 makes, and it is why `NORMALIZATION_VERSION` exists (§3.4) |
+| 7 | Empty result | `u_<sha256(text)[:16]>` rather than a shared literal | The prototype returned the string `"unknown"`, so every unkeyable mention collided; a digest blocks with itself and nothing else |
+
+**Sinhala and Tamil diacritics are never stripped.** H-22 is explicit, and so
+is stage 3: wholesale removal collapses distinct names rather than normalizing
+equivalent encodings. Any proposal to strip them must arrive with labelled
+evidence from the golden set (§9) showing recall gained exceeds precision lost,
+and must be recorded as an ADR.
+
+**Latin diacritics are folded, deliberately**, and the two rules are not in
+tension: stage 2 folds a mark whose base is ASCII, stage 3 keeps one whose base
+is not. Saying "diacritics are not stripped" without that distinction would
+describe neither the code nor what H-22 asks for.
 
 ### 3.2 Applied identically at write and query time
 
-The same function, from the same module, at both ends. A test asserts this
-structurally rather than by inspection: the query path and the index builder
-must call the same named entry point, and
-`tests/contract/test_normalization_pipeline.py` fails if either grows its own.
+The same function, from the same module, at both ends.
+`tests/contract/test_search_invariants.py` asserts it structurally rather than
+by inspection: only `pipeline.py` may call `norm_key`, `latin_key` or
+`phonetic_key`, and there is a non-vacuity check that `pipeline.py` actually
+does — a rule nobody satisfies would pass a rule nobody breaks.
+
+**Where the boundary is, and what sits outside it.** `search_keys` is the entry
+point for anything that **writes or reads a stored key**: the mention writer
+(`aegis/er/mentions.py`), the document projection builder, and every search
+query. Three other places compute keys and are deliberately *not* routed
+through it:
+
+| Outside | Why | The risk, stated |
+|---|---|---|
+| `aegis/er/features.py` | Splink comparison values, computed in memory from `raw_text` for one scoring run. They are never stored and never queried against | A name carrying a format character produces a feature that differs from the stored key. Narrow today — the golden set has none — and it moves ER's numeric gate, so it is a change with its own evidence requirement, not a tidy-up |
+| `aegis/er/evaluation.py` | The ER golden-set harness, deliberately database-free (spec 05) | Same |
+| `resolve_norm_key` (`aegis/er/ledger.py`) | Compares a **producer-supplied node id** against `mention.norm_key`. The producer computes its own slug; the two already "agree for ASCII names" and no more, which `mentions.py` has said since T17 | A producer id containing a format character stops resolving. Narrow — producers emit slugs — but it is the one place the boundary can bite, and it is written down rather than discovered |
+
+Routing ER through the pipeline is the obviously tidier end state. It is not
+done here because it changes what Splink blocks on, which moves a gate with
+numeric thresholds (spec 05 §6) — and moving a quality gate inside a task about
+a different subsystem is how a green number stops meaning anything.
 
 ### 3.3 Three keys, three different claims
 
@@ -215,9 +246,20 @@ existence, position or count reaches the response.
 
 ### 5.1 Grouping
 
-The response is groups, each with `type`, `label` (from the ontology) and
+The response is groups, each with `group`, `label` (from the ontology) and
 `hits`. Empty groups are **omitted**, never returned with an empty list — a
 present group with no hits is a count of zero, which §4.2 just refused to give.
+
+**Groups are how a page is displayed, never how it is fetched.** Corrected
+during T67: the first draft of §5.3 said "limit ≤ 50 *per group*", which implies
+a limit and therefore a cursor per group — and several independent cursors are
+the pagination-gap surface §4.2 says is closed. A caller advancing them
+separately would see gaps exactly where restricted rows were removed.
+
+So every backend is asked for the same over-fetch, the results merge into **one**
+ranked sequence, the page is cut, and only then is the page split into groups.
+One total order over one keyset cursor has no gaps to leave, because a row the
+filters excluded was never in the sequence.
 
 ### 5.2 No totals
 
@@ -230,8 +272,8 @@ cannot reintroduce one quietly.
 | Limit | Value | Reason |
 |---|---|---|
 | `q` | ≤ 200 chars | already `MAX_QUERY` |
-| `limit` | ≤ 50 per group | already the entity route's clamp |
-| groups per response | ≤ 12 | a response is a page, not a corpus dump |
+| `limit` | ≤ 50 **per page**, across all groups | already the entity route's clamp; per-group would mean per-group cursors (§5.1) |
+| groups per response | *(none)* | Corrected during T67. The draft capped it at 12 and truncated **after** the page was cut and after `next_cursor` was computed, so a page spanning more groups than the cap would drop hits the cursor had already passed — invisibly, on this page and the next. **Latent rather than live**: the composition declares 11 groups today, so two more object types would have made it real. A page of N hits cannot produce more than N groups, so the page limit is the only bound needed |
 | statement timeout | 3 000 ms | per request, so a pathological trigram query fails as `503` rather than holding a connection |
 
 Ordering is `(score desc, label asc, id asc)` — total and stable, so a cursor
@@ -265,10 +307,25 @@ audit row (Article X). Capture is at **open**, not at search: requiring a
 purpose to type a name trains users to supply a meaningless one, and the audit
 value is in knowing why a specific restricted record was read.
 
-The purpose travels as a request field on the detail read, is validated by the
-existing `required_text_is_substantive` criterion, and is written to
-`audit_log` with the record identifier. A missing purpose on a sensitive open
-is a `422`, never a silent default.
+The purpose travels as a `purpose` query parameter on the detail read and is
+written to `audit_log` with the record identifier. A missing or blank purpose is
+a **`422`, never a silent default** — 422 and not 403 because the caller is
+permitted and the *request* is incomplete, and because a 403 here would say
+something different about existence than the 404 a caller above their clearance
+already gets.
+
+**Which reads this applies to, and why not all of them.** T67 implements it on
+`GET /v1/source-records/{id}` — the document open, which is the surface search
+newly exposes. It is deliberately **not** applied to claim reads. Opening a
+record is a discrete act with a moment; a claim is rendered as one row among
+dozens on an object view, and requiring a purpose there would either block the
+page or capture one meaningless purpose for forty claims. Extending capture to
+claim-level reads is a governance decision that belongs with the audit console
+and the response-mode policy (§12, ADR-045, H-25).
+
+"Above `open`" is an **index, not a name**: any handling code ranking above the
+first one the ontology declares. A deployment that renames its ladder keeps the
+rule (Article XIV).
 
 ---
 
@@ -369,7 +426,9 @@ Postgres held" is a result worth keeping.
 | Query-time and write-time normalization call the same entry point | contract |
 | A stored key at an older `NORMALIZATION_VERSION` fails `aegis search check-index` | integration |
 | NFC and NFD spellings of one name score identically | unit |
-| Stripping diacritics from the golden set **lowers** the score — the regression fixture that keeps §3.1 honest | unit |
+| Stripping **Sinhala/Tamil** marks from the golden set **lowers** the score — the regression fixture that keeps §3.1 stage 3 honest | unit |
+| A zero-width joiner inside a name produces the **same** key as the name without it (§3.1 stage 6) | unit |
+| `José` and `Jose` produce the same `norm_key`, and a Sinhala vowel sign is **not** folded — the two halves of the diacritic rule, asserted together | unit |
 | An identifier near-miss returns nothing | unit + integration |
 | Golden-set precision, recall and latency meet §8 | integration, in CI |
 | Result groups enumerate `ontology.object_types`, not a literal list | contract |
@@ -390,4 +449,6 @@ saved searches (an object set is the durable artifact — spec 12); search over
 | Item | Target | Why not now |
 |---|---|---|
 | Highlighted snippets with span offsets | P8 | The extraction spans P8 produces are what make an offset meaningful; a highlight computed by re-matching the query would be a second normalization pipeline (§3) |
+| Routing ER feature computation through `search_keys` | With the next ER change that touches blocking | §3.2: it moves what Splink blocks on, and therefore a gate with numeric thresholds. Worth doing beside a change that already has to re-measure them, never as a tidy-up |
+| Purpose capture on a restricted **claim** read | P7 | §7: a claim is rendered, not opened. The decision belongs with the audit console (ADR-045) and the response-mode policy (H-25), which is where "what does a withheld thing look like" is settled |
 | Search over evidence-item text | P7 | Evidence is custody-governed and its read path is `can_view` on the item, not `claim_filters`. Folding it into one route would put two authorization models behind one query, which is §0 S2's whole objection |

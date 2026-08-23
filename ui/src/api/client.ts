@@ -55,7 +55,8 @@ export type EntityCase = components["schemas"]["EntityCaseOut"];
  */
 export type ClaimProvenance = components["schemas"]["ClaimProvenanceOut"];
 export type SearchResults = components["schemas"]["SearchResultsOut"];
-export type EntityHit = components["schemas"]["EntityHitOut"];
+export type SearchGroup = components["schemas"]["SearchGroupOut"];
+export type SearchHit = components["schemas"]["SearchHitOut"];
 export type ProjectionRebuild = components["schemas"]["ProjectionRebuildOut"];
 
 /**
@@ -441,13 +442,24 @@ export async function listEntityCases(entityId: string): Promise<EntityCase[]> {
   );
 }
 
-export async function searchEntities(
+/**
+ * One search across entities, claims and documents (ADR-050).
+ *
+ * There is one route, one ranked page and one cursor. Groups are how the page
+ * is displayed, never how it is fetched: per-group cursors would leave
+ * informative gaps where restricted rows were removed (B-17, spec 11 §5.1), so
+ * nothing here may paginate a group on its own.
+ *
+ * The response carries no total, in any group or at the top level. A count
+ * over an authorization-filtered collection is an existence leak.
+ */
+export async function search(
   q: string,
-  limit = 10,
-  cursor?: string,
+  options: { limit?: number; cursor?: string; types?: string[] } = {},
 ): Promise<SearchResults> {
+  const { limit = 10, cursor, types } = options;
   return unwrap(
-    await api.GET("/v1/search/entities", { params: { query: { q, limit, cursor } } }),
+    await api.GET("/v1/search", { params: { query: { q, limit, cursor, types } } }),
   );
 }
 

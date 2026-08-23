@@ -28,8 +28,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from aegis.ids import new_id
-from aegis.er.normalize import detect_script, norm_key
-from aegis.er.translit import latin_key, phonetic_key
+from aegis.search.pipeline import search_keys
 from aegis.store import Mention, SourceRecord
 
 #: Characters of surrounding text kept with each mention, for the reviewer and
@@ -108,8 +107,13 @@ def extract_mentions(
         if span is None:
             unverified.append(name)
         start, end = span if span is not None else (None, None)
-        key = norm_key(name)
-        found = existing.get((key, start))
+        # One entry point for write and query alike (ADR-052). Three direct
+        # calls to three key functions is the arrangement that let the two
+        # ends drift apart in the first place, and the version stamp below
+        # is what makes a future divergence a red build rather than silent
+        # under-retrieval.
+        keys = search_keys(name)
+        found = existing.get((keys.norm, start))
         if found is not None:
             by_ref[ref] = found
             reused.append(found)
@@ -120,15 +124,16 @@ def extract_mentions(
             # As the source writes it when we could find it; as the producer
             # reported it when we could not.
             raw_text=text[start:end] if span is not None else name,
-            norm_key=key,
+            norm_key=keys.norm,
             # Written here, once, rather than recomputed per ER run (ADR-035).
             # Keyed off the same string `raw_text` records, so the stored keys
             # and a freshly computed one can never disagree about the input.
-            latin_key=latin_key(name),
-            phonetic_key=phonetic_key(name),
+            latin_key=keys.latin,
+            phonetic_key=keys.phonetic,
+            normalization_version=keys.version,
             char_start=start,
             char_end=end,
-            script=detect_script(name),
+            script=keys.script,
             # Language is deliberately left unset.  There is no language
             # detector here, and a Latin-script name in this corpus is as
             # likely to be romanized Sinhala or Tamil as English — guessing
@@ -138,7 +143,7 @@ def extract_mentions(
             context=_context(text, start, end) if span is not None else None,
         )
         session.add(row)
-        existing[(key, start)] = row  # two refs may name the same span
+        existing[(keys.norm, start)] = row  # two refs may name the same span
         by_ref[ref] = row
         created.append(row)
 

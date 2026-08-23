@@ -174,25 +174,50 @@ export const WHY_CONNECTED = {
   ],
 };
 
+/**
+ * One ranked page, displayed as groups (ADR-050).
+ *
+ * The shape matters as much as the contents: there is **no total**, in any
+ * group or at the top level, because a count over an authorization-filtered
+ * collection is an existence leak. A stub that added one would let the panel
+ * pass a test the real route would fail.
+ */
 export const SEARCH_RESULTS = {
   query: "fictional",
   next_cursor: null,
-  results: [
+  stamp: {
+    as_of: null,
+    identity_revision_id: 7,
+    ontology_version: "2.1.0",
+  },
+  groups: [
     {
-      entity_id: ENTITY_B,
-      label: "Fictional B",
-      entity_type: "person",
-      score: 0.92,
-      matched: "label",
-    },
-    {
-      // A phonetic hit: scored low and labelled, because metaphone collapses
-      // genuinely different names.
-      entity_id: "ent_fictional_c",
-      label: "Fictional Sea",
-      entity_type: "person",
-      score: 0.5,
-      matched: "phonetic",
+      group: "person",
+      label: "Person",
+      hits: [
+        {
+          kind: "entity",
+          id: ENTITY_B,
+          group: "person",
+          label: "Fictional B",
+          detail: null,
+          parent_id: null,
+          score: 0.92,
+          matched: "label",
+        },
+        {
+          // A phonetic hit: scored low and labelled, because metaphone
+          // collapses genuinely different names.
+          kind: "entity",
+          id: "ent_fictional_c",
+          group: "person",
+          label: "Fictional Sea",
+          detail: null,
+          parent_id: null,
+          score: 0.5,
+          matched: "phonetic",
+        },
+      ],
     },
   ],
 };
@@ -205,7 +230,7 @@ export async function stubProvenanceRoutes(page: Page): Promise<void> {
   await page.route(/\/v1\/entities\/[^/?]+(\?.*)?$/, (route) =>
     route.fulfill({ contentType: "application/json", body: JSON.stringify(ENTITY_DETAIL) }),
   );
-  await page.route("**/v1/search/entities**", (route) =>
+  await page.route("**/v1/search**", (route) =>
     route.fulfill({ contentType: "application/json", body: JSON.stringify(SEARCH_RESULTS) }),
   );
 }

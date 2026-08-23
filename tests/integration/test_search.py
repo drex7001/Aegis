@@ -25,8 +25,7 @@ from aegis.actions import new_id
 from aegis.api import create_app
 from aegis.api.auth import OIDCAuthenticator
 from aegis.er.ledger import active_revision_id, open_membership
-from aegis.er.translit import latin_key, phonetic_key
-from aegis.er.normalize import norm_key
+from aegis.search.pipeline import search_keys
 from aegis.store import (
     CaseFile,
     CaseMember,
@@ -104,16 +103,26 @@ def engine(search_db: str) -> sa.Engine:
     return sa.create_engine(search_db)
 
 
-def _mention(session: Session, record_id: str, text: str) -> str:
+def _mention(session: Session, record_id: str, text: str, *, version: str | None = None) -> str:
+    """A mention with keys from the one pipeline, stamped with its version.
+
+    The stamp is not decoration. A row at an older version is **excluded** from
+    the scan (ADR-052), so a fixture writing keys directly would model a stale
+    index and quietly test the wrong thing. `version` is overridable so one
+    test can model exactly that, on purpose.
+    """
     mention_id = new_id("men")
+    keys = search_keys(text)
     session.add(
         Mention(
             mention_id=mention_id,
             record_id=record_id,
             raw_text=text,
-            norm_key=norm_key(text),
-            latin_key=latin_key(text),
-            phonetic_key=phonetic_key(text),
+            norm_key=keys.norm,
+            latin_key=keys.latin,
+            phonetic_key=keys.phonetic,
+            script=keys.script,
+            normalization_version=version if version is not None else keys.version,
         )
     )
     return mention_id
@@ -209,10 +218,21 @@ def world(engine: sa.Engine):
         session.close()
 
 
-def _search(client, headers, q: str, **params) -> list[dict]:
-    response = client.get("/v1/search/entities", params={"q": q, **params}, headers=headers)
+def _page(client, headers, q: str, **params) -> dict:
+    response = client.get("/v1/search", params={"q": q, **params}, headers=headers)
     assert response.status_code == 200, response.text
-    return response.json()["results"]
+    return response.json()
+
+
+def _search(client, headers, q: str, **params) -> list[dict]:
+    """Every hit on the page, flattened.
+
+    Flattening is a convenience for the assertions below, not the shape of the
+    answer: groups are how the page is *displayed*, and there is one cursor
+    over one ranked sequence (spec 11 §5.1). The tests that care about grouping
+    read `_page` directly.
+    """
+    return [hit for group in _page(client, headers, q, **params)["groups"] for hit in group["hits"]]
 
 
 def test_a_name_is_found_by_its_label(client, world) -> None:
@@ -220,7 +240,7 @@ def test_a_name_is_found_by_its_label(client, world) -> None:
     # "Fictional", and a trigram search that hid those near-neighbours would
     # not be a fuzzy search. What matters is that the exact name wins.
     hits = _search(client, ANALYST, "Fictional CHARLIE")
-    assert hits[0]["entity_id"] == world["entity_open"]
+    assert hits[0]["id"] == world["entity_open"]
     assert hits[0]["matched"] == "label"
     assert hits[0]["score"] > 0.9
 
@@ -228,12 +248,12 @@ def test_a_name_is_found_by_its_label(client, world) -> None:
 def test_a_near_miss_still_finds_the_entity(client, world) -> None:
     """Trigram, not equality — an analyst who mistypes should still land."""
     hits = _search(client, ANALYST, "Fictional CHARLE")
-    assert world["entity_open"] in [hit["entity_id"] for hit in hits]
+    assert world["entity_open"] in [hit["id"] for hit in hits]
 
 
 def test_an_alias_finds_the_entity_and_says_so(client, world) -> None:
     hits = _search(client, ANALYST, "Charlie the Younger")
-    match = next(hit for hit in hits if hit["entity_id"] == world["entity_open"])
+    match = next(hit for hit in hits if hit["id"] == world["entity_open"])
     assert match["matched"] == "alias"
 
 
@@ -245,7 +265,7 @@ def test_a_romanized_query_finds_a_name_written_in_sinhala(client, world) -> Non
     null, the test is not testing what it claims.
     """
     hits = _search(client, ANALYST, ROMANIZED)
-    assert world["entity_sinhala"] in [hit["entity_id"] for hit in hits]
+    assert world["entity_sinhala"] in [hit["id"] for hit in hits]
 
 
 def test_the_sinhala_mention_actually_carries_its_keys(client, world) -> None:
@@ -262,7 +282,7 @@ def test_the_sinhala_mention_actually_carries_its_keys(client, world) -> None:
 
 def test_a_query_in_sinhala_finds_it_too(client, world) -> None:
     hits = _search(client, ANALYST, SINHALA_NAME)
-    assert world["entity_sinhala"] in [hit["entity_id"] for hit in hits]
+    assert world["entity_sinhala"] in [hit["id"] for hit in hits]
 
 
 def test_an_entity_above_clearance_is_absent_not_ranked_last(client, world) -> None:
@@ -272,16 +292,16 @@ def test_an_entity_above_clearance_is_absent_not_ranked_last(client, world) -> N
     must never have been a candidate, so the *count* carries no signal either.
     """
     cleared = _search(client, ANALYST, "Fictional DELTA")
-    assert world["entity_restricted"] in [hit["entity_id"] for hit in cleared]
+    assert world["entity_restricted"] in [hit["id"] for hit in cleared]
 
     junior = _search(client, LOW_CLEARANCE, "Fictional DELTA")
-    assert world["entity_restricted"] not in [hit["entity_id"] for hit in junior]
+    assert world["entity_restricted"] not in [hit["id"] for hit in junior]
 
 
 def test_clearance_does_not_change_what_is_otherwise_visible(client, world) -> None:
     """The filter is scoped to what is restricted, not a blanket narrowing."""
     junior = _search(client, LOW_CLEARANCE, "Fictional CHARLIE")
-    assert world["entity_open"] in [hit["entity_id"] for hit in junior]
+    assert world["entity_open"] in [hit["id"] for hit in junior]
 
 
 def test_an_entity_with_no_readable_claim_is_unreachable(client, world) -> None:
@@ -297,7 +317,7 @@ def test_an_entity_with_no_readable_claim_is_unreachable(client, world) -> None:
         session.add(Entity(entity_id=orphan, entity_type="person", label="Fictional ECHO"))
 
     hits = _search(client, ANALYST, "Fictional ECHO")
-    assert orphan not in [hit["entity_id"] for hit in hits]
+    assert orphan not in [hit["id"] for hit in hits]
 
 
 def test_a_tombstoned_entity_is_not_a_search_hit(client, world) -> None:
@@ -308,7 +328,7 @@ def test_a_tombstoned_entity_is_not_a_search_hit(client, world) -> None:
         entity.tombstoned_at = datetime.now(timezone.utc)
 
     hits = _search(client, ANALYST, "Fictional CHARLIE")
-    assert world["entity_open"] not in [hit["entity_id"] for hit in hits]
+    assert world["entity_open"] not in [hit["id"] for hit in hits]
 
 
 def test_a_case_scoped_entity_is_invisible_to_a_non_member(client, world) -> None:
@@ -336,13 +356,13 @@ def test_a_case_scoped_entity_is_invisible_to_a_non_member(client, world) -> Non
         _claim(session, scoped, world["record"], "open", case_id=case_id)
 
     outsider = _search(client, ANALYST, "Fictional FOXTROT")
-    assert scoped not in [hit["entity_id"] for hit in outsider]
+    assert scoped not in [hit["id"] for hit in outsider]
 
     with session.begin():
         session.add(CaseMember(case_id=case_id, user_id="user:analyst", role="member"))
 
     member = _search(client, ANALYST, "Fictional FOXTROT")
-    assert scoped in [hit["entity_id"] for hit in member], (
+    assert scoped in [hit["id"] for hit in member], (
         "joining the case makes its entities findable"
     )
 
@@ -357,12 +377,12 @@ def test_an_empty_query_returns_nothing_rather_than_everything(client, world) ->
 
 
 def test_search_requires_authentication(client, world) -> None:
-    assert client.get("/v1/search/entities", params={"q": "anything"}).status_code == 401
+    assert client.get("/v1/search", params={"q": "anything"}).status_code == 401
 
 
 def test_the_query_length_is_bounded(client, world) -> None:
     response = client.get(
-        "/v1/search/entities", params={"q": "x" * 500}, headers=ANALYST
+        "/v1/search", params={"q": "x" * 500}, headers=ANALYST
     )
     assert response.status_code == 422
 

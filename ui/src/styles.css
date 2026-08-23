@@ -1421,11 +1421,18 @@ button:hover {
 }
 
 /*
- * The result list overlays the canvas rather than displacing the toolbar:
- * a search that reflows the page under the cursor loses the graph the reader
- * was orienting against.
+ * The results overlay the canvas rather than displacing the toolbar: a search
+ * that reflows the page under the cursor loses the graph the reader was
+ * orienting against.
+ *
+ * The panel styling lives on the container, not on the lists. T67 split the
+ * results into one `<ul>` per group, and while these rules were still on
+ * `.search__results` that made **every group its own floating panel**, stacked
+ * on top of each other — the top group's rows were unclickable because a lower
+ * group's chip sat over them. Caught by the browser test, which is the only
+ * place a pointer-interception bug is visible at all.
  */
-.search__results {
+.search__panel {
   position: absolute;
   z-index: 3;
   top: calc(100% + 4px);
@@ -1433,13 +1440,16 @@ button:hover {
   right: 0;
   max-height: 320px;
   overflow-y: auto;
-  margin: 0;
-  padding: 0;
-  list-style: none;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 4px;
   box-shadow: 0 6px 18px rgb(28 39 51 / 12%);
+}
+
+.search__results {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .search__hit {
@@ -1462,6 +1472,28 @@ button:hover {
 .search__hit:hover,
 .search__hit:focus-visible {
   background: var(--canvas);
+}
+
+/* A hit with no detail view to open. It carries the same information as a
+   clickable one and deliberately does not pretend to be clickable: an "Open"
+   that goes nowhere is worse than none. */
+.search__hit--passive {
+  cursor: default;
+}
+
+.search__hit--passive:hover {
+  background: none;
+}
+
+/* Group headings come from the ontology, so this styles a name this file does
+   not know (Article XIV). */
+.search__group {
+  margin: 10px 10px 2px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
 }
 
 .search__label {

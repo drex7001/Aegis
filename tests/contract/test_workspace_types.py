@@ -40,7 +40,9 @@ LOCAL_TYPES = {
     "Route",
     "PanelSelection",
     "ProvenancePanelProps",
-    "EntitySearchProps",
+    # Renamed from `EntitySearchProps` at T67, when the panel stopped searching
+    # only entities (ADR-050). A props type, not a payload.
+    "SearchPanelProps",
     "GraphCanvasProps",
     # T45. None of these describes a payload: `Drill` says which drill-down is
     # open, `DrillHandler` is a callback signature, and `Extent`/`TimedClaim`
