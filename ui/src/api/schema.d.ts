@@ -1388,6 +1388,21 @@ export interface components {
             next_cursor?: string | null;
         };
         /**
+         * AnalyticMetricOut
+         * @description A metric a caller may run, and what to call it on screen.
+         *
+         *     **No caveat text here, deliberately.** A caveat reaches a reader from the
+         *     finding row it was written onto, never from a catalog lookup — if the
+         *     workspace could fetch caveats, there would be a render path that fetches
+         *     one, and therefore a render path that can fail to (spec 12 §9.3).
+         */
+        AnalyticMetricOut: {
+            /** Label */
+            label: string;
+            /** Metric */
+            metric: string;
+        };
+        /**
          * AnalyticRunIn
          * @description What to run it over. Omitting the set runs over the whole readable graph.
          */
@@ -2917,6 +2932,8 @@ export interface components {
          * @description Closed vocabularies, served so no client hand-writes them (Article XI).
          */
         OntologyVocabularyOut: {
+            /** Analytic Metrics */
+            analytic_metrics?: components["schemas"]["AnalyticMetricOut"][];
             /** Assertion Types */
             assertion_types: string[];
             /** Handling Codes */

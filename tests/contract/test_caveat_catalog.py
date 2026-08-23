@@ -21,6 +21,7 @@ Three things are proved:
 
 from __future__ import annotations
 
+import json
 import re
 
 import pytest
@@ -178,6 +179,39 @@ def test_degree_denies_the_reading_the_charter_predicted() -> None:
     assert "not a measure of influence" in text
     assert "seniority" in text, "the caveat must name the wrong reading to deny it"
     assert "highest score" in text and "not evidence" in text
+
+
+# ── what the workspace is served ────────────────────────────────────────────
+
+
+def test_the_vocabulary_route_serves_labels_but_never_caveats() -> None:
+    """A caveat reaches a reader from the finding row, never from a lookup.
+
+    If the workspace could fetch caveats there would be a render path that
+    fetches one — and therefore a render path that can fail to. Spec 12 §9.3
+    is a statement about *where the text lives*, not only about whether it
+    exists, so the served vocabulary carries names and labels and nothing else.
+    """
+    document = json.loads(
+        (REPO_ROOT / "ui" / "openapi.json").read_text(encoding="utf-8")
+    )
+    schema = document["components"]["schemas"]["AnalyticMetricOut"]
+    assert set(schema["properties"]) == {"metric", "label"}
+
+
+def test_the_served_labels_are_the_catalog_labels() -> None:
+    """One source. A second list in the route would be a second thing to keep right."""
+    from aegis.api.routes.ontology import get_vocabulary
+
+    source = (REPO_ROOT / "aegis" / "api" / "routes" / "ontology.py").read_text(
+        encoding="utf-8"
+    )
+    assert "CAVEATS" in source, (
+        "the vocabulary route hand-writes metric labels instead of reading the "
+        "catalog — which is where 'most connected' quietly becomes 'most "
+        "important'"
+    )
+    assert "caveat.text" not in source, "the route must not serve caveat text"
 
 
 # ── versioning and lookup ───────────────────────────────────────────────────

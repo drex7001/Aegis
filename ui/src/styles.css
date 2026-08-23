@@ -1914,3 +1914,79 @@ button:hover {
   background: none;
   color: var(--muted);
 }
+
+/* ── findings (T73) ───────────────────────────────────── */
+
+.findings__form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.findings__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.findings__finding {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.findings__value,
+.findings__manifest {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 12px;
+  margin: 6px 0;
+  font-size: 12px;
+}
+
+.findings__value > div,
+.findings__manifest > div {
+  display: contents;
+}
+
+.findings__value dt,
+.findings__manifest dt {
+  color: var(--muted);
+}
+
+.findings__value dd,
+.findings__manifest dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.findings__subjects {
+  margin: 4px 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+}
+
+/*
+ * The caveat, drawn as part of the finding rather than as a footnote.
+ *
+ * Article IX is a rendering obligation, and a disclaimer set in small grey
+ * type below the fold is the visual equivalent of omitting it. This keeps the
+ * body size and takes a rule on the reading edge, so the eye reaches it on the
+ * way past rather than only when looking for it.
+ */
+.findings__caveat {
+  margin: 8px 0 6px;
+  padding-left: 10px;
+  border-left: 3px solid var(--line);
+  font-size: 12px;
+  line-height: 1.5;
+}

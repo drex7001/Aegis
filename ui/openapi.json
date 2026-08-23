@@ -132,6 +132,25 @@
         "title": "AnalyticFindingPageOut",
         "type": "object"
       },
+      "AnalyticMetricOut": {
+        "description": "A metric a caller may run, and what to call it on screen.\n\n**No caveat text here, deliberately.** A caveat reaches a reader from the\nfinding row it was written onto, never from a catalog lookup — if the\nworkspace could fetch caveats, there would be a render path that fetches\none, and therefore a render path that can fail to (spec 12 §9.3).",
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "metric": {
+            "title": "Metric",
+            "type": "string"
+          }
+        },
+        "required": [
+          "metric",
+          "label"
+        ],
+        "title": "AnalyticMetricOut",
+        "type": "object"
+      },
       "AnalyticRunIn": {
         "description": "What to run it over. Omitting the set runs over the whole readable graph.",
         "properties": {
@@ -4202,6 +4221,13 @@
       "OntologyVocabularyOut": {
         "description": "Closed vocabularies, served so no client hand-writes them (Article XI).",
         "properties": {
+          "analytic_metrics": {
+            "items": {
+              "$ref": "#/components/schemas/AnalyticMetricOut"
+            },
+            "title": "Analytic Metrics",
+            "type": "array"
+          },
           "assertion_types": {
             "items": {
               "type": "string"
