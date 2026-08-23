@@ -4,6 +4,55 @@
  */
 
 export interface paths {
+    "/v1/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Alerts
+         * @description Detections, filtered on the alert's own handling rank.
+         *
+         *     Derived from the claims that fired it, so an alert over evidence the caller
+         *     cannot read is **absent** rather than redacted — the alert's whole content
+         *     is "this exact value appeared on this entity", which is the content of the
+         *     claim it came from.
+         */
+        get: operations["listAlerts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/alerts/{alert_id}/triage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Triage
+         * @description `new → reviewing → closed`. Every transition audited; `closed` needs a reason.
+         *
+         *     An alert above the caller's clearance is **404, not 403**: the same rule
+         *     reading one follows, because learning that an alert exists is most of what
+         *     an alert says.
+         */
+        post: operations["triageAlert"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/analytics/{metric}": {
         parameters: {
             query?: never;
@@ -1359,6 +1408,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/watchlists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Watchlists
+         * @description Watchlists this caller owns.
+         *
+         *     Owner-scoped rather than shared: a watchlist runs with its owner's
+         *     clearance, so lending one out would lend the clearance with it. Sharing
+         *     arrives with a grant that says what it means, not by widening a list route.
+         */
+        get: operations["listWatchlists"];
+        put?: never;
+        /**
+         * Create
+         * @description Save a standing question. **Does not evaluate it** (ADR-056).
+         *
+         *     The sweep will run under *this* caller's clearance, snapshotted now, because
+         *     there is no user table to look one up from when the sweep runs offline. It
+         *     therefore cannot exceed what the creator has — but it does not follow them
+         *     down either, which `Watchlist.owner_clearance` states in full.
+         */
+        post: operations["createWatchlist"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1371,6 +1453,23 @@ export interface components {
             } | null;
             /** Note */
             note?: string | null;
+        };
+        /**
+         * AlertTriageIn
+         * @description `new → reviewing → closed`, with a reason required on `closed`.
+         *
+         *     No transition graph beyond that — the same decision spec 09 made for
+         *     investigation tasks, for the same reason: a workflow nobody agreed to is a
+         *     workflow people route around.
+         */
+        AlertTriageIn: {
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "new" | "reviewing" | "closed";
         };
         /**
          * AnalyticFindingOut
@@ -3585,6 +3684,111 @@ export interface components {
             type?: string;
         };
         /**
+         * WatchlistAlertOut
+         * @description One detection (spec 12 §11.2, H-24).
+         *
+         *     Every field H-24 asks for travels with the alert: which rule fired at which
+         *     version, the claims and entity that triggered it, the dedupe key, the
+         *     exactness, and the authority reference seam.
+         */
+        WatchlistAlertOut: {
+            /** Alert Id */
+            alert_id: string;
+            /** Authority Ref */
+            authority_ref?: string | null;
+            /** Claim Ids */
+            claim_ids: string[];
+            /** Closed Reason */
+            closed_reason?: string | null;
+            /** Dedupe Key */
+            dedupe_key: string;
+            /**
+             * Detected At
+             * Format: date-time
+             */
+            detected_at: string;
+            /** Entity Id */
+            entity_id: string;
+            /** Exactness */
+            exactness: string;
+            /** Handling Code */
+            handling_code: string;
+            /** Matched Value */
+            matched_value: string;
+            /** Rule */
+            rule: string;
+            /** Rule Version */
+            rule_version: string;
+            /** Run Id */
+            run_id: string;
+            /** Status */
+            status: string;
+            /** Watchlist Id */
+            watchlist_id: string;
+        };
+        /** WatchlistAlertPageOut */
+        WatchlistAlertPageOut: {
+            /** Items */
+            items: components["schemas"]["WatchlistAlertOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /**
+         * WatchlistIn
+         * @description A set plus a rule (spec 12 §11.1).
+         *
+         *     `set_version` is optional and defaults to the set's latest, but it is
+         *     **pinned** either way: a membership rule that widens later must not
+         *     silently widen a watchlist (ADR-054).
+         */
+        WatchlistIn: {
+            /** Name */
+            name: string;
+            /**
+             * Rule
+             * @default exact_identifier
+             * @constant
+             */
+            rule?: "exact_identifier";
+            /** Set Id */
+            set_id: string;
+            /** Set Version */
+            set_version?: number | null;
+        };
+        /** WatchlistOut */
+        WatchlistOut: {
+            /** Active */
+            active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Evaluated Through */
+            evaluated_through?: string | null;
+            /** Name */
+            name: string;
+            /** Owner */
+            owner: string;
+            /** Rule */
+            rule: string;
+            /** Rule Version */
+            rule_version: string;
+            /** Set Id */
+            set_id: string;
+            /** Set Version */
+            set_version: number;
+            /** Watchlist Id */
+            watchlist_id: string;
+        };
+        /** WatchlistPageOut */
+        WatchlistPageOut: {
+            /** Items */
+            items: components["schemas"]["WatchlistOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /**
          * WhyConnectedOut
          * @description The answer to GOAL.md §18 for one pair of entities.
          */
@@ -3619,6 +3823,144 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listAlerts: {
+        parameters: {
+            query?: {
+                watchlist?: string | null;
+                status?: string | null;
+                limit?: number;
+                cursor?: string | null;
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchlistAlertPageOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Authenticated, but the role gate refused. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    triageAlert: {
+        parameters: {
+            query?: {
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description The alert to move */
+                alert_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AlertTriageIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchlistAlertOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Authenticated, but the role gate refused. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     runAnalytic: {
         parameters: {
             query?: {
@@ -8017,6 +8359,130 @@ export interface operations {
             };
             /** @description No credentials, or a token that does not verify. */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    listWatchlists: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string | null;
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchlistPageOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Authenticated, but the role gate refused. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    createWatchlist: {
+        parameters: {
+            query?: {
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WatchlistIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchlistOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Authenticated, but the role gate refused. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

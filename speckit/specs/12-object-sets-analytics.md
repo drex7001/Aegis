@@ -503,9 +503,33 @@ The set says *what to watch*; the rule says *what counts as a detection*.
 Exact identifiers only. Fuzzy matching is deliberately absent (charter risk
 table) and its absence is asserted, not assumed (§12).
 
-### 11.2 A detection is a typed alert suggestion
+### 11.2 A detection is a typed alert
 
-`suggestion_kind = 'watchlist_hit'`, into the queue that already exists, with:
+> **Corrected at T75 (ADR-060).** This section said `suggestion_kind =
+> 'watchlist_hit'`, "into the queue that already exists". Building it showed
+> that five of the six things an alert needs are things `review_queue` cannot
+> give it: `target_action` is `NOT NULL` and an alert dispatches to nothing;
+> `ck_review_queue_accepted_result` requires exactly one typed result on
+> acceptance and an alert produces none; the status vocabulary is
+> `suggested / accepted / rejected / …` rather than `new / reviewing / closed`;
+> queue visibility is keyed on the **source record's** handling code while an
+> alert's sensitivity comes from the **claims** that fired it — and a
+> `sensitive` claim can sit in an `open` record; and most of the fields below
+> would be used by exactly one kind.
+>
+> The sixth fits: the dedupe key *is* an idempotency key, and the queue's unique
+> constraint would have enforced it. One out of six is not a reason to widen a
+> table whose whole value is meaning one thing.
+>
+> **Article VII is not weakened**, and the reason is the point: it governs
+> machine output reaching *canonical* tables. An alert asserts nothing about the
+> world; the claim it points at arrived through the ordinary governed path
+> already. What H-24 asks for is the queue's **discipline** — typed, deduped,
+> attributable to a rule and a version, triaged by a human, never acted on
+> automatically — and `watchlist_alert` implements exactly that. The table is
+> different because the lifecycle is.
+
+`watchlist_alert`, with:
 
 | Field | Why |
 |---|---|
@@ -515,6 +539,7 @@ table) and its absence is asserted, not assumed (§12).
 | `exactness` | `exact` only, today; the field exists so a future fuzzy rule cannot arrive without declaring itself |
 | `authority_ref` | the collection-policy/legal-basis seam (B-08), nullable now, enforced P7 |
 | `handling_code` | the maximum of the contributing claims, as §8.3 |
+| `run_id` | the sweep that detected it, so every alert has a manifest |
 
 Triage is `new → reviewing → closed`, minimal per GOAL.md §32, with **every
 transition audited** and a required reason on `closed`. There is no transition
@@ -538,6 +563,27 @@ as a gap in the runs, rather than as silence.
   is not an alert. This is the one place a saved artifact runs with its owner's
   clearance rather than the caller's, and it is stated here rather than
   discovered later.
+
+  > **T75.** There is no user table to look a clearance up from — Keycloak holds
+  > it — so a sweep running offline has to carry the number with the watchlist.
+  > `watchlist.owner_clearance` is snapshotted at creation from the creator's
+  > own token, so it can never exceed what they had. It does **not** follow them
+  > down: an owner later narrowed keeps a watchlist that fires at the clearance
+  > it was created with, until it is recreated. That is a real limitation, and
+  > it is written here rather than left to be found in an alert.
+
+- The window boundary comes from the **database's** clock, not the sweeping
+  process's. `claim.recorded_at` is a server default, so a boundary taken from
+  Python is compared against timestamps generated somewhere else, and on any
+  skew a claim recorded moments ago falls outside a window that should contain
+  it. A flaky sweep is worse than a slow one: it looks like the rule not
+  matching.
+
+- The **first** sweep has no watermark, so its window is all of time and it
+  reports where the watched values already are — including on the set's own
+  members. That is the honest answer to "where does this value appear". The
+  alternative, starting silent and reporting only what lands next, would hide
+  everything already in the corpus at the moment somebody starts watching.
 
 ---
 

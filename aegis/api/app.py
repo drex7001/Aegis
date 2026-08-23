@@ -48,6 +48,7 @@ from aegis.api.routes import (
     sets,
     sources,
     tasks,
+    watchlists,
 )
 from aegis.api.routes import claims as claims_routes
 from aegis.api.security import SecurityHeadersMiddleware
@@ -197,6 +198,7 @@ def create_app() -> FastAPI:
         search.router,
         sets.router,
         projections.router,
+        watchlists.router,
         ontology_routes.router,
     ):
         # Every `/v1` route can answer 401 and 429 — the token is checked before

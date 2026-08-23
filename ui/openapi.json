@@ -30,6 +30,36 @@
         "title": "AcceptIn",
         "type": "object"
       },
+      "AlertTriageIn": {
+        "description": "`new → reviewing → closed`, with a reason required on `closed`.\n\nNo transition graph beyond that — the same decision spec 09 made for\ninvestigation tasks, for the same reason: a workflow nobody agreed to is a\nworkflow people route around.",
+        "properties": {
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "status": {
+            "enum": [
+              "new",
+              "reviewing",
+              "closed"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "AlertTriageIn",
+        "type": "object"
+      },
       "AnalyticFindingOut": {
         "description": "One result, carrying the caveat it was issued with (Article IX).\n\n`caveat_text` is stored on the row and returned from it — never looked up\nwhen it renders. There is no render path that fetches a caveat, so there\nis no render path that can fail to (spec 12 §9.3).",
         "properties": {
@@ -5980,6 +6010,263 @@
         "title": "ValidationProblem",
         "type": "object"
       },
+      "WatchlistAlertOut": {
+        "description": "One detection (spec 12 §11.2, H-24).\n\nEvery field H-24 asks for travels with the alert: which rule fired at which\nversion, the claims and entity that triggered it, the dedupe key, the\nexactness, and the authority reference seam.",
+        "properties": {
+          "alert_id": {
+            "title": "Alert Id",
+            "type": "string"
+          },
+          "authority_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authority Ref"
+          },
+          "claim_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Claim Ids",
+            "type": "array"
+          },
+          "closed_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed Reason"
+          },
+          "dedupe_key": {
+            "title": "Dedupe Key",
+            "type": "string"
+          },
+          "detected_at": {
+            "format": "date-time",
+            "title": "Detected At",
+            "type": "string"
+          },
+          "entity_id": {
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "exactness": {
+            "title": "Exactness",
+            "type": "string"
+          },
+          "handling_code": {
+            "title": "Handling Code",
+            "type": "string"
+          },
+          "matched_value": {
+            "title": "Matched Value",
+            "type": "string"
+          },
+          "rule": {
+            "title": "Rule",
+            "type": "string"
+          },
+          "rule_version": {
+            "title": "Rule Version",
+            "type": "string"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "watchlist_id": {
+            "title": "Watchlist Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "alert_id",
+          "watchlist_id",
+          "run_id",
+          "rule",
+          "rule_version",
+          "matched_value",
+          "entity_id",
+          "claim_ids",
+          "dedupe_key",
+          "exactness",
+          "handling_code",
+          "status",
+          "detected_at"
+        ],
+        "title": "WatchlistAlertOut",
+        "type": "object"
+      },
+      "WatchlistAlertPageOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/WatchlistAlertOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "WatchlistAlertPageOut",
+        "type": "object"
+      },
+      "WatchlistIn": {
+        "description": "A set plus a rule (spec 12 §11.1).\n\n`set_version` is optional and defaults to the set's latest, but it is\n**pinned** either way: a membership rule that widens later must not\nsilently widen a watchlist (ADR-054).",
+        "properties": {
+          "name": {
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "rule": {
+            "const": "exact_identifier",
+            "default": "exact_identifier",
+            "title": "Rule",
+            "type": "string"
+          },
+          "set_id": {
+            "title": "Set Id",
+            "type": "string"
+          },
+          "set_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Set Version"
+          }
+        },
+        "required": [
+          "name",
+          "set_id"
+        ],
+        "title": "WatchlistIn",
+        "type": "object"
+      },
+      "WatchlistOut": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "evaluated_through": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evaluated Through"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "owner": {
+            "title": "Owner",
+            "type": "string"
+          },
+          "rule": {
+            "title": "Rule",
+            "type": "string"
+          },
+          "rule_version": {
+            "title": "Rule Version",
+            "type": "string"
+          },
+          "set_id": {
+            "title": "Set Id",
+            "type": "string"
+          },
+          "set_version": {
+            "title": "Set Version",
+            "type": "integer"
+          },
+          "watchlist_id": {
+            "title": "Watchlist Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "watchlist_id",
+          "name",
+          "set_id",
+          "set_version",
+          "rule",
+          "rule_version",
+          "owner",
+          "active",
+          "created_at"
+        ],
+        "title": "WatchlistOut",
+        "type": "object"
+      },
+      "WatchlistPageOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/WatchlistOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "WatchlistPageOut",
+        "type": "object"
+      },
       "WhyConnectedOut": {
         "description": "The answer to GOAL.md §18 for one pair of entities.",
         "properties": {
@@ -6060,6 +6347,271 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/v1/alerts": {
+      "get": {
+        "description": "Detections, filtered on the alert's own handling rank.\n\nDerived from the claims that fired it, so an alert over evidence the caller\ncannot read is **absent** rather than redacted — the alert's whole content\nis \"this exact value appeared on this entity\", which is the content of the\nclaim it came from.",
+        "operationId": "listAlerts",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "watchlist",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Watchlist"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchlistAlertPageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "No credentials, or a token that does not verify."
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Authenticated, but the role gate refused."
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "The body or parameters did not validate."
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Per-caller rate limit exceeded (spec 06 §1.6)."
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Alerts",
+        "tags": [
+          "watchlists"
+        ]
+      }
+    },
+    "/v1/alerts/{alert_id}/triage": {
+      "post": {
+        "description": "`new → reviewing → closed`. Every transition audited; `closed` needs a reason.\n\nAn alert above the caller's clearance is **404, not 403**: the same rule\nreading one follows, because learning that an alert exists is most of what\nan alert says.",
+        "operationId": "triageAlert",
+        "parameters": [
+          {
+            "description": "The alert to move",
+            "in": "path",
+            "name": "alert_id",
+            "required": true,
+            "schema": {
+              "description": "The alert to move",
+              "title": "Alert Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlertTriageIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchlistAlertOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "No credentials, or a token that does not verify."
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Authenticated, but the role gate refused."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4)."
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "The body or parameters did not validate."
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Per-caller rate limit exceeded (spec 06 §1.6)."
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Triage",
+        "tags": [
+          "watchlists"
+        ]
+      }
+    },
     "/v1/analytics/{metric}": {
       "post": {
         "description": "Run a metric and record what it found.\n\nWhen an object set is named, it is **evaluated first under the caller's own\nfilters** and the metric runs over those members — so a shared set drives\nan analytic without lending its owner's clearance, and the evaluation\ndigest that lands in the manifest is the caller's.",
@@ -13823,6 +14375,216 @@
         "summary": "Get Timeline",
         "tags": [
           "geo"
+        ]
+      }
+    },
+    "/v1/watchlists": {
+      "get": {
+        "description": "Watchlists this caller owns.\n\nOwner-scoped rather than shared: a watchlist runs with its owner's\nclearance, so lending one out would lend the clearance with it. Sharing\narrives with a grant that says what it means, not by widening a list route.",
+        "operationId": "listWatchlists",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchlistPageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "No credentials, or a token that does not verify."
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Authenticated, but the role gate refused."
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "The body or parameters did not validate."
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Per-caller rate limit exceeded (spec 06 §1.6)."
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Watchlists",
+        "tags": [
+          "watchlists"
+        ]
+      },
+      "post": {
+        "description": "Save a standing question. **Does not evaluate it** (ADR-056).\n\nThe sweep will run under *this* caller's clearance, snapshotted now, because\nthere is no user table to look one up from when the sweep runs offline. It\ntherefore cannot exceed what the creator has — but it does not follow them\ndown either, which `Watchlist.owner_clearance` states in full.",
+        "operationId": "createWatchlist",
+        "parameters": [
+          {
+            "description": "Reason for access",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for access",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WatchlistIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchlistOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "No credentials, or a token that does not verify."
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Authenticated, but the role gate refused."
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "The body or parameters did not validate."
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Per-caller rate limit exceeded (spec 06 §1.6)."
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create",
+        "tags": [
+          "watchlists"
         ]
       }
     }

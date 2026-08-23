@@ -414,7 +414,8 @@ the kind in code and finding out at insert time — which is exactly how this wa
 found — is the constraint working. The downgrade refuses while any promotion
 row exists, per the rule migration `0013` set.
 
-**T75. Watchlists + alert triage** (specs/12 §11; needs T69) —
+**T75. Watchlists + alert triage** (specs/12 §11; needs T69) — **DONE
+2026-08-24.**
 exact-identifier watchlists built on object sets; a detection is a **typed
 alert suggestion** (`watchlist_hit`) with rule, rule version, inputs, dedupe
 key, exactness and authority ref (H-24); triage `new / reviewing / closed`,
@@ -426,6 +427,49 @@ the next sweep; a fuzzy near-miss does not fire (asserted, not assumed); the
 same identifier landing twice produces one alert; all triage transitions are
 audited and `closed` without a reason is `422`; a re-run over an overlapping
 window is idempotent; an unevaluated window is visible as a gap in the runs.
+
+AC: **met.** An exact identifier landing in canon produces an alert on the next
+sweep; a fuzzy near-miss does not fire (asserted, not assumed — every fixture
+sends one and requires silence); the same identifier landing twice produces one
+alert; all triage transitions are audited and `closed` without a reason is
+refused by the **service and the database**; a re-run over an overlapping window
+is idempotent (proved by rewinding the watermark, so it tests the dedupe key
+rather than the window arithmetic); an unevaluated window is a null watermark on
+the watchlist, read from the runs.
+
+**A detection is not a review-queue suggestion, and spec 12 §11.2 said it was.**
+Building it found five of six things an alert needs that `review_queue` cannot
+give: `target_action` is `NOT NULL` and an alert dispatches to nothing; the
+accepted-result CHECK wants exactly one typed result and an alert produces none;
+the status vocabulary is different; queue visibility keys on the **source
+record's** handling code while an alert's sensitivity comes from the **claims**
+that fired it — and a `sensitive` claim can sit in an `open` record, so reusing
+the queue would have keyed alert visibility on the wrong thing in the direction
+that discloses. Only the dedupe key fit. ADR-060 records the decision; the spec
+is corrected, and Article VII is untouched because an alert reaches no canonical
+table — it points at a claim that arrived through the ordinary path.
+
+**Two bugs the tests found rather than the reader.** The sweep took its window
+boundary from the Python clock while `claim.recorded_at` is a server default, so
+on any skew a claim recorded moments ago fell outside a window that should
+contain it — a flaky sweep, which is worse than a slow one because it looks like
+the rule not matching. It now uses the database's clock. And `owner_clearance`
+was first written onto `ObjectSet` rather than `Watchlist`, because the patch
+anchored on the first `owner:` column in the file; `object_set` inserts started
+failing immediately, which is the NOT NULL constraint doing its job.
+
+**The owner-clearance snapshot is a stated limitation, not a silent one.** There
+is no user table to look a clearance up from — Keycloak holds it — so an offline
+sweep has to carry the number. It is taken from the creator's own token and can
+never exceed it, but it does not follow them down: an owner later narrowed keeps
+a watchlist firing at the clearance it was created with, until it is recreated.
+Written into the model, spec 12 §11.3 and the route docstring.
+
+**The first sweep reports where the watched values already are**, including on
+the set's own members, because its window is all of time. That is the honest
+answer to "where does this value appear"; starting silent would hide everything
+already in the corpus at the moment somebody starts watching. Recorded as its
+own test so the behaviour is a decision rather than an artefact.
 
 **T76. End-to-end proof** (charter exit №4; needs T70, T72, T75) — the owning
 task for the headline criterion, scripted: create a set → share it case-scoped

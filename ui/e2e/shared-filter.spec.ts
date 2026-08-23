@@ -111,6 +111,10 @@ test("the graph sends the event-time window, not the validity one", async ({ pag
   await page.goto("/graph?from=2019-01-01T00:00:00.000Z&to=2019-12-31T00:00:00.000Z");
   await expect(page.getByTestId("graph-time-filter-from")).toHaveValue("2019-01-01");
 
+  // Wait for the request before reading it. The filter rendering its value
+  // does not mean the request describing that value has been made — the same
+  // race that made the as-of test below flaky on a slower machine.
+  await expect.poll(() => bodies.length).toBeGreaterThan(0);
   const body = bodies.at(-1) as Record<string, unknown> | undefined;
   expect(body?.event_from).toBe("2019-01-01T00:00:00.000Z");
   expect(body?.event_to).toBe("2019-12-31T00:00:00.000Z");
@@ -155,16 +159,30 @@ test("as-of composes with the window and reaches all three", async ({ page }) =>
   const url = "?from=2019-01-01T00:00:00.000Z&asOf=2020-06-01T00:00:00.000Z";
   await page.goto(`/map${url}`);
   await expect(page.getByTestId("map-canvas")).toBeVisible();
-  expect(
-    seen.find((u) => u.pathname === "/v1/geo/locations")?.searchParams.get("asOf"),
-  ).toBe("2020-06-01T00:00:00.000Z");
+  // `expect.poll`, not a bare read of `seen`. The canvas becoming visible does
+  // not mean the locations request has landed in the recorder, and on a slower
+  // machine it had not: this failed in CI with `Received: undefined` while
+  // passing everywhere else. A snapshot assertion against an array that another
+  // task is still filling is a race, and re-running until it passes would hide
+  // it rather than fix it.
+  await expect
+    .poll(() =>
+      seen.find((u) => u.pathname === "/v1/geo/locations")?.searchParams.get("asOf"),
+    )
+    .toBe("2020-06-01T00:00:00.000Z");
 
   await page.getByTestId("surface-link-graph").click();
   await expect(page.getByTestId("graph-time-filter-from")).toHaveValue("2019-01-01");
   // The graph half of Phase 4's `?asOf=` carryover: a time-synced map beside a
   // graph that silently answered as-of-now would be exactly the inconsistency
   // this phase set out to remove.
-  expect((bodies.at(-1) as Record<string, unknown>)?.as_of).toBe("2020-06-01T00:00:00.000Z");
+  //
+  // Polled for the same reason as above — `bodies` is filled by a route
+  // handler, and having the filter rendered does not mean the request it
+  // describes has been made yet.
+  await expect
+    .poll(() => (bodies.at(-1) as Record<string, unknown>)?.as_of)
+    .toBe("2020-06-01T00:00:00.000Z");
 });
 
 test("clearing the window returns all three to all time", async ({ page }) => {
