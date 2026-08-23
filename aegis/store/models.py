@@ -1272,6 +1272,13 @@ class AnalyticRun(Base):
         DateTime(timezone=True), nullable=False, server_default=text("now()")
     )
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    #: Watchlist sweeps only: the recorded-at watermark this run reached, so the
+    #: next sweep starts where this one finished. On the **run** rather than on
+    #: the watchlist, so that "a window nobody evaluated is a gap in the runs"
+    #: is literally true rather than a second field that can disagree.
+    evaluated_through: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
 
 
 class AnalyticFinding(Base):
@@ -1325,6 +1332,134 @@ class AnalyticFinding(Base):
     )
 
 
+
+class Watchlist(Base):
+    """A standing question: an object set plus a rule (spec 12 §11.1, ADR-056).
+
+    The **set** says what to watch; the **rule** says what counts as a
+    detection. Exact identifiers only — fuzzy matching is deliberately absent
+    (charter risk table), and `watchlist_alert.exactness` exists so a future
+    fuzzy rule cannot arrive without declaring itself.
+
+    ``owner`` is load-bearing. A sweep evaluates under the **owner's**
+    authorization context, not the caller's — the one place a saved artifact
+    runs with its owner's clearance, because an alert nobody may read is not an
+    alert (spec 12 §11.3). It is a column rather than an inference so that the
+    manifest can record whose view produced the detections.
+
+    ``set_version`` is pinned. A membership rule that widens later must not
+    silently widen a watchlist, which is the same reason a saved analytic pins
+    one (ADR-054).
+    """
+
+    __tablename__ = "watchlist"
+    __table_args__ = (
+        CheckConstraint(
+            "rule IN ('exact_identifier')", name="ck_watchlist_rule"
+        ),
+        Index("ix_watchlist_active", "active"),
+    )
+
+    watchlist_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    set_id: Mapped[str] = mapped_column(ForeignKey("object_set.set_id"), nullable=False)
+    set_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    rule: Mapped[str] = mapped_column(Text, nullable=False)
+    rule_version: Mapped[str] = mapped_column(Text, nullable=False)
+    owner: Mapped[str] = mapped_column(Text, nullable=False)
+    #: The owner's clearance, snapshotted at creation. There is no user table
+    #: to look one up from, so an offline sweep has to carry the number. It is
+    #: taken from the creator's own token and therefore cannot exceed it — but
+    #: it does **not** follow them down: an owner later narrowed keeps a
+    #: watchlist that fires at the clearance it was created with, until it is
+    #: recreated. Stated here rather than discovered from an alert.
+    owner_clearance: Mapped[int] = mapped_column(Integer, nullable=False)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+
+
+class WatchlistAlert(Base):
+    """One detection, awaiting triage (spec 12 §11.2, H-24, ADR-060).
+
+    **Not a review-queue suggestion**, and ADR-060 says why at length: an alert
+    dispatches to no action, produces no typed result on acceptance, uses a
+    different status vocabulary, and takes its sensitivity from the *claims*
+    that triggered it rather than from a source record. The queue keeps one
+    meaning; this table carries the queue's discipline — typed, deduped,
+    attributable to a rule and a version, triaged by a human, never acted on
+    automatically.
+
+    ``dedupe_key`` is `(watchlist_id, rule_version, matched_value, entity_id)`,
+    unique. Idempotence is therefore a property of the **schema** rather than of
+    the sweep remembering what it did last time, so a re-run over an overlapping
+    window cannot produce a second alert even if the watermark is wrong.
+
+    ``handling_code`` is derived from the contributing claims, never chosen —
+    the same rule `analytic_finding` follows, for the same reason: an alert
+    computed from sensitive evidence and stored as ``open`` would be the leak
+    the evaluation path exists to prevent, arriving one level up.
+
+    ``authority_ref`` is the collection-policy / legal-basis seam (B-08). It is
+    nullable today and enforced in P7; the column exists now so the seam is
+    visible rather than retrofitted.
+    """
+
+    __tablename__ = "watchlist_alert"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('new', 'reviewing', 'closed')", name="ck_watchlist_alert_status"
+        ),
+        # Exact only, today. The column is not a formality: a future fuzzy rule
+        # has to write a value here, so it cannot arrive without declaring
+        # itself to every reader of every alert it produces.
+        CheckConstraint(
+            "exactness IN ('exact')", name="ck_watchlist_alert_exactness"
+        ),
+        # Closing without a reason is the failure mode of every triage queue.
+        # Enforced by the database, because a workflow that can be routed
+        # around is not a workflow (spec 09 made the same call for tasks).
+        CheckConstraint(
+            "status <> 'closed' OR (closed_reason IS NOT NULL "
+            "AND length(btrim(closed_reason)) > 0)",
+            name="ck_watchlist_alert_closed_reason",
+        ),
+        UniqueConstraint("dedupe_key", name="uq_watchlist_alert_dedupe"),
+        Index("ix_watchlist_alert_watchlist_status", "watchlist_id", "status"),
+        Index("ix_watchlist_alert_handling", "handling_rank"),
+    )
+
+    alert_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    watchlist_id: Mapped[str] = mapped_column(
+        ForeignKey("watchlist.watchlist_id"), nullable=False
+    )
+    #: The sweep that detected it. A manifest per sweep is what makes an
+    #: unevaluated window a visible gap in the runs rather than silence.
+    run_id: Mapped[str] = mapped_column(ForeignKey("analytic_run.run_id"), nullable=False)
+    rule: Mapped[str] = mapped_column(Text, nullable=False)
+    rule_version: Mapped[str] = mapped_column(Text, nullable=False)
+    #: The identifier value that matched, exactly.
+    matched_value: Mapped[str] = mapped_column(Text, nullable=False)
+    #: The entity the triggering claim is about.
+    entity_id: Mapped[str] = mapped_column(ForeignKey("entity.entity_id"), nullable=False)
+    #: The claims that triggered it — the inputs H-24 asks for, so a reader can
+    #: go and look at what fired rather than trusting the alert.
+    claim_ids: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False)
+    dedupe_key: Mapped[str] = mapped_column(Text, nullable=False)
+    exactness: Mapped[str] = mapped_column(Text, nullable=False)
+    authority_ref: Mapped[str | None] = mapped_column(Text)
+    handling_code: Mapped[str] = mapped_column(Text, nullable=False)
+    handling_rank: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(
+        Text, nullable=False, server_default=text("'new'")
+    )
+    closed_reason: Mapped[str | None] = mapped_column(Text)
+    detected_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+
+
 __all__ = [
     "AnalyticFinding",
     "AnalyticRun",
@@ -1355,4 +1490,6 @@ __all__ = [
     "ReviewQueue",
     "Source",
     "SourceRecord",
+    "Watchlist",
+    "WatchlistAlert",
 ]

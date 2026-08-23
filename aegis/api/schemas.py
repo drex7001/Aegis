@@ -1445,3 +1445,91 @@ class FindingPromotionIn(BaseModel):
     object_id: str | None = None
     object_value: Any = None
     analytic_confidence: str | None = None
+
+
+class WatchlistIn(BaseModel):
+    """A set plus a rule (spec 12 §11.1).
+
+    `set_version` is optional and defaults to the set's latest, but it is
+    **pinned** either way: a membership rule that widens later must not
+    silently widen a watchlist (ADR-054).
+    """
+
+    name: str = Field(min_length=1)
+    set_id: str
+    #: One rule today. Fuzzy matching is deliberately absent, and its absence is
+    #: asserted rather than assumed (charter risk table).
+    rule: Literal["exact_identifier"] = "exact_identifier"
+    set_version: int | None = None
+
+
+class WatchlistOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    watchlist_id: str
+    name: str
+    set_id: str
+    set_version: int
+    rule: str
+    rule_version: str
+    owner: str
+    active: bool
+    created_at: datetime
+    #: The watermark the last sweep reached, or null if it has never been swept.
+    #: Null is a **gap**, not a quiet zero: it says nobody has evaluated this.
+    evaluated_through: datetime | None = None
+
+
+class WatchlistPageOut(BaseModel):
+    items: list[WatchlistOut]
+    next_cursor: str | None = None
+
+
+class WatchlistAlertOut(BaseModel):
+    """One detection (spec 12 §11.2, H-24).
+
+    Every field H-24 asks for travels with the alert: which rule fired at which
+    version, the claims and entity that triggered it, the dedupe key, the
+    exactness, and the authority reference seam.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    alert_id: str
+    watchlist_id: str
+    run_id: str
+    rule: str
+    rule_version: str
+    matched_value: str
+    entity_id: str
+    claim_ids: list[str]
+    dedupe_key: str
+    #: `exact` only, today. The field exists so a future fuzzy rule cannot
+    #: arrive without declaring itself to every reader of every alert.
+    exactness: str
+    #: The collection-policy / legal-basis seam (B-08). Nullable now, enforced
+    #: in P7 — present so the seam is visible rather than retrofitted.
+    authority_ref: str | None = None
+    handling_code: str
+    status: str
+    closed_reason: str | None = None
+    detected_at: datetime
+
+
+class WatchlistAlertPageOut(BaseModel):
+    items: list[WatchlistAlertOut]
+    next_cursor: str | None = None
+
+
+class AlertTriageIn(BaseModel):
+    """`new → reviewing → closed`, with a reason required on `closed`.
+
+    No transition graph beyond that — the same decision spec 09 made for
+    investigation tasks, for the same reason: a workflow nobody agreed to is a
+    workflow people route around.
+    """
+
+    status: Literal["new", "reviewing", "closed"]
+    #: Required when closing. An alert closed with no reason is
+    #: indistinguishable from one nobody looked at.
+    reason: str | None = None

@@ -94,6 +94,15 @@ EXPECTED = {
     # assertion, so it takes a purpose too (spec 12 §10).
     "promoteFinding": ({"analyst"}, True),
     "getFinding": (set(), False),
+    # Watchlists (T75). Creating one saves a standing question and evaluates
+    # nothing — the sweep is `aegis watchlists evaluate` (ADR-056) — so it is
+    # not a recording act and takes no purpose. Triage is a decision about a
+    # detection rather than a read of evidence, and is audited on every
+    # transition whether or not it takes one.
+    "createWatchlist": ({"analyst"}, False),
+    "listWatchlists": ({"analyst"}, False),
+    "listAlerts": ({"analyst"}, False),
+    "triageAlert": ({"analyst"}, False),
     "createObjectSet": ({"analyst", "investigator"}, False),
     "listObjectSets": (set(), False),
     "getObjectSet": (set(), False),

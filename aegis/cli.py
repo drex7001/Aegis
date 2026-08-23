@@ -28,6 +28,9 @@ identity_app = typer.Typer(
 search_app = typer.Typer(
     help="Search index maintenance (spec 11)", no_args_is_help=True
 )
+watchlists_app = typer.Typer(
+    help="Watchlist sweeps (ADR-056: evaluation is explicit)", no_args_is_help=True
+)
 migrate_app = typer.Typer(
     help="One-time, reviewed data transformations", no_args_is_help=True
 )
@@ -40,6 +43,7 @@ app.add_typer(ingest_app, name="ingest")
 app.add_typer(authz_app, name="authz")
 app.add_typer(identity_app, name="identity")
 app.add_typer(search_app, name="search")
+app.add_typer(watchlists_app, name="watchlists")
 app.add_typer(migrate_app, name="migrate")
 
 
@@ -1212,3 +1216,54 @@ def migrate_arrests_to_events(
     if not apply and report.events:
         typer.echo("")
         typer.echo("Re-run with --apply to write.")
+
+
+@watchlists_app.command("evaluate")
+def watchlists_evaluate(
+    watchlist: str = typer.Option(
+        None, "--watchlist", help="Sweep one watchlist instead of every active one."
+    ),
+) -> None:
+    """Sweep watchlists and record what fired (T75, spec 12 §11.3, ADR-056).
+
+    **This is the only thing that fires a watchlist.** There is no write-path
+    hook, on purpose: the side-effect outbox spec 08 §6.5 declares is not
+    executed by anything, and giving one feature a private hook would make the
+    second one harder rather than easier.
+
+    The cost is stated rather than hidden — detection latency is the sweep
+    interval. What it buys is that a window nobody evaluated is a visible gap in
+    ``analytic_run`` rather than silence.
+
+    Each sweep runs under the **watchlist owner's** authorization, not the
+    operator's, because an alert nobody may read is not an alert.
+    """
+    from aegis.config import get_settings
+    from aegis.ontology import load
+    from aegis.store import get_sessionmaker
+    from aegis.watchlists import WatchlistError, sweep
+
+    settings = get_settings()
+    ontology_path = Path(settings.ontology_path)
+    ontology = load(
+        ontology_path if ontology_path.is_absolute() else REPO_ROOT / ontology_path
+    )
+    with get_sessionmaker()() as session:
+        try:
+            results = sweep(session, ontology=ontology, watchlist_id=watchlist)
+        except WatchlistError as exc:
+            typer.secho(str(exc), fg=typer.colors.RED)
+            raise typer.Exit(code=1) from exc
+        session.commit()
+
+        if not results:
+            typer.echo("no active watchlists")
+            return
+        total = 0
+        for run, alerts in results:
+            total += len(alerts)
+            typer.echo(
+                f"{run.parameters['watchlist_id']}: {len(alerts)} new alert(s), "
+                f"evaluated through {run.evaluated_through:%Y-%m-%d %H:%M:%S%z}"
+            )
+        typer.echo(f"{len(results)} sweep(s), {total} new alert(s)")

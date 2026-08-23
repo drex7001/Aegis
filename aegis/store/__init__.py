@@ -35,6 +35,8 @@ from aegis.store.models import (
     ReviewQueue,
     Source,
     SourceRecord,
+    Watchlist,
+    WatchlistAlert,
 )
 
 __all__ = [
@@ -72,6 +74,8 @@ __all__ = [
     "ReviewQueue",
     "Source",
     "SourceRecord",
+    "Watchlist",
+    "WatchlistAlert",
     "get_engine",
     "get_sessionmaker",
 ]

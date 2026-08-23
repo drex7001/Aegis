@@ -2153,3 +2153,67 @@ This does not generalise to machine producers. Their reasoning is their method
 version, which is already in the key; a producer that varied its rationale run
 to run would defeat idempotence rather than express disagreement.
 
+---
+
+## ADR-060: a watchlist alert is not a review-queue suggestion
+
+**Context.** Spec 12 §11.2 and spec 06 §2.9 both say a detection is
+`suggestion_kind = 'watchlist_hit'` "in the queue that already exists". H-24
+asks for detections to be **typed alert suggestions** rather than facts, and the
+review queue is where typed machine output goes.
+
+T75 tried to build it there. Five of the six things an alert needs are things
+the queue cannot give it:
+
+1. `review_queue.target_action` is `NOT NULL`, and every kind maps to a dispatch
+   branch. **An alert dispatches to nothing** — accepting one writes no claim,
+   no entity, no relation. It would need a sentinel action that does nothing,
+   which is a lie in a `NOT NULL` column.
+2. `ck_review_queue_accepted_result` requires **exactly one typed result** on
+   acceptance. An alert produces none. Admitting it means a fifth result column
+   that is not a result, or a per-kind hole in the check that currently makes
+   "acceptance wrote exactly one kind of thing" verifiable by the database.
+3. The status vocabulary is `suggested / accepted / rejected / superseded /
+   expired`. Triage is `new / reviewing / closed`. Two vocabularies in one
+   column, or a second status column used by one kind.
+4. Queue visibility is keyed on **`source_record.handling_code`**. An alert's
+   sensitivity comes from the **claims** that triggered it, and a `sensitive`
+   claim can sit in an `open` record. Reusing the queue would give alerts a
+   visibility rule keyed on the wrong thing — quietly, and in the direction that
+   discloses.
+5. `watchlist_id`, `rule`, `rule_version`, `matched_value`, `entity_id`,
+   `exactness`, `authority_ref` and a per-row handling code are eight fields
+   used by exactly one kind.
+
+The sixth fits well: the dedupe key is an idempotency key, and
+`uq_review_queue_idempotency_key` would have enforced it.
+
+**Decision.** `watchlist` and `watchlist_alert` are their own tables. The queue
+keeps one meaning.
+
+**This does not weaken Article VII**, and the reason matters. Article VII
+governs machine output reaching **canonical tables**. An alert is not canonical
+data: it asserts nothing about the world, and the claim it points at arrived
+through the ordinary governed path already. It is a pointer at evidence,
+produced by a rule the user wrote themselves.
+
+What H-24 is really asking for is the queue's **discipline** — typed, deduped,
+attributable to a rule and a version, triaged by a human, never acted on
+automatically. That discipline is what `watchlist_alert` implements. The table
+is different because the lifecycle is different, which is the same reasoning
+ADR-058 used to keep a finding out of `claim_relation`.
+
+**Consequences.** `GET /v1/alerts` filters on the alert's own `handling_rank`,
+derived from the contributing claims exactly as a finding's is — one comparison
+rather than a join back through the record. Dedupe is
+`uq_watchlist_alert_dedupe` over `(watchlist_id, rule_version, matched_value,
+entity_id)`, so a re-run over an overlapping window is idempotent by
+construction rather than by the sweep remembering what it did.
+
+`closed` requires a reason at the **database**, not in a handler:
+`ck_watchlist_alert_closed_reason`. A workflow that can be routed around is not
+a workflow, and spec 09 made the same call for investigation tasks.
+
+**Revisit when** a second non-canonical machine output needs triage. Two of them
+is an abstraction; one of them is this table.
+
