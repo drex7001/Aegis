@@ -3085,6 +3085,32 @@
             "title": "Edges",
             "type": "integer"
           },
+          "geometry_builder_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Geometry Builder Version"
+          },
+          "geometry_invalid": {
+            "default": 0,
+            "title": "Geometry Invalid",
+            "type": "integer"
+          },
+          "geometry_rejected": {
+            "default": 0,
+            "title": "Geometry Rejected",
+            "type": "integer"
+          },
+          "geometry_rows": {
+            "default": 0,
+            "title": "Geometry Rows",
+            "type": "integer"
+          },
           "map_resolved": {
             "title": "Map Resolved",
             "type": "integer"
@@ -8494,7 +8520,7 @@
     },
     "/v1/projections/rebuild": {
       "post": {
-        "description": "Rebuild the edge projection from canonical claims.\n\nAudited as an operator action (Article X). The report is returned rather\nthan a bare 204 because \"it rebuilt\" is not the useful answer — how many\nendpoints were resolved through a mention anchor versus the canonical map\nis a live measure of how reversible the graph currently is.",
+        "description": "Rebuild the edge and geometry projections from canonical claims.\n\nAudited as an operator action (Article X). The report is returned rather\nthan a bare 204 because \"it rebuilt\" is not the useful answer — how many\nendpoints were resolved through a mention anchor versus the canonical map\nis a live measure of how reversible the graph currently is.",
         "operationId": "rebuildProjections",
         "parameters": [
           {

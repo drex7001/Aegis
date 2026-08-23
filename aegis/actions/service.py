@@ -24,6 +24,7 @@ from aegis.actions.criteria import CriterionInput, evaluate as evaluate_criteria
 from aegis.ids import new_id
 from aegis.audit import append as append_audit
 from aegis.config import get_settings
+from aegis.geo import GeoValueError, parse_geo_value
 from aegis.er.adjudication import (
     ADJUDICATION_MODES,
     AdjudicationError,
@@ -41,6 +42,7 @@ from aegis.er.ledger import (
     open_membership,
 )
 from aegis.ontology import ActionSpec, KNOWN_ROLES, Ontology, OntologyError, load
+from aegis.ontology.shapes import GEO_PROPERTY_TYPE
 from aegis.store import (
     AuthzOutbox,
     CaseFile,
@@ -282,6 +284,30 @@ class ActionService:
                 f"grading.{dimension}.{value}", f"not declared (expected one of {allowed})"
             )
 
+    def _typed_literal(self, predicate: str, spec: Any, value: Any) -> None:
+        """Validate a literal value against the property type its predicate declares.
+
+        Only `geo` is checked, and deliberately so: it is the one property type
+        whose values have a structure the store must refuse rather than merely
+        render badly (spec 10 §4.3). Text and identifiers are what the source
+        said, and narrowing them here would be the system deciding it knows
+        better than the document.
+
+        Which predicate carries a geometry is asked of the ontology, never
+        hardcoded — the rule is "declares a property of type `geo`" (ADR-047),
+        so a second domain gets this validation by declaring a type that
+        implements `place` (Article XIV).
+        """
+        if spec.property_name is None:
+            return
+        types = {prop.type for prop in self.ontology.property_specs_for(predicate)}
+        if types != {GEO_PROPERTY_TYPE}:
+            return
+        try:
+            parse_geo_value(value)
+        except GeoValueError as exc:
+            raise ActionValidationError(f"claim.{exc.field}", exc.message) from exc
+
     def _entity(self, entity_id: str, path: str) -> Entity:
         if not entity_id:
             # e.g. an extraction draft whose entity reference was never resolved
@@ -400,6 +426,7 @@ class ActionService:
                 raise ActionValidationError(
                     f"predicates.{predicate}.object", "requires an entity object_id"
                 )
+            self._typed_literal(predicate, predicate_spec, object_value)
         else:
             if not predicate_spec.allows_entity:
                 raise ActionValidationError(
