@@ -51,6 +51,7 @@ from aegis.ontology.shapes import (
     participation_predicates,
 )
 from aegis.store import (
+    AnalyticFinding,
     AuthzOutbox,
     CaseFile,
     CaseMember,
@@ -100,6 +101,12 @@ SUGGESTION_KINDS: dict[str, str] = {
     # dispatches to `record_claim`, so Article VII holds for events with no new
     # mechanism: the reviewer is the actor, and the producer never writes canon.
     "event_draft": "record_event",
+    # T74. A finding is a machine's reading of what was written down; a claim
+    # is somebody's assertion about the world. Promotion crosses that line, so
+    # it crosses it the way every other machine output does — as a suggestion
+    # a human decides on. Article VII is not relaxed because the producer
+    # happens to be deterministic (spec 12 §10).
+    "finding_promotion": "record_claim",
 }
 SUGGESTION_SCHEMA_VERSION = 1
 
@@ -1328,6 +1335,49 @@ class ActionService:
                     "review_queue.payload", f"invalid claim draft: {exc}"
                 ) from exc
             row.result_claim_id = claim.claim_id
+            return claim.case_id
+        if row.suggestion_kind == "finding_promotion":
+            # Through `record_claim`, exactly as `claim_draft` does — the queue
+            # must not be a way around the validation a direct call gets.
+            self._validate_suggestion_payload(draft)
+            if draft.get("assertion_type") != "assessed":
+                raise ActionValidationError(
+                    "review_queue.payload.assertion_type",
+                    "a promoted finding is an assessment, so the claim it produces must be `assessed` (spec 12 §10)",
+                )
+            finding_id = (row.producer_meta or {}).get("finding_id")
+            finding = (
+                self.session.get(AnalyticFinding, finding_id) if finding_id else None
+            )
+            if finding is None:
+                raise ActionValidationError(
+                    "review_queue.producer_meta.finding_id",
+                    "a finding promotion must name the finding it came from",
+                )
+            if finding.promoted_claim_id is not None:
+                # One finding, one assessed claim. Two would read as two
+                # independent assessments of the same computation, which is
+                # exactly the double-counting Article IX guards against.
+                raise ActionValidationError(
+                    "analytic_finding.promoted_claim_id",
+                    f"finding {finding.finding_id} has already been promoted",
+                )
+            validated = self._validate_parameters(
+                "record_claim",
+                self.ontology.action("record_claim"),
+                self._coerce_claim_payload(draft),
+            )
+            try:
+                claim = self._create_claim(**validated)
+            except TypeError as exc:
+                raise ActionValidationError(
+                    "review_queue.payload", f"invalid claim draft: {exc}"
+                ) from exc
+            row.result_claim_id = claim.claim_id
+            # The finding is **not consumed**. It stays, immutable, and now
+            # points at the claim it became the basis of (spec 12 §10 rule 5).
+            finding.promoted_claim_id = claim.claim_id
+            self.session.flush()
             return claim.case_id
         if row.suggestion_kind == "claim_relation":
             try:

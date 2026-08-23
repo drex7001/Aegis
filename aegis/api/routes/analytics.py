@@ -27,11 +27,13 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from aegis.analytics.promotion import PromotionError, promote_finding
 from aegis.analytics.service import AnalyticsError, METRICS, run_metric
 from aegis.api.deps import AuthContext, DbSession, FGADep, OntologyDep, authorize, fga_check_or_404
 from aegis.api.pagination import page_limit, split_page
 from aegis.api.schemas import (
     AnalyticFindingOut,
+    FindingPromotionIn,
     AnalyticFindingPageOut,
     AnalyticRunIn,
     AnalyticRunOut,
@@ -40,6 +42,7 @@ from aegis.api.schemas import (
 from aegis.audit import append as append_audit
 from aegis.sets.evaluation import evaluate_version
 from aegis.sets.sharing import EVALUATOR, fga_object
+from aegis.api.schemas import SuggestionOut
 from aegis.store import AnalyticFinding, AnalyticRun, ObjectSetVersion
 
 router = APIRouter(tags=["analytics"])
@@ -202,3 +205,71 @@ def get_finding(
     return AnalyticRunResultOut(
         run=_run_out(recorded), findings=[_finding_out(finding)]
     )
+
+
+@router.post(
+    "/findings/{finding_id}/promote",
+    response_model=SuggestionOut,
+    operation_id="promoteFinding",
+)
+def promote(
+    finding_id: str,
+    body: FindingPromotionIn,
+    session: DbSession,
+    ontology: OntologyDep,
+    auth: AuthContext = Depends(authorize("analyst", purpose_required=True)),
+) -> AnalyticFinding:
+    """Propose a finding as an assessed claim. **Writes a suggestion, never a claim.**
+
+    A finding is a machine's reading of what was written down; a claim is
+    somebody's assertion about the world. Crossing that line is a human act,
+    so it crosses the way every other machine output does — through the review
+    queue, with the *reviewer* as the actor on whatever claim results
+    (ADR-031 §2). The person who proposed and the person who decided are both
+    in the record, and they may be different people.
+
+    Returns the queued suggestion. Nothing canonical exists yet.
+    """
+    finding = session.get(AnalyticFinding, finding_id)
+    if finding is None or finding.handling_rank > auth.user.clearance:
+        raise HTTPException(404, "not found")
+
+    try:
+        suggestion = promote_finding(
+            session,
+            finding_id=finding_id,
+            subject_id=body.subject_id,
+            predicate=body.predicate,
+            record_id=body.record_id,
+            rationale=body.rationale,
+            actor=auth.user.sub,
+            roles=auth.user.roles,
+            ontology=ontology,
+            object_id=body.object_id,
+            object_value=body.object_value,
+            analytic_confidence=body.analytic_confidence,
+            purpose=auth.purpose,
+        )
+    except PromotionError as exc:
+        # 409 rather than 422 for an already-promoted finding: the request is
+        # well formed and the *state* refuses it, which is a different thing to
+        # tell a caller.
+        status = 409 if "already" in str(exc) else 422
+        raise HTTPException(status, str(exc)) from exc
+
+    append_audit(
+        session,
+        actor=auth.user.sub,
+        action="finding.promote",
+        decision="allow",
+        purpose=auth.purpose,
+        resource_type="analytic_finding",
+        resource_id=finding_id,
+        detail={
+            "suggestion_id": suggestion.suggestion_id,
+            "predicate": body.predicate,
+            "rationale": body.rationale,
+        },
+    )
+    session.commit()
+    return suggestion

@@ -340,16 +340,56 @@ green while hiding the reason.
 
 ## Milestone D — Promotion & watchlists
 
-**T74. Finding → claim promotion** (specs/12 §10; needs T72) — the audited
-action: finding → **typed suggestion** (`finding_promotion`) → review → claim
-with `assertion_type = 'assessed'` (not "assessment" — spec 12 §0 O7), written
-with the **reviewer** as actor (ADR-031 §2); the finding stays linked as the
-claim's analytic basis through `promoted_claim_id` and a `claim_relation` of
-kind `analytic_basis`, never an invented source record (H-23).
-AC: promotion requires an actor and a substantive rationale, and survives in
-audit with the analytic basis attached (charter exit №3); the produced claim's
-assertion type is `assessed`; the finding is not consumed — it remains, linked;
-promoting the same finding twice is refused and the finding still exists.
+**T74. Finding → claim promotion** (specs/12 §10; needs T72) — **DONE
+2026-08-24.** The audited action: finding → **typed suggestion**
+(`finding_promotion`) → review → claim with `assertion_type = 'assessed'` (not
+"assessment" — spec 12 §0 O7), written with the **reviewer** as actor
+(ADR-031 §2); the finding stays linked as the claim's analytic basis through
+`promoted_claim_id`, never an invented source record (H-23).
+AC: **met.** Promotion writes a suggestion and never a claim; the produced
+claim's assertion type is `assessed`; the finding is not consumed — it remains,
+immutable, and gains a pointer to what it became the basis of; promoting twice
+is refused (409, not 422 — the request is well formed and the *state* refuses
+it) and the finding still exists. A rejection leaves the finding exactly as it
+was: not "promoted and then unpromoted", never promoted.
+
+**The `claim_relation` half of this task's own description was wrong**, and
+building it is what showed that. `claim_relation` has `from_claim` and
+`to_claim`, both foreign keys to `claim`, and its `relation` is constrained to
+`corroborates`/`contradicts` — the claim-to-claim epistemic relations Article
+VIII is about. A finding is not a claim, so it fits in neither column, and
+widening the constraint would have made "this claim relates to that claim" mean
+two different things. The link already existed and is one-directional on
+purpose: `analytic_finding.promoted_claim_id`. Spec 12 §10 and this entry are
+corrected rather than the schema.
+
+**The rationale is part of the idempotency key**, which is a governance choice
+rather than a detail. The default key digests the payload, so two promotions of
+one finding with the same subject and predicate collided however differently
+they were argued — and a promotion rejected once could never be re-proposed on
+better reasoning. Including the rationale makes the rule the one worth having:
+**the same argument, already rejected, cannot be resubmitted; a new argument
+can.** A reviewer who said no to one case is not saying no to every future case
+anybody might make from the same finding.
+
+**A suggestion kind lives in three places, and two is a bug.** The dispatch
+branch (`SUGGESTION_KINDS`), the database check, and the ontology's
+`submit_suggestion` enum must agree — the code-owned list is what can be
+*accepted*, the enum is the public contract for what may be *sent* (ADR-031 §1).
+T74 built the first two and not the third, so the kind existed and no caller was
+permitted to name it. `test_every_kind_declares_its_target_action` went red on
+exactly that, in both directions, which is the test doing its job rather than a
+drift somebody noticed later. The vocabulary went through the workflow it should
+have gone through first: **proposal 009**, platform `1.5.0` → `1.6.0`,
+composition `2.1.0` → `2.2.0`, both additive, `check-release` and
+`generate --check` green.
+
+The kind is admitted by `ck_review_queue_kind` through migration `0017`, and
+that it needed a migration at all is the point: the set of things a machine may
+propose is enforced by the **database**, not by a dictionary in Python. Adding
+the kind in code and finding out at insert time — which is exactly how this was
+found — is the constraint working. The downgrade refuses while any promotion
+row exists, per the rule migration `0013` set.
 
 **T75. Watchlists + alert triage** (specs/12 §11; needs T69) —
 exact-identifier watchlists built on object sets; a detection is a **typed

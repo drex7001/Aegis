@@ -1,12 +1,12 @@
 {
   "compatibility": "minor",
-  "content_hash": "9ee145562534fcaf41631d94c2976210578d76c10d857434c7c7c4bdaea3a09e",
+  "content_hash": "26b4016273cf5a3f1589e2717994703c14856f55ddadd36308e2161143361fb9",
   "modules": {
     "criminal_network": "2.0.0",
-    "platform": "1.5.0"
+    "platform": "1.6.0"
   },
-  "previous_content_hash": "db0a4e8091eef1a0b67167773944c8ff59afda98c1decf4fb20db0eb8e5290d5",
-  "previous_version": "2.0.0",
-  "proposal": "008-event-draft-suggestions",
-  "version": "2.1.0"
+  "previous_content_hash": "9ee145562534fcaf41631d94c2976210578d76c10d857434c7c7c4bdaea3a09e",
+  "previous_version": "2.1.0",
+  "proposal": "009-finding-promotion-suggestions",
+  "version": "2.2.0"
 }

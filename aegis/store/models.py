@@ -547,7 +547,7 @@ class ReviewQueue(Base):
         ),
         CheckConstraint(
             "suggestion_kind IN ('claim_draft', 'identity_candidate', "
-            "'claim_relation', 'event_draft')",
+            "'claim_relation', 'event_draft', 'finding_promotion')",
             name="ck_review_queue_kind",
         ),
         # exactly one typed result on acceptance, per kind. Four columns since

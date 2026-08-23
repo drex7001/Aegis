@@ -550,6 +550,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/findings/{finding_id}/promote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Promote
+         * @description Propose a finding as an assessed claim. **Writes a suggestion, never a claim.**
+         *
+         *     A finding is a machine's reading of what was written down; a claim is
+         *     somebody's assertion about the world. Crossing that line is a human act,
+         *     so it crosses the way every other machine output does — through the review
+         *     queue, with the *reviewer* as the actor on whatever claim results
+         *     (ADR-031 §2). The person who proposed and the person who decided are both
+         *     in the record, and they may be different people.
+         *
+         *     Returns the queued suggestion. Nothing canonical exists yet.
+         */
+        post: operations["promoteFinding"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/geo/events": {
         parameters: {
             query?: never;
@@ -2311,6 +2340,32 @@ export interface components {
              * @constant
              */
             type?: "FeatureCollection";
+        };
+        /**
+         * FindingPromotionIn
+         * @description Propose a finding as an assessed claim (spec 12 §10).
+         *
+         *     `record_id` is required and is the finding's **own source chain** — never
+         *     an invented record (H-23). A finding computed over claims from several
+         *     records promotes against the one the promoter names as the basis, because
+         *     attributing an assertion to a record that did not make it is the specific
+         *     failure H-23 warned about.
+         */
+        FindingPromotionIn: {
+            /** Analytic Confidence */
+            analytic_confidence?: string | null;
+            /** Object Id */
+            object_id?: string | null;
+            /** Object Value */
+            object_value?: unknown;
+            /** Predicate */
+            predicate: string;
+            /** Rationale */
+            rationale: string;
+            /** Record Id */
+            record_id: string;
+            /** Subject Id */
+            subject_id: string;
         };
         /**
          * GeoFeatureOut
@@ -5357,6 +5412,80 @@ export interface operations {
             };
             /** @description No credentials, or a token that does not verify. */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    promoteFinding: {
+        parameters: {
+            query?: {
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path: {
+                finding_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FindingPromotionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Authenticated, but the role gate refused. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

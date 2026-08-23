@@ -1423,3 +1423,25 @@ class AnalyticRunIn(BaseModel):
 class AnalyticFindingPageOut(BaseModel):
     items: list[AnalyticFindingOut]
     next_cursor: str | None = None
+
+
+class FindingPromotionIn(BaseModel):
+    """Propose a finding as an assessed claim (spec 12 §10).
+
+    `record_id` is required and is the finding's **own source chain** — never
+    an invented record (H-23). A finding computed over claims from several
+    records promotes against the one the promoter names as the basis, because
+    attributing an assertion to a record that did not make it is the specific
+    failure H-23 warned about.
+    """
+
+    subject_id: str
+    predicate: str
+    record_id: str
+    #: Why this is worth asserting. The finding already says what was
+    #: computed; a promotion with no reasoning is a number being laundered
+    #: into an assertion.
+    rationale: str = Field(min_length=1)
+    object_id: str | None = None
+    object_value: Any = None
+    analytic_confidence: str | None = None

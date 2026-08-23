@@ -434,12 +434,58 @@ The audited action `promote_finding`:
    an `analytic_confidence` the reviewer sets.
 4. The claim's `record_id` is the finding's **source record chain**, never an
    invented one (H-23). A finding computed over claims from many records
-   promotes against the record the reviewer names as the basis, and the finding
-   itself is linked through `analytic_finding.promoted_claim_id` and a
-   `claim_relation` of kind `analytic_basis`.
+   promotes against the record the promoter names as the basis — and if they
+   name none, the promotion is refused rather than attributed to a record that
+   did not say it. The finding is linked through
+   `analytic_finding.promoted_claim_id`.
+
+   > **Corrected at T74.** This step originally added "and a `claim_relation` of
+   > kind `analytic_basis`". That is unbuildable and, on inspection, wrong.
+   > `claim_relation` has `from_claim` and `to_claim`, both foreign keys to
+   > `claim`, and its `relation` is constrained to `corroborates` /
+   > `contradicts` — the claim-to-claim epistemic relations Article VIII is
+   > about. **A finding is not a claim**, so it cannot occupy either column, and
+   > widening the constraint would have made "this claim relates to that claim"
+   > mean two different things depending on the row.
+   >
+   > The link already existed, one-directional on purpose:
+   > `analytic_finding.promoted_claim_id`. Nothing points back, because a claim
+   > reachable *as* a finding would be one lifecycle wearing two names — which
+   > is the property `test_findings_are_not_claims.py` asserts at the schema.
+   > The spec is corrected; the schema is not.
 5. **The finding is not consumed.** It remains, immutable, linked. Promoting
    twice is refused — one finding, one assessed claim — but the finding
    continues to exist as the basis of the one that was made.
+
+### 10.1 Where the kind is declared
+
+`finding_promotion` lives in **three** places, and any two of them agreeing is a
+bug: the dispatch branch (`SUGGESTION_KINDS`), the `ck_review_queue_kind` check,
+and the `submit_suggestion` enum in `ontology/modules/platform.yaml`. The
+code-owned list governs what can be **accepted** — each kind is a dispatch
+branch, and a kind declared before its branch exists is a suggestion nobody can
+act on. The enum is the public contract for what may be **sent**, so a branch
+without the declaration is a kind no caller is permitted to name (ADR-031 §1).
+
+T74 shipped the first two and not the third, and
+`test_every_kind_declares_its_target_action` caught it, because it asserts the
+two lists agree **in both directions**. The vocabulary then went through the
+workflow it should have gone through first: proposal 009, platform `1.5.0` →
+`1.6.0`, composition `2.1.0` → `2.2.0`, both additive.
+
+### 10.2 Re-proposal after a rejection
+
+The rationale is part of the **idempotency key**. The default key digests the
+payload, so two promotions of one finding with the same subject and predicate
+collide however differently they were argued — which would mean a promotion
+rejected once could never be re-proposed on better reasoning, and that is not a
+property anybody chose.
+
+Including the rationale makes the rule the one worth having: **the same
+argument, already rejected, cannot be resubmitted; a new argument can.** A
+reviewer who said no to one case is not thereby saying no to every future case
+anybody might make from the same finding, and a rejection is a decision about a
+proposal rather than a permanent verdict on a computation.
 
 An assessed claim promoted from a finding is a claim like any other from that
 moment: retractable, contradictable, graded, and displayed beside anything that
