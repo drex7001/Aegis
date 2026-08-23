@@ -18,6 +18,8 @@
 
 export const ROUTES = {
   graph: "/graph",
+  /** The map (spec 10 §9). Time window and selection live in its query. */
+  map: "/map",
   sources: "/sources",
   review: "/review",
   /** The caller's own cases, and one case (spec 09 §2.4). */

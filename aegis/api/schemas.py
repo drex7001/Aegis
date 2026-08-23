@@ -700,6 +700,84 @@ class EntityDetail(BaseModel):
     stamp: AsOfStampOut | None = None
 
 
+class PlaceFeaturePropertiesOut(BaseModel):
+    """What the map needs to draw one place honestly (spec 10 §9.1).
+
+    A GeoJSON Feature's `properties` is open-ended by the standard, and the
+    first cut of this left it as an untyped map — which meant the workspace
+    re-declared the shape by hand, which is the thing
+    `test_no_hand_written_api_shape_remains_in_the_workspace` exists to refuse.
+    It was right: an undescribed shape is a gap in the contract, not a licence
+    to copy it.
+
+    The four axes travel together because the renderer needs all four to pick a
+    mark: an accuracy without its derivation cannot tell a tight GPS fix from a
+    centroid standing for a city.
+    """
+
+    entity_id: str
+    label: str
+    entity_type: str
+    #: `ok` | `none_permitted` | `none_recorded` | `invalid` — a place with no
+    #: readable geometry is listed and never placed, and *which* kind of nothing
+    #: it is matters to the reader (spec 10 §7.3).
+    geometry_state: str
+    admin_level: str | None = None
+    accuracy_m: float | None = None
+    derivation: str | None = None
+    #: Derived from the geometry by PostGIS, never asserted.
+    geometry_kind: str | None = None
+    claim_id: str | None = None
+    handling_code: str | None = None
+    invalid_reason: str | None = None
+
+
+class EventTimeIntervalOut(BaseModel):
+    """One asserted interval, with the claim that asserts it.
+
+    Plural at the call site and attributable here, because an event's time is
+    the *set* of intervals its claims assert. Collapsing them to one span is the
+    failure B-12 caught in the edge projection: two disjoint reports become one
+    continuous occurrence (spec 10 §6.3).
+    """
+
+    earliest: datetime | None = None
+    latest: datetime | None = None
+    claim_id: str
+
+
+class EventFeaturePropertiesOut(PlaceFeaturePropertiesOut):
+    """A place, plus the occurrence that happened there.
+
+    Extends rather than parallels the place properties, because the geometry
+    fields mean exactly the same thing and must generalize by exactly the same
+    rule — the map's privacy behaviour cannot differ between two of its own
+    layers.
+    """
+
+    event_id: str
+    event_label: str
+    event_type: str
+    place_id: str
+    #: Which end of the occurrence this is — `took_place_at`, `travelled_from`,
+    #: `travelled_to`. A journey drawn as one point at its origin would be a lie
+    #: of omission, which is why there is a feature per role.
+    place_role: str
+    time_intervals: list[EventTimeIntervalOut] = Field(default_factory=list)
+    #: Computed over claims the caller can already read: a count taken before
+    #: filtering is an existence leak wearing a number (spec 10 §7.4).
+    participant_count: int = 0
+
+
+class GeoFeatureOut(BaseModel):
+    """One RFC 7946 Feature. `geometry: null` is valid, and is often the answer."""
+
+    type: Literal["Feature"] = "Feature"
+    id: str
+    geometry: dict[str, Any] | None = None
+    properties: EventFeaturePropertiesOut | PlaceFeaturePropertiesOut
+
+
 class FeatureCollectionOut(BaseModel):
     """An RFC 7946 `FeatureCollection`, with two foreign members.
 
@@ -707,15 +785,10 @@ class FeatureCollectionOut(BaseModel):
     that only knows GeoJSON ignores them, and a client that knows this API gets
     its page cursor and the as-of stamp in the same response as the features
     rather than having to correlate two calls.
-
-    `features` is untyped `dict` deliberately. A Feature's `properties` is
-    open-ended by the standard, and pinning it here would mean a second schema
-    to keep in step with `PlaceFeature`/`EventFeature` for no type-safety a
-    caller could use — the generated TS client reads it as JSON either way.
     """
 
     type: Literal["FeatureCollection"] = "FeatureCollection"
-    features: list[dict[str, Any]]
+    features: list[GeoFeatureOut]
     next_cursor: str | None = None
     stamp: AsOfStampOut | None = None
 

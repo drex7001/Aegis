@@ -50,6 +50,21 @@ LOCAL_TYPES = {
     "DrillHandler",
     "Extent",
     "TimedClaim",
+    # T60. The mark vocabulary is how the map *draws*, which the server neither
+    # sends nor could: `MarkKind` and `Mark` are a rendering decision, and
+    # `MarkInput` is the subset of a feature's properties that decision reads.
+    # `GeometryState` is the set of states the renderer knows how to handle —
+    # deliberately narrower than the open `string` the contract carries, because
+    # a state it has never heard of must draw nothing rather than a default pin.
+    #
+    # The three shapes that *were* API payloads — `PlaceProperties`,
+    # `EventProperties`, `GeoFeature` — are not here. This sweep caught them
+    # hand-written in `client.ts` and the fix was to describe them in the
+    # OpenAPI document, which is what the docstring says to do.
+    "GeometryState",
+    "MarkKind",
+    "MarkInput",
+    "Mark",
 }
 
 

@@ -1643,6 +1643,149 @@
         "title": "EntityOut",
         "type": "object"
       },
+      "EventFeaturePropertiesOut": {
+        "description": "A place, plus the occurrence that happened there.\n\nExtends rather than parallels the place properties, because the geometry\nfields mean exactly the same thing and must generalize by exactly the same\nrule — the map's privacy behaviour cannot differ between two of its own\nlayers.",
+        "properties": {
+          "accuracy_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accuracy M"
+          },
+          "admin_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin Level"
+          },
+          "claim_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claim Id"
+          },
+          "derivation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Derivation"
+          },
+          "entity_id": {
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "entity_type": {
+            "title": "Entity Type",
+            "type": "string"
+          },
+          "event_id": {
+            "title": "Event Id",
+            "type": "string"
+          },
+          "event_label": {
+            "title": "Event Label",
+            "type": "string"
+          },
+          "event_type": {
+            "title": "Event Type",
+            "type": "string"
+          },
+          "geometry_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Geometry Kind"
+          },
+          "geometry_state": {
+            "title": "Geometry State",
+            "type": "string"
+          },
+          "handling_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handling Code"
+          },
+          "invalid_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invalid Reason"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "participant_count": {
+            "default": 0,
+            "title": "Participant Count",
+            "type": "integer"
+          },
+          "place_id": {
+            "title": "Place Id",
+            "type": "string"
+          },
+          "place_role": {
+            "title": "Place Role",
+            "type": "string"
+          },
+          "time_intervals": {
+            "items": {
+              "$ref": "#/components/schemas/EventTimeIntervalOut"
+            },
+            "title": "Time Intervals",
+            "type": "array"
+          }
+        },
+        "required": [
+          "entity_id",
+          "label",
+          "entity_type",
+          "geometry_state",
+          "event_id",
+          "event_label",
+          "event_type",
+          "place_id",
+          "place_role"
+        ],
+        "title": "EventFeaturePropertiesOut",
+        "type": "object"
+      },
       "EventIn": {
         "description": "Create or extend an occurrence (spec 10 §3.4).\n\n`summary` is required because it becomes the claim that makes the event\nexist: an entity row is not an assertion and carries no source, so an event\nno claim asserts would be a fact with no provenance (Article I).\n\n`event_id` extends an occurrence already recorded — the reviewer's move when\na second report describes the same arrest. There is no automatic occurrence\nmerging, because that would be a machine making an identity decision\n(Article VII, spec 10 §3.5).",
         "properties": {
@@ -1836,6 +1979,44 @@
           "claim_ids"
         ],
         "title": "EventOut",
+        "type": "object"
+      },
+      "EventTimeIntervalOut": {
+        "description": "One asserted interval, with the claim that asserts it.\n\nPlural at the call site and attributable here, because an event's time is\nthe *set* of intervals its claims assert. Collapsing them to one span is the\nfailure B-12 caught in the edge projection: two disjoint reports become one\ncontinuous occurrence (spec 10 §6.3).",
+        "properties": {
+          "claim_id": {
+            "title": "Claim Id",
+            "type": "string"
+          },
+          "earliest": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Earliest"
+          },
+          "latest": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest"
+          }
+        },
+        "required": [
+          "claim_id"
+        ],
+        "title": "EventTimeIntervalOut",
         "type": "object"
       },
       "EvidenceIn": {
@@ -2051,12 +2232,11 @@
         "type": "object"
       },
       "FeatureCollectionOut": {
-        "description": "An RFC 7946 `FeatureCollection`, with two foreign members.\n\n`next_cursor` and `stamp` are foreign members, which §6.1 permits: a client\nthat only knows GeoJSON ignores them, and a client that knows this API gets\nits page cursor and the as-of stamp in the same response as the features\nrather than having to correlate two calls.\n\n`features` is untyped `dict` deliberately. A Feature's `properties` is\nopen-ended by the standard, and pinning it here would mean a second schema\nto keep in step with `PlaceFeature`/`EventFeature` for no type-safety a\ncaller could use — the generated TS client reads it as JSON either way.",
+        "description": "An RFC 7946 `FeatureCollection`, with two foreign members.\n\n`next_cursor` and `stamp` are foreign members, which §6.1 permits: a client\nthat only knows GeoJSON ignores them, and a client that knows this API gets\nits page cursor and the as-of stamp in the same response as the features\nrather than having to correlate two calls.",
         "properties": {
           "features": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/GeoFeatureOut"
             },
             "title": "Features",
             "type": "array"
@@ -2093,6 +2273,50 @@
           "features"
         ],
         "title": "FeatureCollectionOut",
+        "type": "object"
+      },
+      "GeoFeatureOut": {
+        "description": "One RFC 7946 Feature. `geometry: null` is valid, and is often the answer.",
+        "properties": {
+          "geometry": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Geometry"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "properties": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventFeaturePropertiesOut"
+              },
+              {
+                "$ref": "#/components/schemas/PlaceFeaturePropertiesOut"
+              }
+            ],
+            "title": "Properties"
+          },
+          "type": {
+            "const": "Feature",
+            "default": "Feature",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "properties"
+        ],
+        "title": "GeoFeatureOut",
         "type": "object"
       },
       "GradingOut": {
@@ -3270,6 +3494,112 @@
           "assertion_types"
         ],
         "title": "OntologyVocabularyOut",
+        "type": "object"
+      },
+      "PlaceFeaturePropertiesOut": {
+        "description": "What the map needs to draw one place honestly (spec 10 §9.1).\n\nA GeoJSON Feature's `properties` is open-ended by the standard, and the\nfirst cut of this left it as an untyped map — which meant the workspace\nre-declared the shape by hand, which is the thing\n`test_no_hand_written_api_shape_remains_in_the_workspace` exists to refuse.\nIt was right: an undescribed shape is a gap in the contract, not a licence\nto copy it.\n\nThe four axes travel together because the renderer needs all four to pick a\nmark: an accuracy without its derivation cannot tell a tight GPS fix from a\ncentroid standing for a city.",
+        "properties": {
+          "accuracy_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accuracy M"
+          },
+          "admin_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin Level"
+          },
+          "claim_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claim Id"
+          },
+          "derivation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Derivation"
+          },
+          "entity_id": {
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "entity_type": {
+            "title": "Entity Type",
+            "type": "string"
+          },
+          "geometry_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Geometry Kind"
+          },
+          "geometry_state": {
+            "title": "Geometry State",
+            "type": "string"
+          },
+          "handling_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handling Code"
+          },
+          "invalid_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invalid Reason"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "entity_id",
+          "label",
+          "entity_type",
+          "geometry_state"
+        ],
+        "title": "PlaceFeaturePropertiesOut",
         "type": "object"
       },
       "ProblemDetail": {

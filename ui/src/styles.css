@@ -1689,3 +1689,57 @@ button:hover {
   padding-top: 12px;
   border-top: 1px solid var(--line);
 }
+
+/* ── the map (T60, spec 10 §9) ─────────────────────────────────────────── */
+
+.map {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.map__header {
+  display: flex;
+  align-items: baseline;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.map__filter {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+/*
+ * An explicit height, because MapLibre sizes its canvas to the container and a
+ * container that derives its height from its content collapses to nothing —
+ * which is a blank page rather than an error, and therefore the kind of thing
+ * that ships. `min-height` rather than `height` so a short viewport still
+ * scrolls to the lists below.
+ */
+.map__canvas {
+  position: relative;
+  min-height: 460px;
+  border: 1px solid var(--line, #d0d7de);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.map__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted, #57606a);
+}
+
+.map__detail {
+  border: 1px solid var(--line, #d0d7de);
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+}

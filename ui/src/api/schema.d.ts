@@ -1669,6 +1669,56 @@ export interface components {
             label: string;
         };
         /**
+         * EventFeaturePropertiesOut
+         * @description A place, plus the occurrence that happened there.
+         *
+         *     Extends rather than parallels the place properties, because the geometry
+         *     fields mean exactly the same thing and must generalize by exactly the same
+         *     rule — the map's privacy behaviour cannot differ between two of its own
+         *     layers.
+         */
+        EventFeaturePropertiesOut: {
+            /** Accuracy M */
+            accuracy_m?: number | null;
+            /** Admin Level */
+            admin_level?: string | null;
+            /** Claim Id */
+            claim_id?: string | null;
+            /** Derivation */
+            derivation?: string | null;
+            /** Entity Id */
+            entity_id: string;
+            /** Entity Type */
+            entity_type: string;
+            /** Event Id */
+            event_id: string;
+            /** Event Label */
+            event_label: string;
+            /** Event Type */
+            event_type: string;
+            /** Geometry Kind */
+            geometry_kind?: string | null;
+            /** Geometry State */
+            geometry_state: string;
+            /** Handling Code */
+            handling_code?: string | null;
+            /** Invalid Reason */
+            invalid_reason?: string | null;
+            /** Label */
+            label: string;
+            /**
+             * Participant Count
+             * @default 0
+             */
+            participant_count?: number;
+            /** Place Id */
+            place_id: string;
+            /** Place Role */
+            place_role: string;
+            /** Time Intervals */
+            time_intervals?: components["schemas"]["EventTimeIntervalOut"][];
+        };
+        /**
          * EventIn
          * @description Create or extend an occurrence (spec 10 §3.4).
          *
@@ -1760,6 +1810,23 @@ export interface components {
             /** Entity Type */
             entity_type: string;
         };
+        /**
+         * EventTimeIntervalOut
+         * @description One asserted interval, with the claim that asserts it.
+         *
+         *     Plural at the call site and attributable here, because an event's time is
+         *     the *set* of intervals its claims assert. Collapsing them to one span is the
+         *     failure B-12 caught in the edge projection: two disjoint reports become one
+         *     continuous occurrence (spec 10 §6.3).
+         */
+        EventTimeIntervalOut: {
+            /** Claim Id */
+            claim_id: string;
+            /** Earliest */
+            earliest?: string | null;
+            /** Latest */
+            latest?: string | null;
+        };
         /** EvidenceIn */
         EvidenceIn: {
             /** Case Id */
@@ -1840,17 +1907,10 @@ export interface components {
          *     that only knows GeoJSON ignores them, and a client that knows this API gets
          *     its page cursor and the as-of stamp in the same response as the features
          *     rather than having to correlate two calls.
-         *
-         *     `features` is untyped `dict` deliberately. A Feature's `properties` is
-         *     open-ended by the standard, and pinning it here would mean a second schema
-         *     to keep in step with `PlaceFeature`/`EventFeature` for no type-safety a
-         *     caller could use — the generated TS client reads it as JSON either way.
          */
         FeatureCollectionOut: {
             /** Features */
-            features: {
-                [key: string]: unknown;
-            }[];
+            features: components["schemas"]["GeoFeatureOut"][];
             /** Next Cursor */
             next_cursor?: string | null;
             stamp?: components["schemas"]["AsOfStampOut"] | null;
@@ -1860,6 +1920,26 @@ export interface components {
              * @constant
              */
             type?: "FeatureCollection";
+        };
+        /**
+         * GeoFeatureOut
+         * @description One RFC 7946 Feature. `geometry: null` is valid, and is often the answer.
+         */
+        GeoFeatureOut: {
+            /** Geometry */
+            geometry?: {
+                [key: string]: unknown;
+            } | null;
+            /** Id */
+            id: string;
+            /** Properties */
+            properties: components["schemas"]["EventFeaturePropertiesOut"] | components["schemas"]["PlaceFeaturePropertiesOut"];
+            /**
+             * Type
+             * @default Feature
+             * @constant
+             */
+            type?: "Feature";
         };
         /**
          * GradingOut
@@ -2293,6 +2373,45 @@ export interface components {
             source_types: string[];
             /** Version */
             version: string;
+        };
+        /**
+         * PlaceFeaturePropertiesOut
+         * @description What the map needs to draw one place honestly (spec 10 §9.1).
+         *
+         *     A GeoJSON Feature's `properties` is open-ended by the standard, and the
+         *     first cut of this left it as an untyped map — which meant the workspace
+         *     re-declared the shape by hand, which is the thing
+         *     `test_no_hand_written_api_shape_remains_in_the_workspace` exists to refuse.
+         *     It was right: an undescribed shape is a gap in the contract, not a licence
+         *     to copy it.
+         *
+         *     The four axes travel together because the renderer needs all four to pick a
+         *     mark: an accuracy without its derivation cannot tell a tight GPS fix from a
+         *     centroid standing for a city.
+         */
+        PlaceFeaturePropertiesOut: {
+            /** Accuracy M */
+            accuracy_m?: number | null;
+            /** Admin Level */
+            admin_level?: string | null;
+            /** Claim Id */
+            claim_id?: string | null;
+            /** Derivation */
+            derivation?: string | null;
+            /** Entity Id */
+            entity_id: string;
+            /** Entity Type */
+            entity_type: string;
+            /** Geometry Kind */
+            geometry_kind?: string | null;
+            /** Geometry State */
+            geometry_state: string;
+            /** Handling Code */
+            handling_code?: string | null;
+            /** Invalid Reason */
+            invalid_reason?: string | null;
+            /** Label */
+            label: string;
         };
         /**
          * ProblemDetail
