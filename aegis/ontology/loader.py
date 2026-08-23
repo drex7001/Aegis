@@ -130,7 +130,11 @@ class ObjectTypeSpec(BaseModel):
 
 
 class PredicateSpec(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    # `populate_by_name` is here for one field: the YAML key is `property`, and
+    # a class attribute of that name would rebind the `property` builtin for the
+    # rest of this class body — the four accessors below are decorated with it.
+    # The alias keeps the declared vocabulary right and the Python name safe.
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
     subject: list[str] = Field(min_length=1)
     # Either the string 'literal' (literal-only), a list of object types, or a
     # list of object types that also contains 'literal' — meaning the object may
@@ -150,6 +154,16 @@ class PredicateSpec(BaseModel):
     #: domain-neutral (Article XIV) — a new domain adds identifiers by
     #: declaring them, not by editing the rule engine.
     identifier: bool = False
+    #: The object-type property this literal-object predicate carries (ADR-047,
+    #: spec 10 §5). Properties and predicates are parallel vocabularies, and
+    #: until now the only bridge between them was `property_sensitivity`
+    #: matching a predicate's *name* against a property's *name*. Map privacy
+    #: cannot rest on a name coincidence, and neither can "find the claims that
+    #: carry geometry without naming a domain predicate" — so the correspondence
+    #: is declared. Optional: the heuristic still serves predicates that do not
+    #: declare one, because removing it would silently drop the sensitivity of
+    #: every predicate relying on it.
+    property_name: str | None = Field(default=None, alias="property")
     #: Interfaces named in the declaration, retained after `subject`/`object`
     #: are expanded to concrete implementors. The expansion is what the store
     #: sees — a claim records concrete types, never an interface — so keeping
@@ -359,7 +373,13 @@ class Ontology(BaseModel):
     interfaces: dict[str, InterfaceSpec] = Field(default_factory=dict)
     object_types: dict[str, ObjectTypeSpec]
     predicates: dict[str, PredicateSpec]
-    event_types: dict[str, Any] = Field(default_factory=dict)  # Phase 4 (spec 01 §2)
+    # `event_types` lived here from P0 to P5 T55 and was never populated. An
+    # event needs identity, display, claims, provenance and an object view —
+    # everything an object type already has and a parallel registry would have
+    # had to re-earn — so event types are object types implementing the platform
+    # `event` interface (spec 10 §3.1). The section is removed rather than left
+    # reserved: a placeholder that spec 01 promises and nothing fills is how
+    # documentation rots (M-01).
     actions: dict[str, ActionSpec]
 
     #: Resolved modules, populated by the composition loader and empty for a
@@ -432,6 +452,45 @@ class Ontology(BaseModel):
         """
         return {
             name: spec for name, spec in self.predicates.items() if spec.identifier
+        }
+
+    def property_specs_for(self, predicate: str) -> list[PropertySpec]:
+        """The property a predicate declares, once per subject type (ADR-047).
+
+        A list rather than one spec because the declaration is per predicate and
+        the property lives on each subject type: `has_geometry` targets the
+        `place` interface, so it resolves to one `PropertySpec` per implementor.
+        Rule 15 guarantees every subject type declares the name; it does not
+        guarantee they agree about sensitivity, so callers that care about
+        governance take the strictest (`property_sensitivity` does).
+
+        Empty when the predicate declares no property — which is most of them,
+        and why the name-matching heuristic survives beside this.
+        """
+        spec = self.predicates.get(predicate)
+        if spec is None or spec.property_name is None:
+            return []
+        return [
+            prop
+            for stype in spec.subject
+            if (otype := self.object_types.get(stype)) is not None
+            and (prop := otype.properties.get(spec.property_name)) is not None
+        ]
+
+    def predicates_carrying(self, property_type: str) -> dict[str, PredicateSpec]:
+        """Predicates whose declared property resolves to ``property_type``.
+
+        The domain-neutral way to ask "which claims carry geometry?" — the core
+        looks for `geo`, never for `has_geometry` (Article XIV, spec 10 §3.2).
+        Sibling of ``identifier_predicates``: both let a new domain register
+        capabilities by declaring them rather than by editing an engine.
+        """
+        return {
+            name: spec
+            for name in self.predicates
+            if (props := self.property_specs_for(name))
+            and all(prop.type == property_type for prop in props)
+            and (spec := self.predicates[name])
         }
 
     def action(self, name: str) -> ActionSpec:
@@ -700,6 +759,28 @@ def _semantic_errors(ont: Ontology) -> list[str]:
                 f"predicates.{pname}.category: unknown category {pred.category!r} "
                 f"(declared: {sorted(ont.categories)})"
             )
+        # rule 15 (spec 08 §9, ADR-047): a declared `property` must exist on
+        # *every* subject type, and the predicate must be able to carry a value.
+        # Both halves matter. A property missing from one implementor would make
+        # the sensitivity of that type's claims depend on which subject happened
+        # to be recorded, and a predicate whose object is always an entity
+        # carries no value for a property to describe.
+        if pred.property_name is not None:
+            if not pred.allows_literal:
+                errors.append(
+                    f"predicates.{pname}.property: {pred.property_name!r} is declared on a "
+                    "predicate whose object is always an entity — only a literal "
+                    "object value can carry a property"
+                )
+            for stype in ont.expand_types(pred.subject) if pred.subject else []:
+                spec = ont.object_types.get(stype)
+                if spec is None:
+                    continue  # unknown subject type already reported above
+                if pred.property_name not in spec.properties:
+                    errors.append(
+                        f"predicates.{pname}.property: object type {stype!r} declares no "
+                        f"property {pred.property_name!r} (declared: {sorted(spec.properties)})"
+                    )
 
     # rule 3: property sensitivity is a declared handling code
     for shared_name, shared in ont.shared_properties.items():

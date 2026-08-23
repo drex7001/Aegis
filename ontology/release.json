@@ -1,12 +1,12 @@
 {
-  "compatibility": "minor",
-  "content_hash": "52ac92ad9cd3a9cb7bc74305dc3341025628a86a166e11180ac1775164e9f7bb",
+  "compatibility": "major",
+  "content_hash": "b1809f694e7bd8477c559f9bc2903a9d2f09e87516bdd2d33c17297bc6c7c19b",
   "modules": {
-    "criminal_network": "1.2.1",
-    "platform": "1.3.0"
+    "criminal_network": "2.0.0",
+    "platform": "1.4.0"
   },
-  "previous_content_hash": "28aeb346f714cb982ca39cccbb83ebfcd99dc95fcc8c5a5ca4ceb6ad64fe0596",
-  "previous_version": "1.6.1",
-  "proposal": "006-investigation-actions",
-  "version": "1.7.0"
+  "previous_content_hash": "52ac92ad9cd3a9cb7bc74305dc3341025628a86a166e11180ac1775164e9f7bb",
+  "previous_version": "1.7.0",
+  "proposal": "007-events-and-geometry",
+  "version": "2.0.0"
 }

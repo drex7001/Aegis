@@ -149,6 +149,12 @@ def test_an_admin_can_rebuild_and_is_told_what_was_built(client, world) -> None:
     # a timestamp: that is what makes staleness decidable later (Article XIII).
     # Zero is a real value here — an empty ledger has taken no decisions.
     assert body["built_at_revision_id"] == active_revision_id(world["session"])
+    # The geometry projection rebuilds in the same pass (T56). `rejected` is
+    # reported rather than swallowed: a projection is a cache, so one geometry
+    # claim this build could not read must not make the rest unavailable, and
+    # the count is the only way anyone would notice it happened.
+    assert {"geometry_rows", "geometry_invalid", "geometry_rejected"} <= set(body)
+    assert body["geometry_builder_version"]
 
 
 def test_the_rebuild_is_idempotent(client, world) -> None:
@@ -186,10 +192,15 @@ def test_the_rebuild_is_audited(client, world, engine: sa.Engine) -> None:
     assert row is not None
     assert row.actor == "user:admin"
     assert row.decision == "allow"
-    assert row.resource_id == "edge_projection"
+    # Both projections rebuild in one pass under one lock (T56), so the audit
+    # row names both. A row naming only the edge projection would understate
+    # what an operator just rewrote.
+    assert row.resource_id == "edge_projection,location_geometry_projection"
     # The report is the audit detail, so the record says what the rebuild did
     # and not merely that one happened.
     assert "edges" in row.detail
+    assert "geometry" in row.detail
+    assert "rows" in row.detail["geometry"]
 
 
 def test_a_denied_rebuild_is_audited_too(client, world, engine: sa.Engine) -> None:

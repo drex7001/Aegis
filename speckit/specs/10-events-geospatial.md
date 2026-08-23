@@ -475,6 +475,18 @@ supported by an index on `(event_time_earliest, event_time_latest)`.
 then a participation projection is added with the measurement recorded, the same
 way any other trigger fires.
 
+**As built (T56).** Two details the DDL above does not show. `geom` is
+**nullable**, because an invalid geometry is stored with `is_valid = false`, its
+`ST_IsValidReason`, and no geometry — a NOT NULL column would have forced the
+choice between repairing it and losing the row, and both change what a source
+said. And `handling_rank` is copied beside `handling_code`, because the filter
+compares clearance levels and a rank computed at read time would have to consult
+the ontology on every query.
+
+Both projections rebuild in **one pass under one advisory lock**
+(`POST /v1/projections/rebuild`, `aegis projections rebuild`). "Rebuild the
+projections" that left one of them stale would be a worse answer than refusing.
+
 ### 6.2 Rebuild, and the B-13 spot check
 
 `aegis projections rebuild` gains this table. Its contract is the phase's
@@ -757,8 +769,13 @@ actions:
       case_id:             {type: ref, to: case}
     submission_criteria: [actor_holds_action_role, actor_is_case_member, required_text_is_substantive]
     side_effects:
-      - refresh_projection: location_geometry_projection
+      - refresh_projection: edge_projection
 ```
+
+*(Corrected at T55: this section first named `location_geometry_projection`
+here. `record_event` writes participation and place claims, which are edges;
+geometry claims are written through `record_claim`, so the geometry
+projection's refresh is declared there, at T56, beside the table it names.)*
 
 `participants` is `[{role: <predicate>, entity_id, mention_id?}]` and `places`
 is `[{role: <predicate>, entity_id}]`; both schemas are code-owned and
@@ -884,5 +901,5 @@ geometry (§7.3 — P7, H-25). Compartments and sealing (P7).
 | `hypothesis`/`investigation_task` FGA types declared but not queried | Unchanged — P7 |
 | FGA object-type stub codegen | Unchanged — P7. P5 declares no FGA relation on a domain type; event and place reads are gated by handling code and case membership, which are claim-level and need no FGA type |
 | Python SDK | Unchanged — P8 |
-| Functions execution + side-effect outbox | **Stays open, and P5 does not need it.** The one new side effect (`refresh_projection: location_geometry_projection`) rides the existing hard-coded refresh path, exactly as the other four declarations do. The first consumer that genuinely needs execution is P6's derived findings |
+| Functions execution + side-effect outbox | **Stays open, and P5 does not need it.** *(Corrected at T56: no `refresh_projection: location_geometry_projection` declaration was added. Nothing executes side effects — spec 08 §6.5 — and projections are rebuilt by `aegis projections rebuild` and `POST /v1/projections/rebuild`, never inline on a claim write, so the declaration would have been inert twice over and cost a second ontology bump inside one phase. It arrives with the outbox that would honour it.)* The first consumer that genuinely needs execution is P6's derived findings |
 | Pilot gate | Unchanged and untouched. P5 adds no listener, and §10's refusal to contact any external service means it adds no egress either |

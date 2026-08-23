@@ -43,10 +43,18 @@ def errors_of(data: dict) -> list[str]:
 
 def test_the_starter_set_is_declared() -> None:
     ont = load(ONTOLOGY_PATH)
-    assert set(ont.shared_properties) == {"alias", "registered_identifier", "notes"}
-    assert set(ont.interfaces) == {"party", "identifiable"}
+    assert set(ont.shared_properties) == {
+        "alias",
+        "registered_identifier",
+        "notes",
+        "summary",     # T55: what a source says happened
+        "geometry",    # T55: the `geo` slot P3 added, first used by P5
+    }
+    assert set(ont.interfaces) == {"party", "identifiable", "event", "place"}
     assert ont.implementors("party") == ["person", "organization"]
     assert ont.implementors("identifiable") == ["person", "phone_number"]
+    assert ont.implementors("event") == ["meeting", "arrest", "travel", "observation"]
+    assert ont.implementors("place") == ["location"]
 
 
 def test_a_shared_reference_resolves_in_place() -> None:
@@ -287,6 +295,19 @@ def test_a_document_with_no_v2_sections_still_validates(data: dict) -> None:
     document nobody could have written before v2.
     """
     interfaces = data.pop("interfaces")
+    # Resolve implementors *before* dropping `implements`, so an endpoint that
+    # named an interface can name its members instead — which is what the
+    # docstring promises. The earlier `or ["person"]` fallback worked only
+    # while every interface-targeting predicate also named a concrete type;
+    # `summarized_as: {subject: [event]}` is the one that showed it up.
+    implementors = {
+        iface: [
+            name
+            for name, spec in data["object_types"].items()
+            if iface in (spec.get("implements") or ())
+        ]
+        for iface in interfaces
+    }
     data.pop("shared_properties")
     for otype in data["object_types"].values():
         otype.pop("implements", None)
@@ -298,9 +319,12 @@ def test_a_document_with_no_v2_sections_still_validates(data: dict) -> None:
             names = predicate.get(endpoint)
             if not isinstance(names, list):
                 continue
-            predicate[endpoint] = [
-                name for name in names if name not in interfaces
-            ] or ["person"]
+            expanded: list[str] = []
+            for name in names:
+                for value in implementors.get(name, [name]):
+                    if value not in expanded:
+                        expanded.append(value)
+            predicate[endpoint] = expanded or ["person"]
 
     ont = load_dict(data)
     assert ont.shared_properties == {}

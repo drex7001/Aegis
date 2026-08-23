@@ -12,6 +12,8 @@ the merged result, which is what every consumer actually reads.
 
 from __future__ import annotations
 
+import re
+
 import copy
 from pathlib import Path
 
@@ -53,7 +55,13 @@ def errors_of(data: dict) -> list[str]:
 def test_committed_ontology_loads() -> None:
     ont = load(ONTOLOGY_PATH)
     assert isinstance(ont, Ontology)
-    assert ont.version == "1.7.0"
+    # The durable fact, not today's number: pinning the version made this test
+    # fail for every release it had no opinion about (the P4 exit review found
+    # three of these and fixed them; this was the fourth).
+    assert re.fullmatch(r"\d+\.\d+\.\d+", ont.version), ont.version
+    assert (
+        ONTOLOGY_PATH.parent / "history" / f"composed-{ont.version}.json"
+    ).exists(), "the composed artifact for the committed version is missing"
     assert "person" in ont.object_types
     assert "member_of" in ont.predicates
     assert "record_claim" in ont.actions

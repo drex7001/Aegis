@@ -57,17 +57,19 @@ def test_the_release_names_an_existing_proposal(release: dict) -> None:
     assert release["compatibility"] in COMPATIBILITY_ORDER
 
 
-def test_the_backfilled_proposals_exist() -> None:
-    """One per bump since the workflow could record them (spec 08 §7.1)."""
+def test_the_proposals_are_a_contiguous_numbered_series(release: dict) -> None:
+    """One per bump since the workflow could record them (spec 08 §7.1).
+
+    The durable facts are the *shape* of the series and where it ends, not its
+    membership: this listed every proposal by name until T55, so it failed for
+    each new bump while having no opinion about it. A gap in the numbering would
+    mean a bump whose proposal was never written, and a series whose last entry
+    is not the current release would mean a bump that named an older one.
+    """
     assert (PROPOSALS / "000-template.md").exists()
-    assert [p.stem for p in _proposals()] == [
-        "001-module-composition",
-        "002-shared-properties-and-interfaces",
-        "003-action-parameters-and-criteria",
-        "004-controls-predicate",
-        "005-display-labels",
-        "006-investigation-actions",
-    ]
+    numbers = [int(path.stem.split("-", 1)[0]) for path in _proposals()]
+    assert numbers == list(range(1, len(numbers) + 1)), numbers
+    assert _proposals()[-1].stem == release["proposal"]
 
 
 def test_every_proposal_answers_a_competency_question() -> None:
@@ -198,6 +200,18 @@ def _staged(tmp_path: Path, previous: dict, release: dict) -> Path:
     return tmp_path
 
 
+def _after(previous: dict) -> str:
+    """A version strictly above the committed one, whatever that is today.
+
+    Written as a helper rather than a literal because the literal was the bug:
+    these cases hardcoded "2.0.0", which stopped advancing on the artifact the
+    day the real composition reached 2.0.0 (T55). What each case is about is
+    the *compatibility diff*, never the number.
+    """
+    major, _, _ = previous["version"].split(".")
+    return f"{int(major) + 1}.0.0"
+
+
 def _release(previous: dict, *, version: str, compatibility: str | None, proposal: str | None):
     return {
         "version": version,
@@ -212,27 +226,27 @@ def _release(previous: dict, *, version: str, compatibility: str | None, proposa
 def test_a_minor_bump_removing_a_predicate_fails(tmp_path: Path, artifact: dict) -> None:
     """The headline case (charter AC): CI refuses the lie."""
     current = _without(artifact, "predicates", "member_of")
-    release = _release(artifact, version="1.6.0", compatibility="minor", proposal="004-x")
+    release = _release(artifact, version=_after(artifact), compatibility="minor", proposal="004-x")
     errors = check(_staged(tmp_path, artifact, release), release=release, artifact=current)
     assert any("declared 'minor' but the diff" in e and "major" in e for e in errors)
     assert any("breaking change without a major bump" in e for e in errors)
 
 
 def test_a_bump_without_a_proposal_fails(tmp_path: Path, artifact: dict) -> None:
-    release = _release(artifact, version="1.6.0", compatibility="minor", proposal=None)
+    release = _release(artifact, version=_after(artifact), compatibility="minor", proposal=None)
     errors = check(_staged(tmp_path, artifact, release), release=release, artifact=artifact)
     assert any("release.proposal: every version bump names the proposal" in e for e in errors)
 
 
 def test_a_proposal_that_does_not_exist_fails(tmp_path: Path, artifact: dict) -> None:
-    release = _release(artifact, version="1.6.0", compatibility="minor", proposal="099-ghost")
+    release = _release(artifact, version=_after(artifact), compatibility="minor", proposal="099-ghost")
     staged = _staged(tmp_path, artifact, {**release, "proposal": None})
     errors = check(staged, release=release, artifact=artifact)
     assert any("'099-ghost' does not name a file" in e for e in errors)
 
 
 def test_a_missing_compatibility_class_fails(tmp_path: Path, artifact: dict) -> None:
-    release = _release(artifact, version="1.6.0", compatibility=None, proposal="004-x")
+    release = _release(artifact, version=_after(artifact), compatibility=None, proposal="004-x")
     errors = check(_staged(tmp_path, artifact, release), release=release, artifact=artifact)
     assert any("release.compatibility: declare major, minor or patch" in e for e in errors)
 
@@ -247,7 +261,7 @@ def test_a_version_that_does_not_advance_fails(tmp_path: Path, artifact: dict) -
 
 
 def test_a_module_version_going_backwards_fails(tmp_path: Path, artifact: dict) -> None:
-    release = _release(artifact, version="1.6.0", compatibility="patch", proposal="004-x")
+    release = _release(artifact, version=_after(artifact), compatibility="patch", proposal="004-x")
     release["modules"] = {**release["modules"], "platform": "1.0.0"}
     errors = check(_staged(tmp_path, artifact, release), release=release, artifact=artifact)
     assert any("release.modules.platform: 1.0.0 is older than" in e for e in errors)
@@ -255,7 +269,7 @@ def test_a_module_version_going_backwards_fails(tmp_path: Path, artifact: dict) 
 
 def test_an_edited_archive_breaks_the_chain(tmp_path: Path, artifact: dict) -> None:
     """The hash is what makes comparing against a committed file trustworthy."""
-    release = _release(artifact, version="1.6.0", compatibility="patch", proposal="004-x")
+    release = _release(artifact, version=_after(artifact), compatibility="patch", proposal="004-x")
     tampered = copy.deepcopy(artifact)
     tampered["ontology"]["predicates"].pop("member_of")
     staged = _staged(tmp_path, tampered, release)
@@ -266,7 +280,7 @@ def test_an_edited_archive_breaks_the_chain(tmp_path: Path, artifact: dict) -> N
 
 def test_a_missing_archive_is_reported_not_ignored(tmp_path: Path, artifact: dict) -> None:
     """"No previous artifact" and "no differences" must not look the same."""
-    release = _release(artifact, version="1.6.0", compatibility="patch", proposal="004-x")
+    release = _release(artifact, version=_after(artifact), compatibility="patch", proposal="004-x")
     staged = _staged(tmp_path, {"version": "0.0.1", "modules": []}, release)
     errors = check(staged, release=release, artifact=artifact)
     assert any("is named but" in e and "is missing" in e for e in errors)
@@ -274,7 +288,7 @@ def test_a_missing_archive_is_reported_not_ignored(tmp_path: Path, artifact: dic
 
 def test_a_major_bump_must_archive_the_prior_sources(tmp_path: Path, artifact: dict) -> None:
     current = _without(artifact, "predicates", "member_of")
-    release = _release(artifact, version="2.0.0", compatibility="major", proposal="004-x")
+    release = _release(artifact, version=_after(artifact), compatibility="major", proposal="004-x")
     errors = check(_staged(tmp_path, artifact, release), release=release, artifact=current)
     assert any("must archive the prior module sources" in e for e in errors)
     # ...and the diff itself is not an error once the class is honest.
@@ -285,7 +299,7 @@ def test_over_declaring_the_class_is_allowed(tmp_path: Path, artifact: dict) -> 
     """A cautious author may call an additive change major; the reverse is the risk."""
     changed = copy.deepcopy(artifact)
     changed["ontology"]["predicates"]["befriended"] = {"subject": ["person"], "object": ["person"]}
-    release = _release(artifact, version="2.0.0", compatibility="major", proposal="004-x")
+    release = _release(artifact, version=_after(artifact), compatibility="major", proposal="004-x")
     errors = check(_staged(tmp_path, artifact, release), release=release, artifact=changed)
     assert errors == []
 

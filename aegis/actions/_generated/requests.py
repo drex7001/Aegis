@@ -158,6 +158,29 @@ class RecordClaimRequest(BaseModel):
     verification_status: str = 'unverified'
 
 
+class RecordEventRequest(BaseModel):
+    """Declared parameters of the `record_event` action."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    event_type: str
+    record_id: str
+    summary: str
+    analytic_confidence: str | None = None
+    assertion_type: str = 'reported'
+    case_id: str | None = None
+    credibility_normalized: str = 'cannot_judge'
+    event_id: str | None = None
+    event_time_earliest: datetime | None = None
+    event_time_latest: datetime | None = None
+    excerpt: str | None = None
+    handling_code: str = 'open'
+    label: str | None = None
+    participants: dict[str, Any] | None = None
+    places: dict[str, Any] | None = None
+    verification_status: str = 'unverified'
+
+
 class RegisterEvidenceRequest(BaseModel):
     """Declared parameters of the `register_evidence` action."""
 
@@ -313,6 +336,7 @@ REQUEST_MODELS: dict[str, type[BaseModel]] = {
     "open_hypothesis": OpenHypothesisRequest,
     "open_task": OpenTaskRequest,
     "record_claim": RecordClaimRequest,
+    "record_event": RecordEventRequest,
     "register_evidence": RegisterEvidenceRequest,
     "release_quarantine": ReleaseQuarantineRequest,
     "remove_case_member": RemoveCaseMemberRequest,
@@ -327,4 +351,4 @@ REQUEST_MODELS: dict[str, type[BaseModel]] = {
     "update_task": UpdateTaskRequest,
 }
 
-__all__ = ['AdjudicateIdentityRequest', 'AssignCaseMemberRequest', 'CloseCaseRequest', 'LinkCaseReferenceRequest', 'LinkClaimsRequest', 'LinkHypothesisClaimRequest', 'OpenCaseRequest', 'OpenHypothesisRequest', 'OpenTaskRequest', 'REQUEST_MODELS', 'RecordClaimRequest', 'RegisterEvidenceRequest', 'ReleaseQuarantineRequest', 'RemoveCaseMemberRequest', 'RetractClaimRequest', 'ReviewSuggestionRequest', 'ReviseHypothesisRequest', 'SealRecordRequest', 'SubmitSuggestionRequest', 'TransferCustodyRequest', 'UnlinkCaseReferenceRequest', 'UnlinkHypothesisClaimRequest', 'UpdateTaskRequest']
+__all__ = ['AdjudicateIdentityRequest', 'AssignCaseMemberRequest', 'CloseCaseRequest', 'LinkCaseReferenceRequest', 'LinkClaimsRequest', 'LinkHypothesisClaimRequest', 'OpenCaseRequest', 'OpenHypothesisRequest', 'OpenTaskRequest', 'REQUEST_MODELS', 'RecordClaimRequest', 'RecordEventRequest', 'RegisterEvidenceRequest', 'ReleaseQuarantineRequest', 'RemoveCaseMemberRequest', 'RetractClaimRequest', 'ReviewSuggestionRequest', 'ReviseHypothesisRequest', 'SealRecordRequest', 'SubmitSuggestionRequest', 'TransferCustodyRequest', 'UnlinkCaseReferenceRequest', 'UnlinkHypothesisClaimRequest', 'UpdateTaskRequest']

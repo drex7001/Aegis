@@ -34,6 +34,11 @@ from typing import Any
 
 from aegis.ontology.loader import Ontology
 from aegis.ontology.modules import Composition
+from aegis.ontology.registries import (
+    GEO_ADMIN_LEVELS,
+    GEO_DERIVATIONS,
+    GEO_NOT_ADMINISTRATIVE,
+)
 
 #: Written into every generated file. The check is a substring match in tests,
 #: so keep it stable.
@@ -285,6 +290,7 @@ def typescript_constants(ontology: Ontology) -> str:
             f"category: {_ts_literal(spec.category)}, "
             f"symmetric: {'true' if spec.symmetric else 'false'}, "
             f"identifier: {'true' if spec.identifier else 'false'}, "
+            f"property: {_ts_literal(spec.property_name)}, "
             f"subjectInterfaces: {_ts_literal(sorted(spec.subject_interfaces))}, "
             f"objectInterfaces: {_ts_literal(sorted(spec.object_interfaces))}, "
             f"module: {_ts_literal(ontology.owner_module(name))} }},"
@@ -298,6 +304,23 @@ def typescript_constants(ontology: Ontology) -> str:
         "export type InterfaceName = keyof typeof INTERFACES;",
         "export type CategoryName = keyof typeof CATEGORIES;",
         "export type PredicateName = keyof typeof PREDICATES;",
+        "",
+        "/**",
+        " * Geospatial vocabularies (spec 10 §4.2). Code-owned rather than declared,",
+        " * because the validator and the renderer must implement every value — but",
+        " * exported here so no geospatial vocabulary is typed into React either.",
+        " *",
+        " * `GEO_ADMIN_LEVELS` is ordered coarse to fine; `not_administrative` is not",
+        " * a rung on it, which is why it is listed apart: asking whether it is",
+        " * coarser than a locality has no answer.",
+        " */",
+        f"export const GEO_ADMIN_LEVELS = {_ts_literal(list(GEO_ADMIN_LEVELS))} as const;",
+        f"export const GEO_NOT_ADMINISTRATIVE = {_ts_literal(GEO_NOT_ADMINISTRATIVE)} as const;",
+        f"export const GEO_DERIVATIONS = {_ts_literal(sorted(GEO_DERIVATIONS))} as const;",
+        "export type GeoAdminLevel =",
+        "  | (typeof GEO_ADMIN_LEVELS)[number]",
+        "  | typeof GEO_NOT_ADMINISTRATIVE;",
+        "export type GeoDerivation = (typeof GEO_DERIVATIONS)[number];",
         "",
     ]
     return "\n".join(lines)

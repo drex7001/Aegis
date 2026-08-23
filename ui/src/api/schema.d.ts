@@ -735,7 +735,7 @@ export interface paths {
         put?: never;
         /**
          * Rebuild Projections
-         * @description Rebuild the edge projection from canonical claims.
+         * @description Rebuild the edge and geometry projections from canonical claims.
          *
          *     Audited as an operator action (Article X). The report is returned rather
          *     than a bare 204 because "it rebuilt" is not the useful answer — how many
@@ -2111,6 +2111,23 @@ export interface components {
             collapsed_endpoints: number;
             /** Edges */
             edges: number;
+            /** Geometry Builder Version */
+            geometry_builder_version?: string | null;
+            /**
+             * Geometry Invalid
+             * @default 0
+             */
+            geometry_invalid?: number;
+            /**
+             * Geometry Rejected
+             * @default 0
+             */
+            geometry_rejected?: number;
+            /**
+             * Geometry Rows
+             * @default 0
+             */
+            geometry_rows?: number;
             /** Map Resolved */
             map_resolved: number;
             /** Ontology Version */

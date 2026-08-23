@@ -16,7 +16,7 @@ from sqlalchemy import text
 from aegis.api.deps import AuthContext, DbSession, OntologyDep, authorize
 from aegis.api.schemas import ProjectionRebuildOut
 from aegis.audit import append
-from aegis.projections import rebuild_edge_projection
+from aegis.projections import rebuild_edge_projection, rebuild_location_geometry_projection
 
 router = APIRouter(tags=["projections"])
 
@@ -36,7 +36,7 @@ def rebuild_projections(
     ontology: OntologyDep,
     auth: AuthContext = Depends(authorize("admin")),
 ) -> ProjectionRebuildOut:
-    """Rebuild the edge projection from canonical claims.
+    """Rebuild the edge and geometry projections from canonical claims.
 
     Audited as an operator action (Article X). The report is returned rather
     than a bare 204 because "it rebuilt" is not the useful answer — how many
@@ -51,6 +51,11 @@ def rebuild_projections(
         raise HTTPException(409, "a projection rebuild is already running")
 
     report = rebuild_edge_projection(session, ontology=ontology)
+    # Both projections rebuild in one pass, under the one advisory lock, because
+    # "rebuild the projections" that left one of them stale would be a worse
+    # answer than refusing (Article XIII, T56).
+    geometry = rebuild_location_geometry_projection(session, ontology=ontology)
+    detail = {**report.to_dict(), "geometry": geometry.to_dict()}
     append(
         session,
         actor=auth.user.sub,
@@ -58,8 +63,14 @@ def rebuild_projections(
         decision="allow",
         purpose=auth.purpose,
         resource_type="projection",
-        resource_id="edge_projection",
-        detail=report.to_dict(),
+        resource_id="edge_projection,location_geometry_projection",
+        detail=detail,
     )
     session.commit()
-    return ProjectionRebuildOut(**report.to_dict())
+    return ProjectionRebuildOut(
+        **report.to_dict(),
+        geometry_rows=geometry.rows,
+        geometry_invalid=geometry.invalid,
+        geometry_rejected=geometry.rejected,
+        geometry_builder_version=geometry.builder_version,
+    )
