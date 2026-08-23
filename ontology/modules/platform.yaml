@@ -12,11 +12,16 @@
 module:
   name: platform
   namespace: aegis.lk/platform
-  version: 1.5.0
+  version: 1.6.0
   label: Platform governance vocabulary
   # No imports: platform is the root of the composition. Everything else
   # imports it, which is why a cycle here would be a contradiction.
   #
+  # 1.6.0 (T74): additive — the `finding_promotion` suggestion kind. An
+  #               analytic finding is a machine's reading of what was
+  #               written down; a claim is somebody's assertion about the
+  #               world. Crossing that line is a human act, so it crosses
+  #               through the queue like every other machine output.
   # 1.5.0 (T58): additive — the `event_draft` suggestion kind. A producer
   #               may propose an occurrence; acceptance dispatches to
   #               `record_event`, so no machine writes canon (Article VII).
@@ -264,7 +269,7 @@ actions:
       # travel path's kind. Acceptance dispatches to `record_event` like
       # every other kind dispatches to its action, so Article VII holds for
       # events without a new mechanism (ADR-031 §2).
-      suggestion_kind:  {type: enum, values: [claim_draft, identity_candidate, claim_relation, event_draft], default: claim_draft}
+      suggestion_kind:  {type: enum, values: [claim_draft, identity_candidate, claim_relation, event_draft, finding_promotion], default: claim_draft}
       suggestion_id:    {type: identifier}
       idempotency_key:  {type: text}
       record_id:        {type: ref, to: source_record}

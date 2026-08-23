@@ -16,7 +16,13 @@
 # (requires migration + copy in ontology/history/). The composition's class is
 # the strongest class among its modules' changes plus its own manifest changes.
 
-version: 2.1.0   # minor: the `event_draft` suggestion kind (T58, proposal
+version: 2.2.0   # minor: the `finding_promotion` suggestion kind (T74,
+                 # proposal 009).  Additive — an analytic finding may be
+                 # *proposed* as an assessed claim, and acceptance
+                 # dispatches to `record_claim`.  Nothing existing moved;
+                 # no producer that has never heard of it is affected.
+                 #
+                 # 2.1.0: minor — the `event_draft` suggestion kind (T58, proposal
                  # 008).  Additive — a producer may now propose a whole
                  # occurrence, and acceptance dispatches to `record_event`
                  # exactly as a claim draft dispatches to `record_claim`.
@@ -103,7 +109,7 @@ namespace: aegis.lk
 # missing, when the proposal file does not exist, or when the diff against the
 # previous released artifact is stronger than the class declared here.
 release:
-  proposal: 008-event-draft-suggestions
+  proposal: 009-finding-promotion-suggestions
   compatibility: minor
 
 composition:
@@ -112,7 +118,7 @@ composition:
   # vocabulary every domain module imports.
   - module: platform
     path: modules/platform.yaml
-    version: "1.5.0"
+    version: "1.6.0"
 
   # The first domain module. A second domain is added by appending an entry
   # here and writing its file; no code under `aegis/` changes (Article XIV,

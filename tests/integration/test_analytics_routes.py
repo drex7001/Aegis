@@ -32,14 +32,17 @@ from aegis.er.ledger import active_revision_id
 from aegis.ids import new_id
 from aegis.ontology import load
 from aegis.projections import rebuild_edge_projection
-from aegis.store import AuditLog, Claim, Entity, Source, SourceRecord
+from aegis.store import AuditLog, Claim, Entity, ReviewQueue, Source, SourceRecord
 from tests.support.database import configured_test_database, truncate_domain_data
 from tests.support.paths import ONTOLOGY_PATH
 
 ISSUER = "http://localhost:8180/realms/aegis"
 AUDIENCE = "aegis-api"
 
-pytestmark = pytest.mark.requirement("Article-X", "ADR-057", "spec-06-2.6", "T72")
+pytestmark = pytest.mark.requirement(
+    "Article-VII", "Article-IX", "Article-X", "ADR-057", "spec-06-2.6", "spec-12-10",
+    "T72", "T74",
+)
 
 _KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
@@ -308,3 +311,144 @@ def test_a_set_you_may_not_evaluate_is_404(client, world, fga) -> None:
         headers=auth("user:stranger", "analyst"),
     )
     assert response.status_code == 404
+
+
+# ── promotion crosses a line, over HTTP ─────────────────────────────────────
+
+
+def _a_finding(client) -> dict:
+    """Run a metric and return one finding, with the entity it is about."""
+    body = client.post(
+        "/v1/analytics/degree?purpose=x", json={}, headers=ANALYST
+    ).json()
+    return body["findings"][0]
+
+
+def _promotion(world, finding: dict, **overrides) -> dict:
+    """A well-formed promotion of `finding`, naming somebody it is not about."""
+    subject = finding["subjects"][0]
+    other = world["b"] if subject == world["a"] else world["a"]
+    return {
+        "subject_id": subject,
+        "predicate": "close_associate_of",
+        "object_id": other,
+        "record_id": world["record"],
+        "rationale": "the degree is carried by the harbour movements, not by volume",
+        **overrides,
+    }
+
+
+def test_promoting_writes_a_suggestion_and_no_claim(client, world) -> None:
+    """The whole point of the route. Article VII is not relaxed here."""
+    session: Session = world["session"]
+    before = session.scalar(sa.select(sa.func.count()).select_from(Claim))
+    finding = _a_finding(client)
+
+    response = client.post(
+        f"/v1/findings/{finding['finding_id']}/promote?purpose=case build",
+        json=_promotion(world, finding),
+        headers=ANALYST,
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["status"] == "suggested"
+
+    session.expire_all()
+    assert session.scalar(sa.select(sa.func.count()).select_from(Claim)) == before
+
+
+def test_the_queued_suggestion_carries_the_caveat_the_finding_was_issued_with(
+    client, world
+) -> None:
+    """Copied onto the suggestion, not left behind for the reviewer to go and find."""
+    session: Session = world["session"]
+    finding = _a_finding(client)
+    queued = client.post(
+        f"/v1/findings/{finding['finding_id']}/promote?purpose=case build",
+        json=_promotion(world, finding),
+        headers=ANALYST,
+    ).json()
+
+    session.expire_all()
+    row = session.get(ReviewQueue, queued["suggestion_id"])
+    assert row.producer_meta["finding_id"] == finding["finding_id"]
+    assert row.producer_meta["caveat_text"] == finding["caveat_text"]
+    assert row.producer_meta["rationale"]
+
+
+def test_promoting_without_a_purpose_is_refused(client, world) -> None:
+    finding = _a_finding(client)
+    response = client.post(
+        f"/v1/findings/{finding['finding_id']}/promote",
+        json=_promotion(world, finding),
+        headers=ANALYST,
+    )
+    assert response.status_code == 422
+    assert "purpose" in response.text
+
+
+def test_promoting_without_a_rationale_is_refused(client, world) -> None:
+    finding = _a_finding(client)
+    response = client.post(
+        f"/v1/findings/{finding['finding_id']}/promote?purpose=x",
+        json=_promotion(world, finding, rationale=""),
+        headers=ANALYST,
+    )
+    assert response.status_code == 422
+
+
+def test_a_second_promotion_while_one_is_pending_is_409_not_422(client, world) -> None:
+    """The request is well formed; the *state* refuses it, which is a different
+    thing to tell a caller."""
+    finding = _a_finding(client)
+    first = client.post(
+        f"/v1/findings/{finding['finding_id']}/promote?purpose=x",
+        json=_promotion(world, finding),
+        headers=ANALYST,
+    )
+    assert first.status_code == 200, first.text
+
+    second = client.post(
+        f"/v1/findings/{finding['finding_id']}/promote?purpose=x",
+        json=_promotion(world, finding, rationale="a different argument entirely"),
+        headers=ANALYST,
+    )
+    assert second.status_code == 409
+    assert "awaiting review" in second.text
+
+
+def test_promoting_a_finding_above_clearance_is_404_not_403(client, world) -> None:
+    """Same rule as reading it: a narrower caller learns nothing by asking."""
+    finding = _a_finding(client)
+    response = client.post(
+        f"/v1/findings/{finding['finding_id']}/promote?purpose=x",
+        json=_promotion(world, finding),
+        headers=JUNIOR,
+    )
+    assert response.status_code == 404
+
+
+def test_promoting_requires_the_analyst_role(client, world) -> None:
+    finding = _a_finding(client)
+    response = client.post(
+        f"/v1/findings/{finding['finding_id']}/promote?purpose=x",
+        json=_promotion(world, finding),
+        headers=auth("user:auditor", "auditor"),
+    )
+    assert response.status_code == 403
+
+
+def test_the_promotion_is_audited_with_its_rationale(client, world) -> None:
+    session: Session = world["session"]
+    finding = _a_finding(client)
+    client.post(
+        f"/v1/findings/{finding['finding_id']}/promote?purpose=case build",
+        json=_promotion(world, finding),
+        headers=ANALYST,
+    )
+    session.expire_all()
+    row = session.scalars(
+        sa.select(AuditLog).where(AuditLog.resource_id == finding["finding_id"])
+    ).one()
+    assert row.action == "finding.promote"
+    assert row.purpose == "case build"
+    assert row.detail["rationale"]

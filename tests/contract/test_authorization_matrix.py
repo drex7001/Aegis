@@ -90,6 +90,9 @@ EXPECTED = {
     # forwarded to people who never saw the query (ADR-057, Article X).
     "runAnalytic": ({"analyst"}, True),
     "listFindings": (set(), False),
+    # Promotion is a human act crossing from a machine reading to an
+    # assertion, so it takes a purpose too (spec 12 §10).
+    "promoteFinding": ({"analyst"}, True),
     "getFinding": (set(), False),
     "createObjectSet": ({"analyst", "investigator"}, False),
     "listObjectSets": (set(), False),

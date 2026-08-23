@@ -82,6 +82,7 @@ def test_every_kind_declares_its_target_action() -> None:
         "identity_candidate",
         "claim_relation",
         "event_draft",
+        "finding_promotion",
     }
     assert SUGGESTION_KINDS["claim_draft"] == "record_claim"
     assert SUGGESTION_KINDS["identity_candidate"] == "adjudicate_identity"
@@ -89,7 +90,13 @@ def test_every_kind_declares_its_target_action() -> None:
     # T58. The travel path's kind: a producer proposes an occurrence and
     # acceptance dispatches to `record_event`, so Article VII holds for events
     # through the mechanism it already held for claims.
-    assert SUGGESTION_KINDS["event_draft"] == "record_event"
+    assert SUGGESTION_KINDS["event_draft"] == "record_event"
+
+    # T74. A finding is a machine's reading of what was written down; a claim
+    # is somebody's assertion about the world. Promotion crosses that line, so
+    # it dispatches to `record_claim` and the *reviewer* is the actor on what
+    # results — no machine writes an assessment into canon.
+    assert SUGGESTION_KINDS["finding_promotion"] == "record_claim"
 
     # The code-owned list and the ontology's declared enum must agree, or a
     # producer could send a kind nothing can accept — or a kind could exist that

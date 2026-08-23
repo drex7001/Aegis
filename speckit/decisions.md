@@ -2074,3 +2074,82 @@ Asking is free; committing to an answer is a governed act. Weighted paths are
 `edge_projection` on purpose, so there is no weight to traverse, and any future
 weighted metric must declare its weight function in the manifest and derive it
 from the support summary in the open.
+
+---
+
+## ADR-058: a finding points at the claim it became; nothing points back
+
+**Context.** Spec 12 §10 said an accepted promotion linked the finding to the
+claim in two ways: `analytic_finding.promoted_claim_id`, **and** a
+`claim_relation` of kind `analytic_basis`. T74 tried to build the second and
+found it unbuildable. `claim_relation` has `from_claim` and `to_claim`, both
+foreign keys to `claim`, and its `relation` is constrained to `corroborates` /
+`contradicts` — the claim-to-claim epistemic relations Article VIII is about.
+
+A finding is not a claim. It has no `record_id`, no assertion type, no grading;
+it is a computation over claims, and it is true of the corpus rather than of the
+world. So it fits in neither column, and widening the constraint to admit it
+would have made "this claim relates to that claim" mean two different things
+depending on the row — the one property `claim_relation` exists to keep
+unambiguous.
+
+**Decision.** The link is `analytic_finding.promoted_claim_id`, and it is
+one-directional on purpose. A finding records what it became; a claim records
+nothing about having been a finding, beyond `assertion_type = 'assessed'` and
+`collection_method = 'analytic'`, which is what a *reader* needs and all of it.
+
+The spec is corrected, not the schema. `claim_relation` keeps one meaning.
+
+**Consequences.** "Which computation is this claim based on?" is answered by a
+lookup on `promoted_claim_id`, not by walking a relation — one indexed column
+rather than a join through a table that would then hold two kinds of thing.
+
+A claim reachable *as* a finding would be one lifecycle wearing two names, and
+`tests/contract/test_findings_are_not_claims.py` asserts the separation at
+the schema. Making the link symmetric would have quietly weakened that: the
+whole point of Article IX's line is that an assessment can be recognised as one,
+and a finding that is also addressable as a claim is an assessment that has
+stopped announcing itself.
+
+Promotion is refused if the finding already has a `promoted_claim_id`. One
+finding, one assessed claim — two would read as two independent assessments of a
+single computation, which is the double-counting the article guards against.
+
+**Revisit when** something needs to record that a claim was *contradicted* by a
+computation rather than derived from one. That is a genuinely different
+relation, and it should arrive as its own typed thing rather than by loosening
+this one.
+
+---
+
+## ADR-059: the rationale is part of a promotion's idempotency key
+
+**Context.** `submit_suggestion` derives an idempotency key from
+`(kind, producer, producer_version, payload)`, which is right for machine
+producers: an extraction pass re-run over the same record should not queue the
+same draft twice.
+
+A finding promotion is not that. The producer is a person, the payload is the
+claim they want to assert, and the reasoning — *why this computation is worth
+asserting* — travels in `producer_meta`, outside the key. T74 hit the
+consequence directly: after a promotion was **rejected**, an analyst with an
+entirely different argument could not propose one, because the payload digest
+was identical and the unique constraint refused it.
+
+**Decision.** The rationale is part of the key. The rule this produces is the
+one worth having: **the same argument, already rejected, cannot be resubmitted;
+a new argument can.**
+
+**Consequences.** A rejection is a decision about a proposal, not a permanent
+verdict on a computation. A reviewer who says no to "central to the harbour
+movements" is not thereby saying no to every future case anybody might make from
+the same finding — which is what the collision would have meant, silently, and
+which nobody chose.
+
+Re-submitting an identical promotion still fails, loudly, at the constraint. If
+the argument has not changed, neither has anything the reviewer already saw.
+
+This does not generalise to machine producers. Their reasoning is their method
+version, which is already in the key; a producer that varied its rationale run
+to run would defeat idempotence rather than express disagreement.
+
