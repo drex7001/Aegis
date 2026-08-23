@@ -28,8 +28,9 @@ parentheses. Numbering continues from Phase 5 (T65).
 >    T69's AC said the opposite. A set that silently widens when a domain module
 >    lands changes the meaning of findings people already acted on.
 > 4. **Reproducibility is manifest equality** (ADR-055), not "same inputs".
->    Neither a set nor a projection is immutable, and `clustering.py` silently
->    falls back from Leiden to Louvain. This also closes P5's `is_stale`
+>    Neither a set nor a projection is immutable, and `clustering.py`'s
+>    Leiden→Louvain fallback is labelled on the result but carries no library
+>    version and belongs to no run record. This also closes P5's `is_stale`
 >    carryover without changing what `is_stale` means.
 > 5. **Watchlists are evaluated explicitly, never on write** (ADR-056). The
 >    side-effect outbox spec 08 §6.5 declares is still executed by nothing, and
@@ -65,8 +66,8 @@ entities, `claim.excerpt` and the `document_text_projection` (ADR-051);
 grouped results enumerated from `ontology.object_types`; the versioned
 normalization pipeline (ADR-052) applied identically at write and query time;
 **authorization in candidate generation** (ADR-012, B-17), never
-generate-then-filter; identifiers matched exactly (ADR-053); `as_of` /
-`as_of_revision` (closing the P5 carryover); purpose capture when a sensitive
+generate-then-filter; identifiers matched exactly (ADR-053); `asOf` /
+`asOfRevision` (closing the P5 carryover); purpose capture when a sensitive
 hit is opened. Removes `GET /v1/search/entities` with `BREAKING API CHANGE`.
 AC: a hit the caller's filters exclude is absent — not redacted, absent; two
 users get **subset** results for the same query, and a **strict** subset once a

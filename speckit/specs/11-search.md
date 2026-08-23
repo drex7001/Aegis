@@ -46,7 +46,7 @@ Postgres column, so claim-text search needs no projection at all.
 ## 1. One route (M-11, ADR-050)
 
 ```
-GET /v1/search?q=&types=&as_of=&as_of_revision=&cursor=&limit=
+GET /v1/search?q=&types=&asOf=&asOfRevision=&cursor=&limit=
 ```
 
 `GET /v1/search/entities` is removed. It was P2's first implementation of this
@@ -239,18 +239,21 @@ means something.
 
 ---
 
-## 6. `as_of` and `as_of_revision` (P5 carryover, closed)
+## 6. `asOf` and `asOfRevision` (P5 carryover, closed)
 
 Search accepts both, with exactly the semantics ADR-029 and spec 06 §3 already
 define, because `claim_filters` implements them and search composes
 `claim_filters`.
 
-- `as_of` restricts candidacy to claims recorded at or before that instant, so
+- `asOf` restricts candidacy to claims recorded at or before that instant, so
   a search "as of last March" cannot surface an entity known only through a
   claim recorded in June.
-- `as_of_revision` resolves identity through that revision, so a merge made
+- `asOfRevision` resolves identity through that revision, so a merge made
   last week does not retroactively unify two hits in a historical view.
-- The two are independent and may be combined.
+- The two are independent and may be combined, and the response carries the
+  `stamp` spec 06 §3 requires of every as-of-capable read — **including when no
+  snapshot was asked for**, so a caller can tell a current answer from a
+  historical one without re-reading its own request.
 - A saved object set that pins an as-of evaluates at that as-of (spec 12 §4.4).
 
 ---
@@ -370,7 +373,8 @@ Postgres held" is a result worth keeping.
 | An identifier near-miss returns nothing | unit + integration |
 | Golden-set precision, recall and latency meet §8 | integration, in CI |
 | Result groups enumerate `ontology.object_types`, not a literal list | contract |
-| `as_of` excludes an entity known only through a later claim | integration |
+| `asOf` excludes an entity known only through a later claim | integration |
+| The response carries `stamp` even when no snapshot was asked for (spec 06 §3) | contract |
 
 ---
 
