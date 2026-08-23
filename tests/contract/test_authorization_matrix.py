@@ -43,6 +43,11 @@ EXPECTED = {
     "listTasks": (set(), False),
     "updateTask": ({"analyst", "investigator"}, False),
     "createClaim": ({"analyst", "investigator"}, False),
+    # An event *is* claims (ADR-046), so it is gated exactly as recording one:
+    # the same roles, the same case check, and no privilege of its own. A
+    # narrower or wider gate here would mean an occurrence could be asserted by
+    # someone who may not assert its parts.
+    "recordEvent": ({"analyst", "investigator"}, False),
     "getClaim": (set(), False),
     "claimProvenance": (set(), False),
     "linkClaim": ({"analyst"}, False),

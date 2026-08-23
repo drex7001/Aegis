@@ -50,6 +50,12 @@ def get_entity(
     side by side; ``contradicted_by`` on each entry is what names the
     disagreement rather than leaving the reader to spot it (Article VIII).
 
+    ``inbound_claims_by_predicate`` is the same question from the other end —
+    what *others* assert about this entity (T57). Separate rather than merged,
+    because a reader has to be able to tell who asserted what about whom; and
+    filtered identically, so an inbound claim can never appear on a page where
+    the outbound one would have been hidden.
+
     **As-of is a claim-recording snapshot and nothing more** (B-11, spec 09 §7).
     ``asOf`` filters to what had been recorded and not retracted at that
     instant; ``asOfRevision`` pins the identity revision entity arguments
@@ -85,11 +91,16 @@ def get_entity(
     grouped: dict[str, list[ClaimProvenanceOut]] = defaultdict(list)
     for entry in result.claims:
         grouped[entry.claim.predicate].append(claim_provenance_out(entry))
+    inbound: dict[str, list[ClaimProvenanceOut]] = defaultdict(list)
+    for entry in result.inbound_claims:
+        inbound[entry.claim.predicate].append(claim_provenance_out(entry))
     return EntityDetail(
         entity=EntityOut.model_validate(entity),
         claims_by_predicate=grouped,
+        inbound_claims_by_predicate=inbound,
         resolved_entity_id=result.resolved_entity_id,
         truncated=result.truncated,
+        inbound_truncated=result.inbound_truncated,
         stamp=AsOfStampOut(
             as_of=as_of,
             # Echoed whether pinned or not: a caller must never have to re-read

@@ -176,8 +176,8 @@ class RecordEventRequest(BaseModel):
     excerpt: str | None = None
     handling_code: str = 'open'
     label: str | None = None
-    participants: dict[str, Any] | None = None
-    places: dict[str, Any] | None = None
+    participants: list[dict[str, Any]] | None = None
+    places: list[dict[str, Any]] | None = None
     verification_status: str = 'unverified'
 
 

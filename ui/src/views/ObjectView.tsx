@@ -49,6 +49,13 @@ import { TimelineStrip } from "./claims/TimelineStrip";
  * Conflicting values render side by side with their `contradicts` badge, via
  * the same `PredicateGroup` the P2 provenance panel uses — one implementation,
  * so Article VIII cannot become true in one screen and false in the other.
+ *
+ * **Referenced by** (T57) is the third region: claims where this entity is the
+ * *object*. It is separate from Links, not merged into it, because who asserted
+ * what about whom is the distinction a reader most needs — "this arrest has
+ * Nimal as an arrestee" is a statement about the arrest, and it belongs on
+ * Nimal's page under a heading that says so. Generic, not event-shaped: an
+ * organization's members arrive through exactly the same field.
  */
 
 type Split = { properties: [string, ClaimProvenance[]][]; links: [string, ClaimProvenance[]][] };
@@ -78,7 +85,8 @@ function categoryOf(predicate: string): { key: string; label: string; color: str
 /** The distinct sources behind a set of claims, in first-seen order. */
 function sourcesOf(detail: EntityDetail) {
   const seen = new Map<string, { name: string; type: string; records: Set<string> }>();
-  for (const claims of Object.values(detail.claims_by_predicate)) {
+  const sets = [detail.claims_by_predicate, detail.inbound_claims_by_predicate ?? {}];
+  for (const claims of sets.flatMap((set) => Object.values(set))) {
     for (const entry of claims) {
       if (!entry.source) continue;
       const bucket = seen.get(entry.source.source_id) ?? {
@@ -143,7 +151,17 @@ export function ObjectView() {
   const descriptor = OBJECT_TYPES[typeName];
   const { properties, links } = splitClaims(detail);
   const sources = sourcesOf(detail);
-  const allClaims = Object.values(detail.claims_by_predicate).flat();
+  const inboundGroups = Object.entries(detail.inbound_claims_by_predicate ?? {});
+  /*
+   * The timeline spans both directions. An arrest's date reaches a participant's
+   * page only through the inbound claim, and a timeline that silently omitted it
+   * would be the "one claim set, two answers" failure this phase exists to
+   * remove.
+   */
+  const allClaims = [
+    ...Object.values(detail.claims_by_predicate),
+    ...inboundGroups.map(([, claims]) => claims),
+  ].flat();
 
   /** Where did this value come from — the claim's own evidence (T45). */
   const drillClaim = (entry: ClaimProvenance) =>
@@ -157,13 +175,17 @@ export function ObjectView() {
    * Why are these two connected — the link's evidence *and* the identity
    * decisions behind its endpoints, which a claim-level view cannot show.
    *
-   * `entity_provenance` returns claims where this entity is the **subject**, so
-   * the other end is always `object_id`. Falls back to the claim drill when a
-   * link has no entity object, which a mixed entity-or-literal predicate can
-   * produce (spec 02 §6).
+   * "The other end" depends on which end *this* entity is (T57). An outbound
+   * claim has us as the subject, so the far side is `object_id`; a claim in
+   * "Referenced by" has us as the object, so it is `subject_id`. Reading
+   * `object_id` unconditionally would ask why this entity is connected to
+   * itself. Falls back to the claim drill when a link has no entity object,
+   * which a mixed entity-or-literal predicate can produce (spec 02 §6).
    */
   const drillLink = (entry: ClaimProvenance) => {
-    const other = entry.claim.object_id;
+    const here = new Set([detail.entity.entity_id, detail.resolved_entity_id]);
+    const inbound = entry.claim.object_id !== null && here.has(entry.claim.object_id);
+    const other = inbound ? entry.claim.subject_id : entry.claim.object_id;
     if (!other) return drillClaim(entry);
     setDrill({
       kind: "link",
@@ -315,6 +337,27 @@ export function ObjectView() {
           ))
         )}
       </div>
+
+      <h2>Referenced by</h2>
+      <div data-testid="object-view-inbound">
+        {inboundGroups.length === 0 ? (
+          <p className="notice">Nothing you are cleared to see refers to this.</p>
+        ) : (
+          inboundGroups.map(([predicate, claims]) => (
+            <PredicateGroup
+              key={predicate}
+              predicate={predicate}
+              claims={claims}
+              onDrill={drillLink}
+            />
+          ))
+        )}
+      </div>
+      {detail.inbound_truncated && (
+        <p className="notice" data-testid="object-view-inbound-truncated">
+          Showing the first references only — more is recorded than is shown here.
+        </p>
+      )}
 
       <h2>Sources</h2>
       {sources.length === 0 ? (

@@ -42,7 +42,14 @@ from aegis.er.ledger import (
     open_membership,
 )
 from aegis.ontology import ActionSpec, KNOWN_ROLES, Ontology, OntologyError, load
-from aegis.ontology.shapes import GEO_PROPERTY_TYPE
+from aegis.ontology.shapes import (
+    EVENT_INTERFACE,
+    GEO_PROPERTY_TYPE,
+    event_object_types,
+    event_place_predicates,
+    is_event_type,
+    participation_predicates,
+)
 from aegis.store import (
     AuthzOutbox,
     CaseFile,
@@ -140,6 +147,21 @@ class ActionContext:
     def __post_init__(self) -> None:
         if not self.actor.strip():
             raise ValueError("action actor must not be empty")
+
+
+@dataclass(frozen=True, slots=True)
+class EventResult:
+    """What one ``record_event`` call created (spec 10 §3.4).
+
+    The claim ids are returned rather than a bare entity id because they are
+    what a caller has to be able to point at: every assertion the call made is
+    an ordinary claim with its own provenance, and a response that named only
+    the entity would suggest the occurrence itself was the record.
+    """
+
+    entity_id: str
+    entity_type: str
+    claim_ids: list[str]
 
 
 def _default_ontology() -> Ontology:
@@ -686,6 +708,163 @@ class ActionService:
                 },
             )
         return row
+
+    def record_event(self, context: ActionContext, **params: Any) -> EventResult:
+        """An occurrence and the claims that assert it, in one transaction.
+
+        Not a second write path around ``record_claim`` (Article I, ADR-046):
+        every participant and place becomes an ordinary claim through
+        ``_create_claim``, validated by the ordinary predicate rules, carrying
+        the envelope fields declared on this action. What ``record_event`` adds
+        is **atomicity** — an entity row is not an assertion and carries no
+        source, so an event that no claim asserts would be a fact with no
+        provenance sitting in the entity table.
+
+        Hence the summary is required and always written: it is the claim that
+        makes the event exist (spec 10 §3.4), and it carries the record, the
+        grading and the time like any other.
+
+        ``event_id`` extends an occurrence already recorded. That is the
+        reviewer's move when a second report describes the same arrest — there
+        is no automatic occurrence merging, because that would be a machine
+        making an identity decision (spec 10 §3.5, Article VII).
+        """
+        validated = self._require_action("record_event", context, parameters=params)
+        event_type = validated.pop("event_type")
+        event_id = validated.pop("event_id", None)
+        label = validated.pop("label", None)
+        participants = validated.pop("participants", None) or []
+        places = validated.pop("places", None) or []
+        summary = validated.pop("summary")
+
+        if not is_event_type(self.ontology, event_type):
+            raise ActionValidationError(
+                "record_event.event_type",
+                f"{event_type!r} does not implement the {EVENT_INTERFACE!r} interface "
+                f"(declared: {sorted(event_object_types(self.ontology))})",
+            )
+
+        roles = participation_predicates(self.ontology)
+        place_roles = event_place_predicates(self.ontology)
+
+        with self._transaction():
+            event = self._event_entity(event_id, event_type, label, summary)
+            claim_ids = [
+                self._create_claim(
+                    subject_id=event.entity_id,
+                    predicate="summarized_as",
+                    object_value=summary,
+                    **validated,
+                ).claim_id
+            ]
+            for index, entry in enumerate(participants):
+                claim_ids.append(
+                    self._event_link(
+                        event, entry, roles, f"record_event.participants[{index}]", validated
+                    )
+                )
+            for index, entry in enumerate(places):
+                claim_ids.append(
+                    self._event_link(
+                        event, entry, place_roles, f"record_event.places[{index}]", validated
+                    )
+                )
+            self._audit(
+                context,
+                action="record_event",
+                resource_type="entity",
+                resource_id=event.entity_id,
+                case_id=validated.get("case_id"),
+                detail={
+                    "event_type": event_type,
+                    "extended": event_id is not None,
+                    "claim_ids": claim_ids,
+                    "participants": len(participants),
+                    "places": len(places),
+                },
+            )
+        return EventResult(
+            entity_id=event.entity_id, entity_type=event_type, claim_ids=claim_ids
+        )
+
+    def _event_entity(
+        self, event_id: str | None, event_type: str, label: str | None, summary: str
+    ) -> Entity:
+        """The occurrence this call is about — found, or created here."""
+        if event_id is not None:
+            existing = self.session.get(Entity, event_id)
+            if existing is None:
+                raise ActionValidationError(
+                    "record_event.event_id", f"event {event_id!r} does not exist"
+                )
+            if existing.entity_type != event_type:
+                # Refused rather than ignored: silently attaching an arrest's
+                # claims to a meeting would make the event's own type a lie
+                # that nothing later could detect.
+                raise ActionValidationError(
+                    "record_event.event_type",
+                    f"event {event_id!r} is a {existing.entity_type!r}, not a {event_type!r}",
+                )
+            return existing
+        # `label` is display only, rebuilt from claims like every other entity
+        # label. The summary is the fallback because an occurrence with no name
+        # of its own is the normal case — "the 12 March arrest" is a sentence,
+        # not a title.
+        entity = Entity(
+            entity_id=new_id("ent"),
+            entity_type=event_type,
+            label=(label or summary)[:200],
+        )
+        self.session.add(entity)
+        self.session.flush()
+        return entity
+
+    def _event_link(
+        self,
+        event: Entity,
+        entry: Any,
+        allowed: dict[str, Any],
+        path: str,
+        envelope: dict[str, Any],
+    ) -> str:
+        """One participant or place, as an ordinary claim.
+
+        The role **is** the predicate, so an undeclared role fails here with the
+        vocabulary that is actually available rather than reaching the claim
+        validator and failing with a less useful message.
+        """
+        if not isinstance(entry, dict):
+            raise ActionValidationError(path, "expected an object with `role` and `entity_id`")
+        unknown = sorted(set(entry) - {"role", "entity_id", "mention_id"})
+        if unknown:
+            raise ActionValidationError(
+                path, f"unknown field(s) {unknown}; expected role, entity_id, mention_id"
+            )
+        role = entry.get("role")
+        entity_id = entry.get("entity_id")
+        if not role:
+            raise ActionValidationError(f"{path}.role", "is required")
+        if not entity_id:
+            raise ActionValidationError(f"{path}.entity_id", "is required")
+        if role not in allowed:
+            raise ActionValidationError(
+                f"{path}.role",
+                f"{role!r} is not a declared role for this kind of link "
+                f"(declared: {sorted(allowed)})",
+            )
+        if event.entity_type not in allowed[role].subject:
+            raise ActionValidationError(
+                f"{path}.role",
+                f"{role!r} does not apply to a {event.entity_type!r} "
+                f"(declared for: {sorted(allowed[role].subject)})",
+            )
+        return self._create_claim(
+            subject_id=event.entity_id,
+            predicate=role,
+            object_id=entity_id,
+            object_mention_id=entry.get("mention_id"),
+            **envelope,
+        ).claim_id
 
     def adjudicate_identity(
         self,
@@ -2063,6 +2242,10 @@ def _service(session: Session, ontology: Ontology | None) -> ActionService:
 
 def record_claim(session: Session, context: ActionContext, *, ontology: Ontology | None = None, **kwargs: Any) -> Claim:
     return _service(session, ontology).record_claim(context, **kwargs)
+
+
+def record_event(session: Session, context: ActionContext, *, ontology: Ontology | None = None, **kwargs: Any) -> EventResult:
+    return _service(session, ontology).record_event(context, **kwargs)
 
 
 def retract_claim(session: Session, context: ActionContext, *, ontology: Ontology | None = None, **kwargs: Any) -> Claim:

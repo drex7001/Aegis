@@ -292,6 +292,12 @@ export interface paths {
          *     side by side; ``contradicted_by`` on each entry is what names the
          *     disagreement rather than leaving the reader to spot it (Article VIII).
          *
+         *     ``inbound_claims_by_predicate`` is the same question from the other end —
+         *     what *others* assert about this entity (T57). Separate rather than merged,
+         *     because a reader has to be able to tell who asserted what about whom; and
+         *     filtered identically, so an inbound claim can never appear on a page where
+         *     the outbound one would have been hidden.
+         *
          *     **As-of is a claim-recording snapshot and nothing more** (B-11, spec 09 §7).
          *     ``asOf`` filters to what had been recorded and not retracted at that
          *     instant; ``asOfRevision`` pins the identity revision entity arguments
@@ -392,6 +398,32 @@ export interface paths {
         get: operations["whyConnected"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record Event
+         * @description Record an occurrence and the claims that assert it, in one transaction.
+         *
+         *     Under `/v1/events` rather than a section of its own, and in the claims
+         *     router deliberately: an event *is* claims. The route creates an entity and
+         *     writes every participant, place and summary through the ordinary claim
+         *     validator — there is no second write path around `record_claim`, and no
+         *     canonical event table for one to write to (ADR-046, Article I).
+         */
+        post: operations["recordEvent"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1527,6 +1559,15 @@ export interface components {
                 [key: string]: components["schemas"]["ClaimProvenanceOut"][];
             };
             entity: components["schemas"]["EntityOut"];
+            /** Inbound Claims By Predicate */
+            inbound_claims_by_predicate?: {
+                [key: string]: components["schemas"]["ClaimProvenanceOut"][];
+            };
+            /**
+             * Inbound Truncated
+             * @default false
+             */
+            inbound_truncated?: boolean;
             /** Resolved Entity Id */
             resolved_entity_id: string;
             stamp?: components["schemas"]["AsOfStampOut"] | null;
@@ -1565,6 +1606,98 @@ export interface components {
             entity_type: string;
             /** Label */
             label: string;
+        };
+        /**
+         * EventIn
+         * @description Create or extend an occurrence (spec 10 §3.4).
+         *
+         *     `summary` is required because it becomes the claim that makes the event
+         *     exist: an entity row is not an assertion and carries no source, so an event
+         *     no claim asserts would be a fact with no provenance (Article I).
+         *
+         *     `event_id` extends an occurrence already recorded — the reviewer's move when
+         *     a second report describes the same arrest. There is no automatic occurrence
+         *     merging, because that would be a machine making an identity decision
+         *     (Article VII, spec 10 §3.5).
+         */
+        EventIn: {
+            /** Analytic Confidence */
+            analytic_confidence?: string | null;
+            /**
+             * Assertion Type
+             * @default reported
+             */
+            assertion_type?: string;
+            /** Case Id */
+            case_id?: string | null;
+            /**
+             * Credibility Normalized
+             * @default cannot_judge
+             */
+            credibility_normalized?: string;
+            /** Event Id */
+            event_id?: string | null;
+            /** Event Time Earliest */
+            event_time_earliest?: string | null;
+            /** Event Time Latest */
+            event_time_latest?: string | null;
+            /** Event Type */
+            event_type: string;
+            /** Excerpt */
+            excerpt?: string | null;
+            /**
+             * Handling Code
+             * @default open
+             */
+            handling_code?: string;
+            /** Label */
+            label?: string | null;
+            /** Participants */
+            participants?: components["schemas"]["EventLinkIn"][];
+            /** Places */
+            places?: components["schemas"]["EventLinkIn"][];
+            /** Record Id */
+            record_id: string;
+            /** Summary */
+            summary: string;
+            /**
+             * Verification Status
+             * @default unverified
+             */
+            verification_status?: string;
+        };
+        /**
+         * EventLinkIn
+         * @description One participant or place on a `record_event` call (spec 10 §3.2).
+         *
+         *     `role` is a **predicate name**, which is the whole design: an undeclared
+         *     role is an undeclared predicate, so the vocabulary is governed by an
+         *     ontology proposal rather than by an enum somebody can widen in Python.
+         */
+        EventLinkIn: {
+            /** Entity Id */
+            entity_id: string;
+            /** Mention Id */
+            mention_id?: string | null;
+            /** Role */
+            role: string;
+        };
+        /**
+         * EventOut
+         * @description What one `record_event` call created.
+         *
+         *     The claim ids are here rather than only the entity id because they are what
+         *     a caller has to be able to point at: every assertion the call made is an
+         *     ordinary claim with its own provenance, and returning the entity alone would
+         *     suggest the occurrence itself was the record.
+         */
+        EventOut: {
+            /** Claim Ids */
+            claim_ids: string[];
+            /** Entity Id */
+            entity_id: string;
+            /** Entity Type */
+            entity_type: string;
         };
         /** EvidenceIn */
         EvidenceIn: {
@@ -3897,6 +4030,69 @@ export interface operations {
             };
             /** @description Not found — or found and not visible to this caller. The two are deliberately indistinguishable (spec 06 §1 default 4). */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description The body or parameters did not validate. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Per-caller rate limit exceeded (spec 06 §1.6). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    recordEvent: {
+        parameters: {
+            query?: {
+                /** @description Reason for access */
+                purpose?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventOut"];
+                };
+            };
+            /** @description No credentials, or a token that does not verify. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Authenticated, but the role gate refused. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -4,6 +4,16 @@
 - **Modules**: `platform` `1.3.0` → `1.4.0` (minor) · `criminal_network`
   `1.2.1` → `2.0.0` (major)
 - **Task / ADR**: T55 · ADR-046, ADR-047, ADR-048 · spec 10
+- **Amended at T57, before release**: `record_event.participants` and `.places`
+  gained `many: true`. They were always lists of role references — the
+  declaration said `json` and the generated model produced `dict[str, Any]`,
+  which no caller could have satisfied. Corrected in **2.0.0 itself** rather
+  than as a 2.0.1, because 2.0.0 has never been merged to `master`, never
+  tagged, and no claim outside the authoring branch stamps it: there is nothing
+  to reinterpret, which is the only thing the version discipline protects
+  (ADR-013). Recorded here rather than fixed silently, because "the version
+  was not released yet" is exactly the reasoning that erodes a gate if it is
+  used without being written down.
 
 The first **major** bump since `1.0.0` removed `merged_into`, and the first one
 to run forwards: `1.0.0`'s proposal was backfilled, this one is written before

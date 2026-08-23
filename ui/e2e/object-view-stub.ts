@@ -54,13 +54,17 @@ function claim(overrides: Record<string, unknown>) {
 export const STAMP = {
   as_of: null as string | null,
   identity_revision_id: 7,
-  ontology_version: "1.7.0",
+  ontology_version: "2.0.0",
 };
 
 export const PERSON = {
   entity: { entity_id: "ent_person", entity_type: "person", label: "Fictional A" },
   resolved_entity_id: "ent_person",
   truncated: false,
+  inbound_truncated: false,
+  // Nothing refers to this person: the empty region must still render, saying
+  // so, rather than disappearing.
+  inbound_claims_by_predicate: {},
   stamp: STAMP,
   claims_by_predicate: {
     // A property: `known_as` has a literal object.
@@ -109,11 +113,30 @@ export const ORGANIZATION = {
   entity: { entity_id: "ent_org", entity_type: "organization", label: "Fictional Co" },
   resolved_entity_id: "ent_org",
   truncated: false,
+  inbound_truncated: false,
   stamp: STAMP,
   claims_by_predicate: {
     known_as: [
       claim({
         claim: { claim_id: "clm_org_name", subject_id: "ent_org", object_value: "Fictional Co" },
+      }),
+    ],
+  },
+  /*
+   * The other end of `person`'s `member_of` claim (T57). One claim, two pages:
+   * a link on the member's page and a reference on the organization's, which is
+   * the hole that existed before the inbound set and that events made acute.
+   */
+  inbound_claims_by_predicate: {
+    member_of: [
+      claim({
+        claim: {
+          claim_id: "clm_member",
+          subject_id: "ent_person",
+          predicate: "member_of",
+          object_id: "ent_org",
+          object_value: null,
+        },
       }),
     ],
   },

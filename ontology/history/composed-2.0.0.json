@@ -515,10 +515,12 @@
             "type": "text"
           },
           "participants": {
+            "many": true,
             "payload_schema": "event_participants",
             "type": "json"
           },
           "places": {
+            "many": true,
             "payload_schema": "event_places",
             "type": "json"
           },

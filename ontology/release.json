@@ -1,6 +1,6 @@
 {
   "compatibility": "major",
-  "content_hash": "b1809f694e7bd8477c559f9bc2903a9d2f09e87516bdd2d33c17297bc6c7c19b",
+  "content_hash": "db0a4e8091eef1a0b67167773944c8ff59afda98c1decf4fb20db0eb8e5290d5",
   "modules": {
     "criminal_network": "2.0.0",
     "platform": "1.4.0"

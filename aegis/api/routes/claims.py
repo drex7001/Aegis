@@ -18,7 +18,7 @@ from aegis.api.deps import (
     fga_check_or_404,
     get_fga,
 )
-from aegis.api.schemas import ClaimIn, ClaimOut, RelationIn, RetractIn
+from aegis.api.schemas import ClaimIn, ClaimOut, EventIn, EventOut, RelationIn, RetractIn
 from aegis.authz.filters import claim_filters
 from aegis.store import Claim, ClaimRelation
 
@@ -39,6 +39,37 @@ def _visible_claim(session, user: UserContext, ontology, claim_id: str, *, as_of
     if row is None:
         raise HTTPException(404, "not found")  # unauthorized and absent are indistinguishable
     return row
+
+
+@router.post(
+    "/events", response_model=EventOut, status_code=201, operation_id="recordEvent"
+)
+def record_event(
+    body: EventIn,
+    session: DbSession,
+    ontology: OntologyDep,
+    fga=Depends(get_fga),
+    auth: AuthContext = Depends(authorize("analyst", "investigator")),
+) -> EventOut:
+    """Record an occurrence and the claims that assert it, in one transaction.
+
+    Under `/v1/events` rather than a section of its own, and in the claims
+    router deliberately: an event *is* claims. The route creates an entity and
+    writes every participant, place and summary through the ordinary claim
+    validator — there is no second write path around `record_claim`, and no
+    canonical event table for one to write to (ADR-046, Article I).
+    """
+    if body.case_id is not None:
+        fga_check_or_404(fga, auth.user, "can_edit", f"case:{body.case_id}")
+    service = ActionService(session, ontology)
+    payload = body.model_dump(exclude_none=True)
+    result = service.record_event(_context(auth), **payload)
+    session.commit()
+    return EventOut(
+        entity_id=result.entity_id,
+        entity_type=result.entity_type,
+        claim_ids=result.claim_ids,
+    )
 
 
 @router.post(
