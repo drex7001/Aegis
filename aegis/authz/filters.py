@@ -148,3 +148,34 @@ def claim_filters(
     else:
         conditions.append(Claim.retracted_at.is_(None))
     return conditions
+
+
+def visible_entity_ids(
+    session: Session,
+    user: UserContext,
+    ontology: Ontology,
+    *,
+    as_of: datetime | None = None,
+):
+    """Entities the caller can reach through at least one readable claim.
+
+    **An entity carries no handling code of its own; claims do.** So an entity
+    exists, for a given caller, exactly when some claim they may read mentions
+    it. Anything that selects entities directly — search, object sets — has to
+    compose this, or it answers with rows the caller has no readable basis for.
+
+    Returned as a *subquery*, never a materialized id list: the point is for
+    the database to apply it while choosing candidates, so an entity known only
+    through restricted claims is absent from the scan rather than removed from
+    its result (B-17).
+
+    Shared between search and sets from T70. It lived in `aegis/search/entities`
+    until an object set of `type: person` was found returning people the caller
+    had no readable claim about — the same hole, in a module that had not
+    inherited the answer."""
+    filters = claim_filters(session, user, ontology, as_of=as_of)
+    subject = select(Claim.subject_id.label("entity_id")).where(*filters)
+    obj = select(Claim.object_id.label("entity_id")).where(
+        Claim.object_id.is_not(None), *filters
+    )
+    return subject.union(obj).subquery().select()

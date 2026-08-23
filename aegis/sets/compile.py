@@ -27,7 +27,7 @@ from sqlalchemy import ColumnElement, Select, Text, and_, func, literal_column, 
 from sqlalchemy.orm import Session
 
 from aegis.api.auth import UserContext
-from aegis.authz.filters import claim_filters
+from aegis.authz.filters import claim_filters, visible_entity_ids
 from aegis.ontology import Ontology
 from aegis.sets.grammar import (
     AndNode,
@@ -81,7 +81,18 @@ def compile_set(
     )
     return (
         select(Entity.entity_id)
-        .where(Entity.tombstoned_at.is_(None), condition)
+        .where(
+            Entity.tombstoned_at.is_(None),
+            # An entity carries no handling code of its own; claims do. Without
+            # this, a bare `type: person` node would return every person in the
+            # database — including people the caller has no readable claim
+            # about. Found by a T70 test, in a compiler that had not inherited
+            # the rule search learned at T23c.
+            Entity.entity_id.in_(
+                visible_entity_ids(session, user, ontology, as_of=as_of)
+            ),
+            condition,
+        )
         .distinct()
     )
 

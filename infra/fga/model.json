@@ -146,6 +146,55 @@
           "can_edit": { "directly_related_user_types": [] }
         }
       }
+    },
+    {
+      "type": "object_set",
+      "relations": {
+        "case": { "this": {} },
+        "editor": {
+          "union": {
+            "child": [
+              { "this": {} },
+              {
+                "tupleToUserset": {
+                  "tupleset": { "relation": "case" },
+                  "computedUserset": { "relation": "can_edit" }
+                }
+              }
+            ]
+          }
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              { "this": {} },
+              { "computedUserset": { "relation": "editor" } },
+              {
+                "tupleToUserset": {
+                  "tupleset": { "relation": "case" },
+                  "computedUserset": { "relation": "can_view" }
+                }
+              }
+            ]
+          }
+        },
+        "evaluator": {
+          "union": {
+            "child": [
+              { "this": {} },
+              { "computedUserset": { "relation": "viewer" } }
+            ]
+          }
+        }
+      },
+      "metadata": {
+        "relations": {
+          "case": { "directly_related_user_types": [{ "type": "case" }] },
+          "editor": { "directly_related_user_types": [{ "type": "user" }] },
+          "viewer": { "directly_related_user_types": [{ "type": "user" }] },
+          "evaluator": { "directly_related_user_types": [{ "type": "user" }] }
+        }
+      }
     }
   ]
 }

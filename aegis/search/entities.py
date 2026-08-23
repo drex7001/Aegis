@@ -38,7 +38,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Session
 
 from aegis.api.auth import UserContext
-from aegis.authz.filters import claim_filters
+from aegis.authz.filters import claim_filters, visible_entity_ids
 from aegis.ontology import Ontology
 from aegis.search.pipeline import NORMALIZATION_VERSION, SearchKeys
 from aegis.search.results import SearchHit
@@ -90,26 +90,11 @@ ALIAS_PREDICATE = "aliases"
 MAX_QUERY = 200
 
 
-def _visible_entity_ids(
-    session: Session,
-    user: UserContext,
-    ontology: Ontology,
-    *,
-    as_of: datetime | None = None,
-) -> Select[tuple[str]]:
-    """Entities the caller can reach through at least one readable claim.
-
-    Returned as a *subquery*, never a materialized id list: the point is for
-    the database to apply this while it chooses candidates, so an entity known
-    only through restricted claims is absent from the scan rather than removed
-    from its result.
-    """
-    filters = claim_filters(session, user, ontology, as_of=as_of)
-    subject = select(Claim.subject_id.label("entity_id")).where(*filters)
-    obj = select(Claim.object_id.label("entity_id")).where(
-        Claim.object_id.is_not(None), *filters
-    )
-    return subject.union(obj).subquery().select()
+#: Moved to `aegis/authz/filters` at T70 and re-exported here under its old
+#: name, because a T70 test found an object set of `type: person` returning
+#: people the caller had no readable claim about — the same rule, in a module
+#: that had not inherited it. One definition, two callers.
+_visible_entity_ids = visible_entity_ids
 
 
 def search_entities(
