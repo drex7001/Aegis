@@ -202,6 +202,60 @@ Optionally inspect the semantic proposal in **Review → Suggestions**. Its
 producer must be labelled `cached:*`; it remains a proposal until a human
 reviews it.
 
+## 3a. One incident on three surfaces (P5, T64)
+
+Added by Phase 5. The rest of this runbook proves the governed loop; this proves
+the phase's headline criterion — **the same incident renders consistently on
+map, timeline and graph from one claim set**.
+
+The automated form is
+`tests/integration/test_incident_consistency.py` plus `ui/e2e/incident.spec.ts`,
+and they are what CI runs. This is the version a person walks, because the
+criterion is about what a reader can find out, and only a reader can check that.
+
+1. **Record the occurrence once.** In the workspace, record an arrest with three
+   or more participants at a named place, on a stated day. (Through the API:
+   `POST /v1/events` with `participants` and `places`.) Note the event id it
+   returns.
+
+2. **Object view.** Open the event. Every participant is listed under the role
+   the source gave them — `Arrestee`, `Arresting officer` — and **every value
+   opens its provenance**. Then open one *participant*. The arrest appears under
+   **Referenced by**, because a participation claim is subjected to the event
+   and the participant's page reads it from the other end.
+
+3. **Map.** The incident is at its place. If the place is known only to a
+   district, it is drawn as an **area** — not a pin, at any zoom. Check three
+   zoom levels. A place whose geometry you are not cleared to read is listed
+   under *Not shown on the map* with the reason, never placed at a guess.
+
+4. **Timeline.** One row **per assertion** — three arrestees are three rows —
+   and there is no separate row for "the event". A stated day renders as a
+   **range**, visibly wider than a stated instant. Anything undated is counted
+   below the axis rather than dropped.
+
+5. **The window is one window.** Narrow to a range containing the incident.
+   Walk Map → Timeline → Graph using the links in each header: the range comes
+   with you, each surface shows the incident, and the URL carries `from`/`to`.
+   Now narrow to a range *excluding* it. It disappears from all three. Nothing
+   renders on one surface that the filter excludes on another.
+
+6. **The graph is a cache.** A freshly recorded incident is on the map and the
+   timeline immediately, and reaches the graph after a projection rebuild
+   (Article XIII). An admin can rebuild from the graph view. This is the one
+   asymmetry between the three surfaces and it is deliberate — but if the graph
+   showed the incident *without* a rebuild, that would be a defect worth
+   reporting.
+
+7. **Precision, from two clearances.** Where a place carries both a coarse
+   public geometry and a finer restricted one, sign in as a lower-clearance
+   analyst: the map draws the **coarse** shape. Nothing on the page says a finer
+   one exists. That is authorized generalization — a recorded claim the filter
+   left, not a blur the server computed.
+
+Record pass/fail per step. A defect here is a phase-gate defect, not a polish
+item.
+
 ## 4. Cleanup
 
 Stop `aegis serve` with Ctrl+C. Then remove only the disposable demo database
