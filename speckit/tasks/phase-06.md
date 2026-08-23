@@ -299,6 +299,29 @@ gets an empty list rather than a redacted row.
 the error names the spec section rather than leaving a stub somebody has to
 remember.
 
+**Corrected 2026-08-24 (found during T75).** `handling_code` derived from the
+contributing claims is the guarantee for *reading a finding back*. It is not
+the guarantee Article VI asks for, and `shared_identifier` had only the first.
+It reads `claim` directly — an identifier lives in `object_value` and never
+becomes an edge, so the filtering `load_graph` does for the other five metrics
+never reached it — and it composed neither `claim_filters` nor `entity_ids`.
+
+A clearance-0 caller could compute "these two named people share a number",
+which is the entire content of the restricted claims it came from, and
+`runAnalytic` returns findings in its own response rather than only through the
+filtered list. A finding that was computed is a finding that was disclosed.
+Separately, a set-driven run ignored the set while still stamping
+`input_kind = 'object_set'` and the evaluation digest — a manifest describing a
+question that was not the one asked.
+
+Both are B-17 exactly: **a result you may not see must be absent from the scan,
+not removed from the answer.** It is the third appearance of this hole in a
+module that selects entities without the shared filter — search had it, object
+sets had it (which is why `visible_entity_ids` exists), this is the third — so
+the regression test is **parameterised over every recording metric**, with a
+cleared-caller control so that "computes nothing for anybody" cannot pass as
+"filters correctly". The metric had no test of any kind before this.
+
 **T73. Findings panel** (needs T71, T72) — **DONE 2026-08-24.** Findings
 rendered in the workspace; the caveat comes from the finding record and always
 renders; no metric has a caveat-free rendering path.

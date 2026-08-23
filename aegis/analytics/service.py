@@ -10,6 +10,12 @@ Everything here reads the caller's own graph. `edge_projection` filtered by
 same graph `/v1/graph/expand` shows, so a finding cannot be computed over rows
 the analyst could not have seen for themselves.
 
+Five of the six metrics get that structurally, because `load_graph` applies the
+filter before any of them run. `shared_identifier` is the exception: it reads
+`claim` directly, because the identifiers it matches on live in `object_value`
+and never become edges. It therefore has to compose `claim_filters` **itself**,
+which is the kind of duty that gets forgotten — and was.
+
 ## Why the graph is undirected for three of the six metrics
 
 Community, betweenness and degree treat the graph as undirected, and that is a
@@ -206,7 +212,11 @@ def _betweenness(graph: Graph) -> list[tuple[list[str], dict[str, Any], list[str
 
 
 def _shared_identifier(
-    session: Session, graph: Graph, ontology: Ontology
+    session: Session,
+    ontology: Ontology,
+    *,
+    user: UserContext,
+    entity_ids: Sequence[str] | None = None,
 ) -> list[tuple[list[str], dict[str, Any], list[str]]]:
     """Entities recorded under the same **exact** identifier.
 
@@ -214,16 +224,42 @@ def _shared_identifier(
     reason: a near-match on an identifier is a different person with a name
     attached. And never an identity decision: only a human adjudication merges
     identities (Articles V and VII), which is what the caveat says.
+
+    **This is the one metric that reads `claim` directly**, because an
+    identifier lives in `object_value` and never becomes an edge — so the
+    filtering `load_graph` does for every other metric does not reach it. It
+    shipped composing neither `claim_filters` nor `entity_ids`, and both were
+    disclosure. A clearance-0 caller could compute "these two named people
+    share a number", which is the entire content of the restricted claims it
+    was derived from; storing the finding at `sensitive` hides it from a later
+    *list*, but `runAnalytic` returns findings in its own response, so a
+    finding that was computed is a finding that was disclosed.
+
+    This is the third time the hole has appeared in a module that selects
+    entities without going through the shared filter. Search had it; object
+    sets had it, which is why `visible_entity_ids` exists at all; this is the
+    third. B-17's rule is the answer every time: **a result you may not see
+    must be absent from the scan, not removed from the answer.**
     """
     identifiers = [name for name, spec in ontology.predicates.items() if spec.identifier]
     if not identifiers:
         return []
 
-    rows = session.execute(
+    statement = (
         select(Claim.claim_id, Claim.subject_id, Claim.predicate, Claim.object_value)
-        .where(Claim.predicate.in_(identifiers), Claim.object_value.is_not(None))
+        .where(
+            Claim.predicate.in_(identifiers),
+            Claim.object_value.is_not(None),
+            *claim_filters(session, user, ontology),
+        )
         .order_by(Claim.claim_id)
     )
+    if entity_ids is not None:
+        # The caller's own evaluation of an object set. Ignoring it answered a
+        # different question from the one the manifest recorded, since the run
+        # still stamped `input_kind = 'object_set'` and the evaluation digest.
+        statement = statement.where(Claim.subject_id.in_(list(entity_ids)))
+    rows = session.execute(statement)
     by_value: dict[tuple[str, str], list[tuple[str, str]]] = defaultdict(list)
     for row in rows:
         by_value[(row.predicate, str(row.object_value))].append(
@@ -340,7 +376,9 @@ def run_metric(
         )
     elif metric == "shared_identifier":
         results, implementation, seed = (
-            _shared_identifier(session, graph, ontology),
+            _shared_identifier(
+                session, ontology, user=user, entity_ids=entity_ids
+            ),
             "builtin",
             None,
         )
