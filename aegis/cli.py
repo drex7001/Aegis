@@ -256,7 +256,7 @@ def api_check_contract(
     """Fail on a breaking change to the committed OpenAPI document (spec 06 §7.3)."""
     import json
 
-    from aegis.api.contract import compare, declaring_commit, document_at
+    from aegis.api.contract import compare, declaring_commit, document_at, is_shallow
 
     relative = "ui/openapi.json"
     current = json.loads((REPO_ROOT / relative).read_text(encoding="utf-8"))
@@ -284,6 +284,17 @@ def api_check_contract(
             fg=typer.colors.RED,
             err=True,
         )
+        if is_shallow():
+            # The failure mode that costs an hour if it is not named: the
+            # marker is there, and this clone cannot see the commit holding it.
+            typer.secho(
+                "  NOTE: this is a shallow clone, so a declared break can look "
+                "undeclared. On a pull_request event the checkout is a merge "
+                "commit whose parents were never fetched. Deepen the checkout "
+                "(`fetch-depth: 0`) for this step to read the declaration.",
+                fg=typer.colors.YELLOW,
+                err=True,
+            )
         raise typer.Exit(code=1)
     if declared_by:
         typer.secho(f"  declared by: {declared_by}", fg=typer.colors.YELLOW)

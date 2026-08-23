@@ -191,3 +191,30 @@ def declaring_commit(baseline: str) -> str | None:
         if revisions != "-n1 HEAD":
             return None
     return None
+
+
+def is_shallow() -> bool:
+    """Whether this clone is missing history the marker scan might need.
+
+    A shallow clone is why a declared break can look undeclared. On a
+    `pull_request` event GitHub checks out a synthetic **merge commit** whose
+    message is "Merge <sha> into <sha>" — the commit that actually carries the
+    marker is a parent, and at `fetch-depth: 1` that parent is not in the
+    repository at all. The scan is then correct and useless: there is nothing
+    to find.
+
+    Reported rather than worked around. Fetching history from inside a check
+    command would make a read-only gate mutate the repository and touch the
+    network, and guessing that an unreachable commit probably declared the
+    break would defeat the point of asking.
+    """
+    try:
+        answer = subprocess.run(
+            ["git", "rev-parse", "--is-shallow-repository"],
+            capture_output=True,
+            check=True,
+            text=True,
+        ).stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return False
+    return answer == "true"
