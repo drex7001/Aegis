@@ -279,7 +279,7 @@ and survives in audit with its basis attached.
 
 ## Milestone V — Trust boundaries & AI
 
-### Phase 7 — Sharing & governance hardening *(ACTIVE from 2026-08-24 · GOAL.md §21–24, §27 · effort: L · ADR-061…066)*
+### Phase 7 — Sharing & governance hardening *(ACTIVE from 2026-08-24 · GOAL.md §21–24, §27 · effort: L · ADR-061…067)*
 
 **Goal.** Ready for a second user you don't fully trust, and for output that
 leaves the system. Charter: `phases/phase-07-sharing-governance.md` · specs:
@@ -308,7 +308,10 @@ name (ADR-064). Legal authority is a **governance table, not an ontology object*
 — an ontology object's attributes are claims, and a control a source can
 contradict is not a control; the ontology gains the **purpose vocabulary**
 instead (ADR-065). Break-glass writes **no FGA tuple at all**, so there is no
-stale tuple to fail open (ADR-066).
+stale tuple to fail open (ADR-066). And building the response modes produced
+**ADR-067**: a marker is derived from the **ontology**, never from the rows — the
+data-derived version would have made "this field is withheld" a reliable oracle
+for "this person has one", which is the existence leak H-25 named.
 
 **Exit criteria.** An export never exceeds the recipient's grant, redaction
 log attached; a sealed record disappears from every non-auditor read surface

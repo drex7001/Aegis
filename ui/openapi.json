@@ -1962,6 +1962,13 @@
             "default": false,
             "title": "Truncated",
             "type": "boolean"
+          },
+          "withheld": {
+            "items": {
+              "$ref": "#/components/schemas/WithheldOut"
+            },
+            "title": "Withheld",
+            "type": "array"
           }
         },
         "required": [
@@ -6331,6 +6338,26 @@
         ],
         "title": "WhyConnectedOut",
         "type": "object"
+      },
+      "WithheldOut": {
+        "description": "\"There is a predicate here you may not read\" — and nothing else.\n\nADR-061 fixes the contents: the predicate name and the fact of withholding.\nNot the value, not the count, not the grading, not a claim id, not a source.\nEach of those is separately disclosive, and a marker that carried one would\nbe the leak it exists to avoid.\n\n`withheld` is a constant `true` rather than an implied property of the list\nit sits in, so a marker copied out of its context still says what it is —\nand so it matches the shape `aegis.sets.sharing` has emitted since T70.",
+        "properties": {
+          "predicate": {
+            "title": "Predicate",
+            "type": "string"
+          },
+          "withheld": {
+            "const": true,
+            "default": true,
+            "title": "Withheld",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "predicate"
+        ],
+        "title": "WithheldOut",
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -8628,7 +8655,7 @@
     },
     "/v1/entities/{entity_id}": {
       "get": {
-        "description": "One entity's claims, grouped by predicate, each with its evidence.\n\nGrouping is what renders two disagreeing claims about the same property\nside by side; ``contradicted_by`` on each entry is what names the\ndisagreement rather than leaving the reader to spot it (Article VIII).\n\n``inbound_claims_by_predicate`` is the same question from the other end —\nwhat *others* assert about this entity (T57). Separate rather than merged,\nbecause a reader has to be able to tell who asserted what about whom; and\nfiltered identically, so an inbound claim can never appear on a page where\nthe outbound one would have been hidden.\n\n**As-of is a claim-recording snapshot and nothing more** (B-11, spec 09 §7).\n``asOf`` filters to what had been recorded and not retracted at that\ninstant; ``asOfRevision`` pins the identity revision entity arguments\nresolve through. Passing ``asOf`` alone resolves identity as it is *now*,\nwhich is usually not what a historical question means — so the response\nalways carries the revision it actually used, whether pinned or active.\n\nWhat as-of does **not** restore: labels, source evaluations, grading,\npolicy, projections, or the ontology. Those are current-state, and the\nbanner in the workspace says so.",
+        "description": "One entity's claims, grouped by predicate, each with its evidence.\n\nGrouping is what renders two disagreeing claims about the same property\nside by side; ``contradicted_by`` on each entry is what names the\ndisagreement rather than leaving the reader to spot it (Article VIII).\n\n``inbound_claims_by_predicate`` is the same question from the other end —\nwhat *others* assert about this entity (T57). Separate rather than merged,\nbecause a reader has to be able to tell who asserted what about whom; and\nfiltered identically, so an inbound claim can never appear on a page where\nthe outbound one would have been hidden.\n\n**As-of is a claim-recording snapshot and nothing more** (B-11, spec 09 §7).\n``asOf`` filters to what had been recorded and not retracted at that\ninstant; ``asOfRevision`` pins the identity revision entity arguments\nresolve through. Passing ``asOf`` alone resolves identity as it is *now*,\nwhich is usually not what a historical question means — so the response\nalways carries the revision it actually used, whether pinned or active.\n\nWhat as-of does **not** restore: labels, source evaluations, grading,\npolicy, projections, or the ontology. Those are current-state, and the\nbanner in the workspace says so.\n\n**This surface is `marked`** (spec 03 §6.2): `withheld` lists the predicates\nthis entity's *type* declares that the caller's clearance does not reach.\nThe list comes from the ontology and from nothing in the database\n(ADR-067), so it is identical for every entity of the type and discloses\nonly what `/v1/ontology/vocabulary` already does. A claim withheld by its\n**handling code** is not marked here and never will be — that one is\nabsence, for everyone below it, everywhere.",
         "operationId": "getEntity",
         "parameters": [
           {

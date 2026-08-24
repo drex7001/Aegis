@@ -27,7 +27,7 @@ from sqlalchemy import ColumnElement, Select, Text, and_, literal_column, not_, 
 from sqlalchemy.orm import Session
 
 from aegis.api.auth import UserContext
-from aegis.authz.filters import claim_filters, visible_entity_ids
+from aegis.authz.filters import claim_filters, property_sensitivity, visible_entity_ids
 from aegis.ontology import Ontology
 from aegis.sets.grammar import (
     AndNode,
@@ -52,6 +52,46 @@ class CompileError(RuntimeError):
     would widen the set silently, which is the one failure mode a saved,
     shared, analytic-feeding definition must not have.
     """
+
+
+class UnreadableFilterError(CompileError):
+    """The definition filters on a property this caller may not read (T79).
+
+    Resolved through :func:`aegis.authz.filters.property_sensitivity` on the
+    node's **property** name — the same function and the same vocabulary
+    `aegis.sets.sharing.redact_definition` uses to decide whether to withhold
+    that node's value. Reading the two against each other is how a set stays
+    coherent: the definition you may not fully *read* is the definition you may
+    not *run*.
+
+    Evaluating it produced a wrong answer that looked like a right one, in two
+    different directions:
+
+    * `eq`, `contains` and `exists` matched nothing, because `claim_filters`
+      removes the predicate from candidate generation. The evaluator read that
+      as "nobody has one".
+    * `absent` and `neq` compile to `not_(subquery)`. With the subquery empty
+      for *every* entity the negation is true for every entity, so the node
+      imposed **no constraint at all** and silently widened the set. That is
+      precisely the failure `CompileError` exists to prevent, arriving through
+      the authorization filter instead of through an unhandled node.
+
+    Neither is acceptable for a definition that is saved, shared, fed to
+    analytics and swept by watchlists, so evaluation fails loudly (spec 03 §6.3
+    rule 3). Naming the property is safe: a predicate name is ontology and the
+    caller can already fetch it — the *values* are what is protected.
+
+    The check lives on the `PropertyNode` branch of `_compile` rather than as a
+    pre-pass over the AST, so a `SetNode` composing somebody else's definition
+    is checked when it is resolved rather than skipped because it was not
+    visible from the top.
+    """
+
+    def __init__(self, prop: str) -> None:
+        self.property = prop
+        super().__init__(
+            f"the definition filters on {prop!r}, which this clearance may not read"
+        )
 
 
 def compile_set(
@@ -166,6 +206,12 @@ def _compile(
         return _claim_subquery(filters, *conditions)
 
     if isinstance(node, PropertyNode):
+        sensitivity = property_sensitivity(ontology, node.property)
+        if (
+            sensitivity is not None
+            and ontology.handling_rank(sensitivity) > user.clearance
+        ):
+            raise UnreadableFilterError(node.property)
         predicate = Claim.predicate == node.property
         value = _scalar_text(Claim.object_value)
         if node.op == "exists":

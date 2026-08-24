@@ -150,6 +150,7 @@ export function ObjectView() {
   const typeName = detail.entity.entity_type as ObjectTypeName;
   const descriptor = OBJECT_TYPES[typeName];
   const { properties, links } = splitClaims(detail);
+  const withheld = detail.withheld ?? [];
   const sources = sourcesOf(detail);
   const inboundGroups = Object.entries(detail.inbound_claims_by_predicate ?? {});
   /*
@@ -294,7 +295,7 @@ export function ObjectView() {
 
       <h2>Properties</h2>
       <div data-testid="object-view-properties">
-        {properties.length === 0 ? (
+        {properties.length === 0 && withheld.length === 0 ? (
           <p className="notice">No property claims you are cleared to see.</p>
         ) : (
           properties.map(([predicate, claims]) => (
@@ -305,6 +306,28 @@ export function ObjectView() {
               onDrill={drillClaim}
             />
           ))
+        )}
+        {/*
+         * The `marked` mode (spec 03 §6.2). Without this the absence of a
+         * group reads as "nothing recorded", which is a different and false
+         * statement — and the reader has no way to tell the two apart.
+         *
+         * What is shown is the *predicate*, and only that: no value, no count,
+         * no grading, no id (ADR-061). The list comes from the ontology rather
+         * than from this entity's rows (ADR-067), so it is identical for every
+         * object of the type and can never be read as evidence that this one
+         * has such a claim.
+         */}
+        {withheld.length > 0 && (
+          <div className="object-view__withheld" data-testid="object-view-withheld">
+            {withheld.map((entry) => (
+              <p key={entry.predicate} className="notice" data-predicate={entry.predicate}>
+                <strong>{PREDICATES[entry.predicate as PredicateName]?.label ?? entry.predicate}</strong>
+                {" — withheld at your clearance. This object type declares the field;"}
+                {" whether anything is recorded in it is not disclosed."}
+              </p>
+            ))}
+          </div>
         )}
       </div>
 

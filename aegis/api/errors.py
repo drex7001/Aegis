@@ -25,6 +25,7 @@ from aegis.api.problems import (
     ValidationProblem,
 )
 from aegis.er.adjudication import StaleRevisionError
+from aegis.sets.compile import UnreadableFilterError
 
 
 def _json(
@@ -45,6 +46,28 @@ def install_error_handlers(app: FastAPI) -> None:
         return _json(
             ValidationProblem(
                 title="validation failed", status=422, detail=exc.message, path=exc.path
+            )
+        )
+
+    @app.exception_handler(UnreadableFilterError)
+    async def _on_unreadable_filter(
+        _: Request, exc: UnreadableFilterError
+    ) -> JSONResponse:
+        # 422 rather than 403: the caller is authorized to run this set, and the
+        # *definition* is what they cannot fully read. Answering 403 would say
+        # "you may not evaluate", which is false and sends them to ask for the
+        # wrong grant.
+        #
+        # Handled here rather than in each route because every consumer of
+        # `compile_set` inherits it — the evaluate route, an analytic run, and
+        # the watchlist sweep — and the fourth one has not been written yet
+        # (spec 03 §6.3 rule 3).
+        return _json(
+            ValidationProblem(
+                title="filter not readable at this clearance",
+                status=422,
+                detail=str(exc),
+                path=f"ast.property[{exc.property}]",
             )
         )
 

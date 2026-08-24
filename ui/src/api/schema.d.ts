@@ -382,6 +382,14 @@ export interface paths {
          *     What as-of does **not** restore: labels, source evaluations, grading,
          *     policy, projections, or the ontology. Those are current-state, and the
          *     banner in the workspace says so.
+         *
+         *     **This surface is `marked`** (spec 03 §6.2): `withheld` lists the predicates
+         *     this entity's *type* declares that the caller's clearance does not reach.
+         *     The list comes from the ontology and from nothing in the database
+         *     (ADR-067), so it is identical for every entity of the type and discloses
+         *     only what `/v1/ontology/vocabulary` already does. A claim withheld by its
+         *     **handling code** is not marked here and never will be — that one is
+         *     absence, for everyone below it, everywhere.
          */
         get: operations["getEntity"];
         put?: never;
@@ -2172,6 +2180,8 @@ export interface components {
              * @default false
              */
             truncated?: boolean;
+            /** Withheld */
+            withheld?: components["schemas"]["WithheldOut"][];
         };
         /** EntityOut */
         EntityOut: {
@@ -3813,6 +3823,29 @@ export interface components {
             subject_id: string;
             /** Truncated */
             truncated: boolean;
+        };
+        /**
+         * WithheldOut
+         * @description "There is a predicate here you may not read" — and nothing else.
+         *
+         *     ADR-061 fixes the contents: the predicate name and the fact of withholding.
+         *     Not the value, not the count, not the grading, not a claim id, not a source.
+         *     Each of those is separately disclosive, and a marker that carried one would
+         *     be the leak it exists to avoid.
+         *
+         *     `withheld` is a constant `true` rather than an implied property of the list
+         *     it sits in, so a marker copied out of its context still says what it is —
+         *     and so it matches the shape `aegis.sets.sharing` has emitted since T70.
+         */
+        WithheldOut: {
+            /** Predicate */
+            predicate: string;
+            /**
+             * Withheld
+             * @default true
+             * @constant
+             */
+            withheld?: true;
         };
     };
     responses: never;

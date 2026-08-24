@@ -716,6 +716,30 @@ class EntityDetail(BaseModel):
     #: What this answer was computed against (T49). Optional in the schema only
     #: so a client built before T49 keeps type-checking; the route always sets it.
     stamp: AsOfStampOut | None = None
+    #: Predicates this entity's **type declares** that the caller's clearance
+    #: does not reach (T79, `marked` mode — spec 03 §6.2). Derived from the
+    #: ontology and from nothing in the database (ADR-067), so it is identical
+    #: for two entities of the same type and can never be read as evidence that
+    #: this one has such a claim. Without it a missing group reads as "nothing
+    #: recorded", which is a different and false statement.
+    withheld: list[WithheldOut] = Field(default_factory=list)
+
+
+class WithheldOut(BaseModel):
+    """"There is a predicate here you may not read" — and nothing else.
+
+    ADR-061 fixes the contents: the predicate name and the fact of withholding.
+    Not the value, not the count, not the grading, not a claim id, not a source.
+    Each of those is separately disclosive, and a marker that carried one would
+    be the leak it exists to avoid.
+
+    `withheld` is a constant `true` rather than an implied property of the list
+    it sits in, so a marker copied out of its context still says what it is —
+    and so it matches the shape `aegis.sets.sharing` has emitted since T70.
+    """
+
+    predicate: str
+    withheld: Literal[True] = True
 
 
 class PlaceFeaturePropertiesOut(BaseModel):
