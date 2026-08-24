@@ -2217,3 +2217,271 @@ a workflow, and spec 09 made the same call for investigation tasks.
 **Revisit when** a second non-canonical machine output needs triage. Two of them
 is an abstraction; one of them is this table.
 
+
+---
+
+## ADR-061: a redaction marker names the predicate and nothing else
+
+**Context.** H-25 found a genuine contradiction: spec 03 §4 rule 4 says a row
+the caller may not read is *absent*, and P7's pre-authored T79 said a field the
+caller may not read is *marked*. The charter resolved it by requiring a
+**response-mode policy** — omit, marked, counts — assigned per resource class.
+What the charter did not say is what a marker may contain.
+
+That question has teeth here because **a property is a claim**. There is no
+column to null out. A property claim carries a value, a predicate, grading,
+provenance, a source, a time and an id, and the naive marker — "here is the claim
+with its value removed" — discloses six things while withholding one.
+
+The shape also already exists in one place. T70 shipped
+`aegis/sets/sharing.py:redact_definition`, which returns
+`{property, op, value: null, withheld: true}` for an object-set filter above the
+reader's clearance. It was built for one resource class with no policy behind it.
+
+**Decision.** A marker carries **the predicate and the fact of withholding**. Not
+the value, not the count, not the grading, not the claim id, not the source, not
+the timestamp. Object-set definitions keep the shape they already have, and every
+other marked surface uses the same one rather than a second vocabulary for the
+same idea.
+
+`counts` is a **separate mode**, available only where a person has been granted
+it — disclosure previews and packages (spec 13 §10). It never appears on an
+ordinary read at any clearance, because "3 hidden" on a search page is the
+existence leak GOAL.md §30 forbids.
+
+**Consequences.** Marking is a disclosure, so it is assigned per resource class
+in spec 03 §6.2 rather than applied everywhere. Object views are `marked` because
+the reader is authorized to know the object's schema and an unmarked gap reads as
+"nothing recorded" — a false statement. Search, graph, timeline, findings and
+alerts stay `omit`, because on those surfaces a marker is an index of what exists
+but is hidden.
+
+Three consequences that are easy to lose in implementation and are therefore
+rules: a nested field takes its parent surface's mode, not its own; a sort key
+above the caller's clearance is a 422, because sorting by an unreadable field
+leaks its ordering; and a filter on an unreadable field is a 422, because an
+empty result would be an oracle.
+
+**Revisit when** a resource class needs a fourth mode. There is no fourth mode
+today, and adding one is a spec change rather than configuration.
+
+---
+
+## ADR-062: compartments are enforced in Postgres; the FGA type is a projection
+
+**Context.** The FGA `compartment` type has existed since Phase 1 and has never
+been queried. T80 says it "goes live". The obvious reading — check FGA before
+returning a compartmented row — is the wrong one.
+
+FGA tuples are an **asynchronous projection** of Postgres through `authz_outbox`
+(ADR-014, Article XIII). M-15 already showed what that costs on the read path: a
+revocation that has not yet drained still authorizes, and the exposure window has
+no finite bound while FGA is unavailable or an older outbox row is blocking the
+ordered drain. For case membership that window is uncomfortable. For a
+compartment — the control that exists specifically to hold against a curious
+insider with legitimate credentials — it is the whole failure mode.
+
+H-26 asked for a canonical assignment model in Postgres as source of truth. This
+ADR is the enforcement half of that answer.
+
+**Decision.** Compartment membership and resource assignment are canonical
+Postgres tables, and **row visibility is decided inside `claim_filters`** from
+those tables, on every request. The FGA `compartment` type is projected from
+`compartment_member` and answers **route-level** questions only — "may this user
+administer compartment C". No read path consults FGA to decide whether a row is
+returned.
+
+**Consequences.** Compartment scoping composes as one more `AND` beside handling
+code, case scope, judicial state and field sensitivity — it never substitutes for
+any of them, so a member still cannot read above their clearance and a cleared
+non-member still cannot read the compartment.
+
+**Default off is structural, not a promise.** The condition is `NOT EXISTS
+(assignment) OR assignment.compartment IN (caller's memberships)`, so with no
+compartments defined it is true for every row and the existing suite passes
+unchanged.
+
+A compartmented row is excluded where candidates are chosen, so search, sets,
+analytics, projections and exports inherit the exclusion from one place rather
+than nine — which is the property B-17 was violated for three times before it
+was named.
+
+Expiry needs no job: `compartment_member.expires_at` is compared at request time,
+the same discipline ADR-066 applies to break-glass.
+
+**Revisit when** a compartment must gate something that is not a claim and not a
+route — a raw vault object fetched outside the API, say. That would be a new
+enforcement point, not a new opinion about this one.
+
+---
+
+## ADR-063: a seal attaches to a source record or a claim, and projections exclude it at source
+
+**Context.** `seal_record` has been declared in the platform ontology since 0.3.0
+with `resource_id: {type: identifier}` and no statement of what kind of resource
+that is. Two candidates exist and they behave differently: sealing a **source
+record** must reach every claim recorded from it, while sealing a **claim** must
+not reach its siblings from the same record. A judicial seal usually attaches to
+a record; a correction of one over-disclosed line attaches to a claim.
+
+**Decision.** Both, explicitly. A `judicial_state` row is
+`(resource_type, resource_id, state, reason, authority_ref, sealed_by, sealed_at,
+unsealed_by, unsealed_at)` where `resource_type` is `source_record` or `claim`.
+Sealing a source record reaches its derivatives and its claims; sealing a claim
+reaches that claim.
+
+A seal is a **state, never a deletion**, and it is excluded in `claim_filters` —
+the same place compartments and handling codes are excluded — so every projection
+rebuild excludes it at source. "The map does not draw it" and "the map never
+received it" are different guarantees, and only the second survives someone
+writing a tenth read surface.
+
+**Consequences.** A projection rebuilt after a seal contains no row, no id and no
+count for the sealed record; the test rebuilds and diffs rather than reading the
+render path. The auditor role sees sealed rows with full history, audited and
+with a purpose — the same exception that already exists for retracted claims,
+which is why it needs no new machinery.
+
+Unsealing restores visibility exactly, because nothing was destroyed. That is the
+whole difference between this ADR and ADR-064.
+
+**Revisit when** a seal needs to attach to an entity rather than to the claims
+about it. Today an entity has no independent existence to seal: it exists, for a
+caller, exactly when a claim they may read mentions it.
+
+---
+
+## ADR-064: expungement destroys content and leaves a tombstone; it is not reversible
+
+**Context.** The Phase 7 charter says "expungement as a governed, audited
+operation reversible only by policy". H-26 warns specifically against promising
+reversible expungement and against conflating suppression with legally-required
+destruction.
+
+The warning is right, and the phrase is incoherent on inspection: if the content
+is recoverable then nothing was destroyed, and what has been described is
+suppression — which ADR-063 already provides, with a better name.
+
+**Decision.** Sealing and expungement are separated and the charter's phrase is
+retired.
+
+**Sealing** suppresses: content retained, reversible by the same authority,
+auditor-visible. **Expungement** destroys: claim values, excerpts and vault
+objects are gone, it is irreversible, and not even the auditor can read what no
+longer exists.
+
+What remains after an expungement is a **tombstone** — ids, timestamps, the
+authority, the actor, and the audit chain. Article X requires the chain to still
+verify, so audit rows are not deleted and the chain is not recomputed. An
+expungement removes content; it does not remove the record that content existed
+and was destroyed on a stated authority.
+
+**Consequences.** Expungement requires a supervisor, a reason, and a named
+`authority_ref` that resolves to a valid legal authority (ADR-065). Without the
+precondition it is rejected and the attempt is audited.
+
+It is never a default, never a cascade of a retraction, and never something a
+scheduled job performs. Retention disposition (spec 03 §13.3) **proposes** and
+never destroys: a queue, a supervisor decision per record, and a legal hold that
+blocks the operation entirely. H-26 asked that legally-required destruction be a
+named policy decision rather than a default; a human in the loop is the honest
+implementation of that.
+
+**Backups are named as the gap rather than hidden.** An expungement cannot reach
+a backup taken before it. The policy profile records the retention period of
+backups, which is the real bound on destruction, and says so.
+
+**Revisit when** a legal regime requires cryptographic erasure of backup content.
+That is a key-management design, not an application feature, and it belongs with
+the pilot-gate backup work.
+
+---
+
+## ADR-065: legal authority is a governance record, not an ontology object; purpose becomes a vocabulary
+
+**Context.** T85 says the legal-authority object "arrives via the P3 proposal
+workflow (minor bump)" — that is, as an ontology object type. Meanwhile P2 T24a
+already placed the seams as Postgres columns on `source_record`
+(`collection_policy_ref`, `retention_class`, `authority_ref`,
+`authority_valid_from`, `authority_valid_to`), with
+`ck_source_record_authority_window` already refusing an inverted window, and left
+them deliberately inert.
+
+The two are not the same design, and the ontology version is worse. An ontology
+object type is an **entity**; its attributes are **claims**. A legal authority
+expressed that way would be gradeable, retractable, contradictable by a source,
+and — the fatal part — subject to the very `claim_filters` it is supposed to
+govern. A control a source can contradict is not a control.
+
+**Decision.** Legal authority is a **governance table**: `legal_authority
+(authority_id, kind, reference, description, valid_from, valid_to, recorded_by,
+recorded_at)`. `source_record.authority_ref`,
+`source_record.collection_policy_ref`, `watchlist_alert.authority_ref` and
+spec 13's `legal_basis` all resolve into it.
+
+What the ontology gains instead is the **purpose vocabulary** — a `purposes`
+registry in the platform module, a real minor bump through the P3 proposal
+workflow. `purpose` has been a required free string on sensitive reads since
+Phase 1 and has never been checked against anything; from Phase 7 the `authorize`
+gate rejects a term outside the vocabulary, a grant permits purposes, an
+authority permits purposes, and a mismatch is a denial naming both sides.
+
+This is Article XIV rather than a violation of Article XI: purposes are
+**platform governance vocabulary**, like handling codes and grading, not domain
+types. No domain module may declare one.
+
+**Consequences.** Authority expiry **fails closed**: a read depending on an
+authority whose window has closed is denied, not degraded, and the denial names
+the expired authority.
+
+What was recorded while the authority was valid stays recorded and stays
+readable. Article I means we do not rewrite history when a policy lapses — and
+spec 13 §7 carries the same honesty into a package, where a source whose window
+had already expired at collection time appears marked rather than hidden.
+
+**Revisit when** authorities need to be exchanged between organizations, which is
+federation and therefore P9 trigger territory. A shared authority record needs an
+identifier scheme this deployment has no use for.
+
+---
+
+## ADR-066: break-glass writes no FGA tuple
+
+**Context.** M-21 says break-glass expiry needs request-time enforcement and that
+relying on scheduled tuple deletion inherits FGA lag and fails open. Its
+recommendation is to store expiry in canonical policy state, check it on every
+access, and treat tuple cleanup as maintenance.
+
+The charter's exit criterion is sharper than the recommendation: a break-glass
+access must be **denied at request time after expiry even with a stale FGA tuple
+present**.
+
+**Decision.** No tuple is written at all. A `break_glass_grant` row —
+`(grant_id, user, scope, reason, requested_at, expires_at, revoked_at,
+reviewed_by, reviewed_at, review_outcome)` — is canonical, and the effective
+policy state computed per request reads it directly. Maintenance cannot be wrong
+about a thing it does not do.
+
+The exit test seeds a `compartment` or `case` tuple **by hand** and shows the
+request is still denied, which is what proves FGA is not the decider. Without
+that seeding the test would pass on a system that never got as far as checking.
+
+**Consequences.** Scope is a clearance ceiling and optionally a case. It is
+**never** a compartment and **never** a seal exception — spec 03 §9's precedence
+matrix states both, because "emergency" is exactly the argument someone will make
+for widening it.
+
+The reason is mandatory and must pass `required_text_is_substantive`, the
+criterion the actions layer already applies elsewhere; "urgent" is rejected.
+
+Every use notifies the auditor and creates a mandatory review record, and the
+grant id rides on every request that used the elevation, so "what did this
+elevation actually read" is one query rather than a reconstruction.
+
+**On the solo-OSINT profile there is nobody to notify.** That is recorded in the
+policy profile (spec 03 §13.4) as a relaxed control with a name, rather than left
+as an assumption a pilot deployment discovers.
+
+**Revisit when** a second person exists to approve an elevation. Two-person
+break-glass is a better control and is currently unimplementable for the honest
+reason that there is one person.

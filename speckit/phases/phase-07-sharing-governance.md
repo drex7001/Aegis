@@ -1,10 +1,13 @@
 # Phase 7 Charter — Sharing & governance hardening
 
-Status: charter (amended 2026-07-18, ADR-033) · tasks pre-authored:
-`../tasks/phase-07.md` (T78–T89; re-validated by T78 at phase start, which
-also dispositions the 2026-07 review findings tagged P7: B-08 enforcement,
-H-25, H-26, H-27, H-28, M-14, M-20, M-21) · Constitutional basis: Articles IV,
-VI, VIII, X · GOAL.md §21–24, §27 (exchange packages), Rule 4
+Status: **ACTIVE from 2026-08-24** (charter amended 2026-07-18 by ADR-033;
+further amended by ADR-064 and ADR-065 at T78, before the exit review, as
+ADR-025 requires) · tasks: `../tasks/phase-07.md` (T78–T89, plus T78a) ·
+re-validated by T78, whose eleven divergences are recorded in
+`../specs/13-disclosure-packages.md` §0, dispositioning the 2026-07 review
+findings tagged P7: B-08 enforcement, H-25, H-26, H-27, H-28, M-14, M-20,
+M-21 · Constitutional basis: Articles IV, VI, VIII, X · GOAL.md §21–24, §27
+(exchange packages), Rule 4 · ADR-061…ADR-066
 
 ## Objective
 
@@ -43,10 +46,14 @@ defensible artifacts rather than screenshots.
    the schema but not the value), **counts** (disclosure officers only). This
    phase adds the marked-redaction and counts modes; P2 shipped omit.
 3. **Sealed/expunged handling**: judicial-state model (GOAL.md §22); sealed
-   records excluded from all projections and reads except the auditor role;
-   expungement as a governed, audited operation — suppression/sealing
-   distinguished from legally-required destruction, which is a named policy
-   decision, never a default (H-26).
+   records excluded from all projections and reads except the auditor role.
+   **Amended by ADR-063/ADR-064:** a seal attaches to a source record *or* a
+   claim and is excluded at source, never at render; and "reversible only by
+   policy" is retired — reversible destruction is not destruction, it is
+   suppression, which sealing already provides. Sealing suppresses reversibly;
+   expungement destroys content, leaves an audited tombstone, is irreversible,
+   and is always a named policy decision made by a person — never a default and
+   never a scheduled job (H-26).
 4. **Disclosure/export packages**: **BagIt-based container (RFC 8493) + Aegis
    metadata profile** (H-28 — adopt before build): payload/tag manifests,
    detached signature, recipient grant snapshot, expiry, redaction log,
@@ -60,11 +67,15 @@ defensible artifacts rather than screenshots.
    after-review; insider-threat audit queries (bulk reads, off-case access
    patterns, export anomalies) runnable by the auditor role.
 6. **Governance enforcement (B-08 — the P2 seams go live)**: legal-authority /
-   collection-policy objects with validity intervals and fail-closed expiry;
-   purpose as a policy-evaluated vocabulary, not a free string; retention
-   classes with review dates, legal-hold override, and a governed disposition
-   workflow; a deployment policy profile stating which controls are relaxed
-   for the solo-OSINT profile and why.
+   collection-policy records with validity intervals and fail-closed expiry —
+   **amended by ADR-065: a governance table, not an ontology object type**,
+   because an ontology object's attributes are claims and a control a source
+   can contradict is not a control. What the ontology gains instead is the
+   **purpose vocabulary** (platform module, minor bump), so purpose is
+   policy-evaluated rather than a free string. Plus retention classes with
+   review dates, legal-hold override, and a **proposal-only** disposition
+   workflow; and a deployment policy profile (`docs/POLICY_PROFILE.md`) stating
+   which controls the solo-OSINT profile relaxes and why.
 
 ## Dependencies
 
@@ -102,10 +113,15 @@ defensible artifacts rather than screenshots.
 
 ## Specs to author or update
 
-- `specs/03-security.md` — promote field-level filter section to implemented;
-  add compartments, sealed states, break-glass.
-- `specs/13-disclosure-packages.md` — author at phase start (manifest format,
-  redaction log schema, signing).
+- `specs/03-security.md` — **done (T78):** §4 field filtering promoted to
+  implemented with §4.1 explaining what it means when a property is a claim;
+  §§6–13 added (response modes, compartments, judicial states, precedence
+  matrix, break-glass, oversight, the frozen read-surface inventory, B-08
+  enforcement).
+- `specs/13-disclosure-packages.md` — **done (T78):** BagIt profile, manifest,
+  redaction-log schema, signing and key custody, recipient grants, expiry /
+  acknowledgement / revocation, and the phase's re-validation divergences (§0).
+- `docs/POLICY_PROFILE.md` — authored across the phase, closed at T89.
 
 ## Explicit non-goals
 
@@ -116,9 +132,16 @@ federation *protocol* does not).
 
 ## Task sketch (expanded into `../tasks/phase-07.md`, T78–T89)
 
-- **A — Field filters:** read-path redaction from ontology sensitivity.
-- **B — Compartments:** FGA live, informant pattern, synthetic tests.
+- **A — Specs, tooling & response modes:** spec 13 + spec 03 + the frozen
+  read-surface inventory (T78); `ruff` (T78a, the P6 carryover); the
+  three-mode response policy (T79). Base field filtering is **not** in scope —
+  it shipped at P2 T24a and specs/03 §4.1 records the Phase 1 debt closed.
+- **B — Compartments:** the canonical Postgres model enforced in
+  `claim_filters` with FGA projected for route checks only (ADR-062), the
+  informant pattern, synthetic tests.
 - **C — Judicial states:** sealed/expunged lifecycle + projection exclusion.
-- **D — Disclosure:** package builder, manifests, redaction log, export action.
+- **D — Disclosure:** package builder, BagIt manifests, redaction log, export
+  action, and the B-08 governance records (legal authority, purposes,
+  retention).
 - **E — Break-glass & oversight:** elevation flow, insider-threat queries,
   auditor review screen.

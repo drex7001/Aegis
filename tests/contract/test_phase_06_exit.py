@@ -58,7 +58,10 @@ def test_status_surfaces_agree_on_the_current_phase() -> None:
     phase_6_tasks = _read("speckit/tasks/phase-06.md")
 
     assert "Phase 6 — search, object sets & governed analytics — is complete" in root_readme
-    assert "Next phase: Phase 7" in root_readme
+    # "Where work is" is *not* asserted here any more: T78 opened Phase 7 and
+    # `test_phase_07_status.py` took the claim over, which is the hand-off this
+    # module's docstring describes. What stays here is what stays true about
+    # Phase 6 — it is complete, and 0.6.0 is what it shipped.
     assert "**DONE**, all four gate criteria checked" in kit_readme
     assert "COMPLETE 2026-08-24" in roadmap
     assert "Status: COMPLETE, closed 2026-08-24" in phase_6_tasks

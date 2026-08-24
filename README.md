@@ -93,8 +93,16 @@ and a computation becomes an assertion only when a person says so, through the
 review queue. Verdict and evidence:
 [`speckit/reviews/phase-06-exit-review.md`](speckit/reviews/phase-06-exit-review.md).
 
-**Next phase: Phase 7 — sharing & governance hardening.** The full
-roadmap to production is [`speckit/roadmap.md`](speckit/roadmap.md); the
+**Phase 7 — sharing & governance hardening — is under way** (from
+2026-08-24). It readies Aegis for a second user you don't fully trust and for
+output that leaves the system: compartments, sealed and expunged judicial
+states, disclosure packages on a standard container, break-glass, and
+enforcement of the governance seams Phase 2 left inert. Its opening task froze
+a **read-surface inventory** — every path by which data can leave the store —
+because a guarantee about "every surface" is only as good as the list of them.
+Charter: [`speckit/phases/phase-07-sharing-governance.md`](speckit/phases/phase-07-sharing-governance.md).
+
+The full roadmap to production is [`speckit/roadmap.md`](speckit/roadmap.md); the
 external-review disposition is
 [`speckit/reviews/2026-07-18-external-review-disposition.md`](speckit/reviews/2026-07-18-external-review-disposition.md).
 
