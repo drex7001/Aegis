@@ -54,6 +54,10 @@ dev = [
     "httpx2>=2.0",
     "python-igraph>=0.11",
     "leidenalg>=0.10",
+    # The linter Phase 6's exit review recorded the absence of (T78a). It is a
+    # dev dependency because nothing at runtime imports it; CI runs it in the
+    # fast-tests job, beside the suite whose defects it exists to pre-empt.
+    "ruff>=0.14",
 ]
 
 [project.urls]
@@ -82,6 +86,53 @@ markers = [
     "slow: intentionally long-running test",
     "manual: operator-run non-blocking test",
 ]
+
+# ── ruff (T78a) ─────────────────────────────────────────────────────────────
+#
+# The linter the Phase 6 exit review recorded the absence of. Its first run
+# found `aegis migrate arrests-to-events` raising `NameError` on two names the
+# function never imported — a command that shipped in Phase 5 with tests that
+# call the library function directly and never the CLI entry point.
+#
+# The initial ruleset is deliberately **defect-shaped rather than style-shaped**.
+# A linter that arrives with a thousand cosmetic findings gets a blanket ignore
+# on its second day, and the rules that would have caught a real bug go with it.
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = [
+    "legacy",                    # the quarantine: replaced, never extended (ADR-023)
+    "aegis/actions/_generated",  # `aegis ontology generate` owns these bytes; a
+                                 # lint fix here is reverted by the drift gate
+]
+
+[tool.ruff.lint]
+# E4/E7/E9 + F is pyflakes plus the pycodestyle rules that are not formatting.
+# F821 (undefined name) is the one this exists for.
+select = ["E4", "E7", "E9", "F"]
+
+# Rules considered and **not** enabled yet, each with its reason. Widening the
+# set is a task of its own, so that a formatting diff never rides along with a
+# feature:
+#
+#   E501 line-too-long   — 53 lines over 100 chars, every one of them prose in a
+#                          docstring. Reflowing them touches files this repo
+#                          reasons about by reading; not for free.
+#   I001 unsorted-imports — 65 files reordered, zero defects found. It becomes
+#                          worthwhile the day a formatter lands with it.
+#   B008 function-call-in-default-argument — 183 hits, all of them FastAPI's
+#                          `Depends(...)`, which is the framework's documented
+#                          calling convention rather than a mistake.
+#   UP017 datetime-timezone-utc — 57 mechanical rewrites of `timezone.utc`.
+#                          Correct, and worth doing on its own commit.
+#   SIM, RUF, C4, UP (rest) — style opinions. Some are good; none of them is a
+#                          bug, and this file is arguing that the difference
+#                          matters.
+[tool.ruff.lint.per-file-ignores]
+# pytest resolves a fixture by parameter name, so a test module that imports a
+# fixture and then names it in a signature looks to pyflakes like a redefinition
+# of an unused import. It is the framework working as designed, 112 times.
+"tests/**" = ["F811"]
 
 [tool.coverage.run]
 branch = true

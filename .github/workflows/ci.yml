@@ -32,6 +32,10 @@ jobs:
           version: ${{ env.UV_VERSION }}
       - run: uv lock --check
       - run: uv sync --locked --extra dev
+      # Before the suite, because its whole value is being the fastest thing
+      # that can tell you a name does not resolve (T78a).
+      - name: Lint (T78a)
+        run: make lint
       - run: make test-fast
       - name: Fail on a breaking API contract change (T36)
         # Needs the baseline branch, which the checkout does not create a local

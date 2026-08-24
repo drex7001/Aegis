@@ -273,7 +273,6 @@ def test_re_running_splink_does_not_duplicate_candidates(seeded) -> None:
 @pytest.mark.integration
 def test_mentions_already_in_one_entity_are_not_proposed(seeded) -> None:
     session: Session = seeded["session"]
-    frame = build_feature_frame(session)
     # Force both seeded mentions onto one entity, as a confirmed merge would.
     membership = session.scalar(
         select(IdentityMembership).where(

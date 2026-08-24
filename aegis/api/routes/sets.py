@@ -35,7 +35,7 @@ from aegis.api.deps import (
     authorize,
     fga_check_or_404,
 )
-from aegis.api.pagination import encode_cursor, page_limit, split_page
+from aegis.api.pagination import page_limit, split_page
 from aegis.api.schemas import (
     ObjectSetEvaluationOut,
     ObjectSetIn,

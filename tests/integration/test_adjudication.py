@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from aegis.actions import ActionContext, ActionService, ActionValidationError, new_id
 from aegis.er.adjudication import StaleRevisionError
-from aegis.er.canonical import CanonicalMapError, canonical_entity, rebuild_canonical_map
+from aegis.er.canonical import canonical_entity, rebuild_canonical_map
 from aegis.er.ledger import active_entity_for_mention, active_revision_id, open_membership
 from aegis.store import (
     Claim,

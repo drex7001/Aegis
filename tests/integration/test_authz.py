@@ -9,12 +9,10 @@ check allows; ``rebuild`` reproduces the tuple set from Postgres alone.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pytest
 import sqlalchemy as sa
-from alembic import command
 from alembic.config import Config
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -23,7 +21,7 @@ from aegis.actions import ActionContext, ActionService, new_id
 from aegis.api.auth import UserContext
 from aegis.authz import claim_filters
 from aegis.ontology import load
-from aegis.store import AuthzOutbox, Claim, Entity, Source, SourceRecord
+from aegis.store import Claim, Entity, Source, SourceRecord
 from tests.support.database import migrated_test_engine
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

@@ -4,11 +4,9 @@ from __future__ import annotations
 
 from collections import Counter
 import json
-import os
 
 import pytest
 import sqlalchemy as sa
-from alembic import command
 from alembic.config import Config
 from sqlalchemy.orm import Session
 
@@ -22,7 +20,7 @@ from aegis.projections import (
     build_full_graph,
     rebuild_edge_projection,
 )
-from tests.support.paths import ONTOLOGY_PATH, REPO_ROOT, SNAPSHOT_ROOT
+from tests.support.paths import ONTOLOGY_PATH, SNAPSHOT_ROOT
 from tests.support.database import (
     RESTORE_BASELINE_REVISION,
     TRUNCATE_DOMAIN_TABLES,
@@ -149,7 +147,9 @@ def test_snapshot_edges_match_remapped_baseline(rebuilt: dict, baseline: dict, o
 def test_snapshot_cells_and_meta_shape(rebuilt: dict, baseline: dict) -> None:
     assert set(rebuilt["meta"].keys()) == set(baseline["meta"].keys())
     # source order is not semantically meaningful — compare by key
-    by_key = lambda rows: sorted(rows, key=lambda s: s["key"])
+    def by_key(rows):
+        return sorted(rows, key=lambda s: s["key"])
+
     assert by_key(rebuilt["meta"]["sources"]) == by_key(baseline["meta"]["sources"])
     assert set(rebuilt["meta"]["layers"]) >= set(baseline["meta"]["layers"])
     cell_keys = set(baseline["cells"][0].keys())

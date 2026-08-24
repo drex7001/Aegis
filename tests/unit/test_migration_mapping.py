@@ -10,35 +10,18 @@ table — and a re-run must change nothing.
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 import pytest
-import sqlalchemy as sa
-from alembic import command
-from alembic.config import Config
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
 
-from aegis.audit import verify
-from aegis.evidence import LocalFilesystemVault
 from aegis.migration import (
     CONFIDENCE_TAG_GRADING,
     VERB_REMAP,
     LegacyMigrationError,
-    migrate,
     remap_edge,
     validate_legacy_maps,
 )
 from aegis.ontology import load
-from aegis.store import (
-    Claim,
-    Entity,
-    IdentityMembership,
-    Mention,
-    Source,
-    SourceRecord,
-)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 # The immutable committed legacy graph (57 edges). NOT output/real_graph.json —

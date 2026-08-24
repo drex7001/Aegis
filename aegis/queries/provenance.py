@@ -25,7 +25,7 @@ and on what note — belongs in the answer as much as any source record does.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Sequence
+from typing import Sequence
 
 from sqlalchemy import ColumnElement, or_, select
 from sqlalchemy.orm import Session

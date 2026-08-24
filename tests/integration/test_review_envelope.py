@@ -15,7 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from aegis.actions import ActionContext, ActionService, ActionValidationError, new_id
-from aegis.actions.service import SUGGESTION_KINDS, suggestion_idempotency_key
+from aegis.actions.service import SUGGESTION_KINDS
 from aegis.store import Claim, ClaimRelation, Entity, ReviewQueue, Source, SourceRecord
 from tests.support.database import migrated_test_engine
 

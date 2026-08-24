@@ -57,7 +57,7 @@ from aegis.authz.filters import claim_filters, member_case_ids
 from aegis.er.ledger import active_revision_id
 from aegis.ids import new_id
 from aegis.ontology import Ontology
-from aegis.projections.edges import BUILDER_VERSION, AGGREGATION_METHOD_VERSION
+from aegis.projections.edges import AGGREGATION_METHOD_VERSION
 from aegis.store import AnalyticFinding, AnalyticRun, Claim, EdgeProjection
 
 #: Every metric that records a finding (spec 12 §9.1). `caveat_for` refuses a

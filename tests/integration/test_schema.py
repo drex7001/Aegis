@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-import os
-from pathlib import Path
 
 import pytest
 import sqlalchemy as sa
 from alembic import command
 from alembic.config import Config
 from aegis.store import Base
-from tests.support.paths import REPO_ROOT
 from tests.support.schema import (
     EXPECTED_CHECKS,
     LEDGER_TABLES,

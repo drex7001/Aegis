@@ -25,7 +25,6 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 from aegis.analytics.promotion import PromotionError, promote_finding
 from aegis.analytics.service import AnalyticsError, METRICS, run_metric

@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import ColumnElement, Select, Text, and_, func, literal_column, not_, or_, select
+from sqlalchemy import ColumnElement, Select, Text, and_, literal_column, not_, or_, select
 from sqlalchemy.orm import Session
 
 from aegis.api.auth import UserContext
@@ -209,7 +209,7 @@ def _compile(
         return _claim_subquery(filters, Claim.case_id == node.case_id)
 
     if isinstance(node, SearchNode):
-        from aegis.search.entities import _visible_entity_ids, search_entities
+        from aegis.search.entities import search_entities
         from aegis.search.pipeline import search_keys
 
         hits = search_entities(

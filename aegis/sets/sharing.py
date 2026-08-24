@@ -34,12 +34,9 @@ from typing import Any
 from aegis.authz.filters import property_sensitivity
 from aegis.ontology import Ontology
 from aegis.sets.grammar import (
-    AndNode,
     FilterNode,
     GrammarError,
     NotNode,
-    OrNode,
-    PropertyNode,
     SetNode,
     walk,
 )

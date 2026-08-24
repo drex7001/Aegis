@@ -21,13 +21,9 @@ import pytest
 
 from aegis.ontology import load
 from aegis.sets.grammar import (
-    AndNode,
-    FilterNode,
     GrammarError,
-    NotNode,
     OrNode,
     PROPERTY_OPERATORS,
-    TypeNode,
     depth,
     expand_interfaces,
     interfaces_used,
@@ -274,7 +270,6 @@ def test_an_interface_with_no_implementors_is_refused(ontology) -> None:
     Refusing at save is kinder than saving a definition that can only ever
     return an empty result and letting its owner wonder why.
     """
-    from aegis.ontology import load_dict
 
     with pytest.raises(GrammarError):
         expand_interfaces(

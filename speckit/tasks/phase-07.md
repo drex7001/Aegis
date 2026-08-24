@@ -33,16 +33,25 @@ AC (met): spec 13 exists; specs/03 updated; the inventory is frozen and each
 entry names its filter path and mode; divergences are ADR'd or dispositioned in
 spec 13 §0.
 
-**T78a. Python linter in the toolchain** (P6 carryover, G11) — `ruff` added with
+**T78a. Python linter in the toolchain** (P6 carryover, G11) — **DONE
+2026-08-24.** `ruff` added with
 a configuration that matches the code as written, a `make lint` target, and a CI
 step. The Phase 6 exit review recorded the cost of not having one: a `NameError`
 that broke thirty integration tests and would have been caught in under a second.
 It lands **before** the first feature task so the diff is a tooling diff and not a
 tooling diff wearing a feature's clothes.
-AC: `make lint` passes on a clean tree; CI fails on a lint error; the initial
-ruleset is recorded with a reason for each rule that was disabled rather than
-fixed; no behavioural change (the test suite result is identical before and
-after).
+AC (met): `make lint` passes on a clean tree; CI runs it in the fast-tests job
+*before* the suite; the initial ruleset (`E4`, `E7`, `E9`, `F`) is deliberately
+defect-shaped, and every rule considered and left off is recorded in
+`pyproject.toml` with its reason and its hit count.
+
+**It found a real one on its first run.** `aegis migrate arrests-to-events`
+(T63, Phase 5) raised `NameError` on `get_settings` and `load` — two names the
+function never imported. Its tests call `migrate_co_arrests` directly, so the
+CLI entry point had never been executed by anything.
+`tests/component/test_cli_commands.py` now walks every command in the app: help
+for all 26, and a regression test that proves the migration reaches the database
+rather than dying in its own first three lines.
 
 **T79. ⛓ Response-mode policy** (specs/03 §6, ADR-061; G1, G2, G3) — **not**
 "field-level sensitivity on reads": that shipped at P2 T24a in its `omit` mode

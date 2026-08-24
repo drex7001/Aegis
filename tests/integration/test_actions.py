@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
-import os
 
 import pytest
 import sqlalchemy as sa
-from alembic import command
 from alembic.config import Config
 from sqlalchemy.orm import Session
 
@@ -20,10 +18,8 @@ from aegis.store import (
     CaseMember,
     Claim,
     ClaimRelation,
-    CustodyEvent,
     Entity,
     EvidenceItem,
-    ReviewQueue,
     Source,
     SourceRecord,
 )

@@ -9,14 +9,12 @@ Keycloak).  Since T22 there is no unauthenticated route to exercise: the former
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-import json
 import os
 from pathlib import Path
 
 import jwt
 import pytest
 import sqlalchemy as sa
-from alembic import command
 from alembic.config import Config
 from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
