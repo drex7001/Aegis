@@ -28,8 +28,8 @@ external-review disposition (`reviews/2026-07-18-external-review-disposition.md`
 Milestone I    Governed foundation      P0 governance ▸ P1 claim store + RBAC     [COMPLETE]
 Milestone II   MVP                      P2 identity, provenance & workspace       [COMPLETE — ★ MVP]
 Milestone III  Ontology platform        P3 modules & contracts [COMPLETE] ▸ P4 workspace v2 & object views [COMPLETE]
-Milestone IV   Intelligence domain      P5 events, geo & time [COMPLETE] ▸ P6 search, object sets & analytics [ACTIVE]
-Milestone V    Trust boundaries & AI    P7 sharing & governance ▸ P8 controlled AI & reasoning
+Milestone IV   Intelligence domain      P5 events, geo & time [COMPLETE] ▸ P6 search, object sets & analytics [COMPLETE]
+Milestone V    Trust boundaries & AI    P7 sharing & governance [ACTIVE] ▸ P8 controlled AI & reasoning
 Milestone VI   Production               P9 production certification & scale-out
 
 Deployment gate (phase-independent): ▸ PILOT GATE — minimum operating baseline
@@ -279,20 +279,36 @@ and survives in audit with its basis attached.
 
 ## Milestone V — Trust boundaries & AI
 
-### Phase 7 — Sharing & governance hardening *(GOAL.md §21–24, §27 · effort: L)*
+### Phase 7 — Sharing & governance hardening *(ACTIVE from 2026-08-24 · GOAL.md §21–24, §27 · effort: L · ADR-061…066)*
 
 **Goal.** Ready for a second user you don't fully trust, and for output that
-leaves the system. Charter: `phases/phase-07-sharing-governance.md` · tasks:
-`tasks/phase-07.md`.
+leaves the system. Charter: `phases/phase-07-sharing-governance.md` · specs:
+`specs/03-security.md` (§§6–13) and `specs/13-disclosure-packages.md` (both
+final) · tasks: `tasks/phase-07.md` (re-validated by T78, whose eleven
+divergences are recorded in spec 13 §0).
 
 **Deliverables (summary)** — compartments with a canonical Postgres assignment
-model projected to FGA (H-26); sealed/expunged handling with a policy
-precedence matrix; disclosure/export packages on a standard container (BagIt
-profile + signing — H-28) with recipient grants and redaction log; break-glass
-with request-time expiry enforcement; **enforcement** of the P2 governance
-seams: legal-authority objects, purpose vocabulary in policy, retention
-classes with governed disposition (B-08); response-mode policy (omit vs marked
-redaction vs counts — H-25).
+model (H-26); sealed/expunged handling with a policy precedence matrix;
+disclosure/export packages on a standard container (BagIt profile + signing —
+H-28) with recipient grants and redaction log; break-glass with request-time
+expiry enforcement; **enforcement** of the P2 governance seams: legal-authority
+records, purpose vocabulary in policy, retention classes with governed
+disposition (B-08); response-mode policy (omit vs marked redaction vs counts —
+H-25); and a **frozen read-surface inventory** (spec 03 §12) that drives every
+exclusion test in the phase.
+
+**As re-validated (T78, 2026-08-24).** Field-level filtering is **not** debt —
+it shipped at P2 T24a in its `omit` mode, and what P7 owes is the *policy* that
+chooses between modes (spec 03 §6). A compartment is enforced in **Postgres row
+filters**, not in FGA, because FGA is an asynchronous projection and M-15 showed
+a lagging one authorizes after canonical state says no (ADR-062). Expungement is
+**irreversible destruction with a tombstone**; the charter's "reversible only by
+policy" is retired, because reversible destruction is suppression under another
+name (ADR-064). Legal authority is a **governance table, not an ontology object**
+— an ontology object's attributes are claims, and a control a source can
+contradict is not a control; the ontology gains the **purpose vocabulary**
+instead (ADR-065). Break-glass writes **no FGA tuple at all**, so there is no
+stale tuple to fail open (ADR-066).
 
 **Exit criteria.** An export never exceeds the recipient's grant, redaction
 log attached; a sealed record disappears from every non-auditor read surface
@@ -393,7 +409,7 @@ Items may be completed any time; none may be waived.
 | Investigation workspace, object views, hypotheses, as-of (narrowed) | **Implemented** P4 |
 | Events, geospatial, timeline, map privacy | **Implemented** P5 |
 | Search, object sets, analytics, watchlists/alert triage | **Implemented** P6 |
-| Compartments, sealing, disclosure packages, break-glass, legal authority, retention enforcement | **Scheduled** P7 |
+| Compartments, sealing, disclosure packages, break-glass, legal authority, retention enforcement | **In progress** P7 |
 | Controlled AI (extraction v2, translation, summarization, hypothesis assist) | **Scheduled** P8 |
 | Observability, DR automation, pen-test, performance, deployment tiers | **Pilot gate + P9** |
 | Communications-metadata & financial-event modules | **Trigger-gated** (no such feed exists; event model must not preclude them — P5 non-goal note) |
