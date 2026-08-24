@@ -408,3 +408,85 @@ def test_sharing_requires_editor(client, world, fga) -> None:
         headers=COLLEAGUE,
     )
     assert response.status_code == 404
+
+
+# ── an unreadable filter is refused, never evaluated (T79, spec 03 §6.3) ─────
+#
+# `nic` is the shared `registered_identifier` property, which the platform
+# module declares `restricted` — "a state-issued number is never `open`". A
+# clearance-0 caller may never read one, whatever handling code the claim
+# carries, so a definition filtering on it cannot honestly be evaluated for
+# them.
+#
+# Before T79 it was evaluated anyway, wrongly, in two directions: `eq`,
+# `contains` and `exists` matched nothing and read as "nobody has one"; and
+# `absent`/`neq` compile to `not_(subquery)`, so a subquery empty for every
+# entity made the negation true for every entity — the node imposed no
+# constraint at all and the saved definition silently evaluated wider than it
+# reads.
+#
+# The node names a **property**, and the check resolves it with the same
+# `property_sensitivity` that `redact_definition` uses to decide whether to
+# withhold that node's value. The definition you may not fully read is the
+# definition you may not run.
+
+NIC = "nic"
+
+
+def _nic_set(client, fga, op: str) -> str:
+    definition = {"kind": "property", "property": NIC, "op": op}
+    if op not in {"exists", "absent"}:
+        definition["value"] = "FIXTURE-ID-1"
+    created = _create(client, ast=definition, name=f"nic-{op}")
+    fga.grant("user:owner", "evaluator", f"object_set:{created['set_id']}")
+    return created["set_id"]
+
+
+def _evaluate(client, set_id: str, clearance: int):
+    return client.post(
+        f"/v1/object-sets/{set_id}/evaluate",
+        headers=auth("user:owner", "analyst", clearance=clearance),
+    )
+
+
+@pytest.mark.parametrize("op", ["eq", "exists", "contains", "absent", "neq"])
+def test_a_filter_the_evaluator_cannot_read_is_refused_at_every_operator(
+    client, world, fga, op: str
+) -> None:
+    """Parameterised over **all five** operators, because the two families fail
+    in opposite directions and a test of one proves nothing about the other."""
+    set_id = _nic_set(client, fga, op)
+
+    refused = _evaluate(client, set_id, clearance=0)
+    assert refused.status_code == 422, refused.text
+    # Naming the property is safe — it is ontology, and the caller can already
+    # fetch it. The *value* is what is protected, and it is not in the problem.
+    assert NIC in refused.text
+    assert "FIXTURE-ID-1" not in refused.text
+
+
+@pytest.mark.parametrize("op", ["eq", "exists", "contains", "absent", "neq"])
+def test_a_cleared_evaluator_still_gets_an_answer(client, world, fga, op: str) -> None:
+    """Non-vacuity: a refusal for everybody would pass the test above.
+
+    What this deliberately does **not** assert is *which* entities come back.
+    A property filter currently compiles to `Claim.predicate == <property name>`
+    while the grammar validates the same string as a *property* name, and the
+    two vocabularies share no strings — so every validated property filter
+    matches nothing today. That is a defect of its own, found here, recorded as
+    **T79a**, and out of scope for a response-mode task: fixing it needs an
+    ontology proposal and a rewrite of the evaluation fixtures. Asserting on
+    membership now would pin the broken behaviour in place.
+    """
+    set_id = _nic_set(client, fga, op)
+    assert _evaluate(client, set_id, clearance=2).status_code == 200
+
+
+def test_a_readable_filter_still_evaluates_at_every_clearance(client, world, fga) -> None:
+    """The refusal is about the property's sensitivity, not about low clearance."""
+    created = _create(client)
+    fga.grant("user:owner", "evaluator", f"object_set:{created['set_id']}")
+
+    for clearance in (0, 2):
+        response = _evaluate(client, created["set_id"], clearance=clearance)
+        assert response.status_code == 200, response.text

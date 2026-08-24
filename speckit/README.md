@@ -26,7 +26,7 @@ extended** (ADR-023).
 |------|-------|
 | [`specs/01-ontology.md`](specs/01-ontology.md) | The declarative ontology DSL — object types, predicates, actions, grading schemes. |
 | [`specs/02-data-model.md`](specs/02-data-model.md) | Claim store schema (PostgreSQL DDL), time model, migration from current models. |
-| [`specs/03-security.md`](specs/03-security.md) | RBAC + ReBAC design (Keycloak + OpenFGA), handling codes, audit, enforcement points; extended by Phase 7 (T78; ADR-061…066) with the three response modes (H-25), compartments enforced in Postgres rather than FGA (H-26), sealed/expunged judicial states, the precedence matrix, break-glass, the auditor's oversight kit, the **frozen read-surface inventory** (§12), and B-08 governance enforcement. |
+| [`specs/03-security.md`](specs/03-security.md) | RBAC + ReBAC design (Keycloak + OpenFGA), handling codes, audit, enforcement points; extended by Phase 7 (T78/T79; ADR-061…067) with the three response modes and the rule that a marker is derived from the ontology and never from the rows (H-25, ADR-067), compartments enforced in Postgres rather than FGA (H-26), sealed/expunged judicial states, the precedence matrix, break-glass, the auditor's oversight kit, the **frozen read-surface inventory** (§12), and B-08 governance enforcement. |
 | [`specs/04-ingestion.md`](specs/04-ingestion.md) | Ingestion pipeline evolution: landing, idempotency, quarantine, suggested claims. |
 | [`specs/05-entity-resolution.md`](specs/05-entity-resolution.md) | Splink-based ER, versioned identity clusters, adjudication. |
 | [`specs/06-api.md`](specs/06-api.md) | API v1 surface, authorization annotations, as-of queries. |

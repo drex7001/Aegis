@@ -265,7 +265,7 @@ change, not a configuration change.
 | `marked` | that a claim of *this predicate* exists and they may not read it | `{predicate, withheld: true}` |
 | `counts` | how many were withheld, by reason | `{reason, resource, count}` |
 
-### 6.1 What a marker may carry (ADR-061)
+### 6.1 What a marker may carry (ADR-061), and where it comes from (ADR-067)
 
 A marker names **the predicate and nothing else**. Not the value, not the count,
 not the grading, not the claim id, not the source, not the time. The reason is
@@ -277,6 +277,31 @@ The shape is the one that already exists. `aegis/sets/sharing.py` returns
 `{property, op, value: null, withheld: true}` for an object-set filter above the
 reader's clearance (T70), and the policy adopts it rather than inventing a second
 vocabulary for the same idea.
+
+**A marker is derived from the ontology, not from the rows** (ADR-067, found
+while building T79). On a marked surface the marker set is a function of
+`(object type, clearance)` alone: the predicates that type *declares* whose
+property sensitivity exceeds the caller's clearance. Two entities of the same
+type therefore produce the same list for the same reader, whether or not either
+has such a claim — so a marker can never be read as evidence that one does.
+
+The two withholding kinds are treated differently, and this is the distinction
+the whole section turns on:
+
+| Withheld because | Source | Marked? |
+|---|---|---|
+| the ontology declares the property sensitive (`registered_identifier: restricted`) | schema | **yes**, on marked surfaces. It repeats what `GET /v1/ontology/vocabulary` already says |
+| a recorder gave *this claim* a handling code above the caller | row | **never.** Absent, for everyone below it, on every surface — the Phase 1 rule, unchanged |
+
+There is **one** row-derived marker in the system and it is named rather than
+left as a local behaviour: geometry existence. `geometry_state = 'none_permitted'`
+(P5 T59) says "something is recorded here that you may not read", because
+`geometry` declares no sensitivity — the *claim's* handling code is what varies,
+so there is no schema fact to derive from and the choice is this marker or none.
+Spec 10 §7.3 argued for it: on a map, *listed without a pin* and *nobody has
+located this* are conclusions a reader draws visually, and collapsing them tells
+a low-clearance viewer that nothing is known. It is an exception, it discloses
+existence, and it is not generalised to any other predicate.
 
 **A marker is a disclosure and is only ever used where policy says so.** Marking
 `has_nic: withheld` on a person's object view tells the reader that person has a
@@ -293,10 +318,10 @@ surface in §12 resolves to a row in it.
 |---|---|---|
 | Search results | `omit` | Exploratory. A marker here is a search index of what exists but is hidden |
 | Graph expansion / paths | `omit` | An edge held up by one open and one restricted claim must look exactly like an edge held up by the open claim alone |
-| Object views (entity 360) | `marked` | The caller is authorized to know the *schema* of the object they are looking at — this is H-25's exact test — and an unmarked gap reads as "nothing recorded", which is a different and false statement |
+| Object views (entity 360) | `marked` | The caller is authorized to know the *schema* of the object they are looking at — this is H-25's exact test — and an unmarked gap reads as "nothing recorded", which is a different and false statement. Rendered as `withheld: [{predicate, withheld: true}]` on `EntityDetail` |
 | Claim detail / provenance | `omit` | The row either is readable or is not; there is no schema to disclose separately |
 | Object-set definitions | `marked` | Shipped at T70; removing a node would misdescribe the set, whose evaluation still uses it |
-| Geo features | `marked` | The withheld-geometry carryover from P5. A place with a claim you may not read is not a place with no geometry |
+| Geo features | `marked` | The withheld-geometry carryover from P5, closed here. A place with a geometry you may not read is not a place nobody has located — the one row-derived marker (§6.1) |
 | Timeline | `omit` | Same argument as search: a marked gap on a time axis is a pointer to when something happened |
 | Analytics findings | `omit` | A finding is computed from the claims the caller may read; there is no partial finding to mark |
 | Alerts | `omit` | Already the rule (T75): an alert whose firing claims are unreadable is absent, not redacted |
@@ -307,6 +332,12 @@ surface in §12 resolves to a row in it.
 **`counts` exists in two places only**, both of them disclosure, both of them
 requiring an explicit grant or the supervisor role. It is not available to
 ordinary reads at any clearance.
+
+The table above is the specification and `aegis/authz/modes.py` is the same
+table as data — one row per surface id in §12.1, each carrying its mode, the
+marker kinds it may emit, and the sentence explaining why. A contract test fails
+when the two disagree in either direction, which is what stops this section
+becoming the description of a system that has moved on.
 
 ### 6.3 Nested fields, sorting and filtering (H-25)
 
@@ -322,9 +353,28 @@ Three rules that are easy to get right in the renderer and wrong in the query:
    silently ignored — silently ignoring it returns a differently-ordered list
    that looks like an answer.
 3. **Withheld content never participates in filtering, and a filter on it is
-   rejected the same way.** `?predicate=has_nic` from a caller who may not read
-   `has_nic` is a 422. Returning an empty list would be an oracle: empty means
-   "none", and the caller cannot tell it from "none you may see".
+   rejected the same way.** Returning an empty list would be an oracle: empty
+   means "none", and the caller cannot tell it from "none you may see".
+
+   Today this rule has exactly one live consumer, and it was worse than an
+   oracle. An **object set** whose definition filters on a property above the
+   evaluator's clearance evaluated to a wrong answer in *two* directions:
+   `eq`/`contains`/`exists` matched nothing, because `claim_filters` removes the
+   predicate during candidate generation, so the evaluator read "nobody has
+   one"; and `absent`/`neq` compile to `not_(subquery)`, so with the subquery
+   empty for every entity the negation was true for every entity and the node
+   **imposed no constraint at all** — silently widening a saved, shared,
+   analytics-feeding, watchlist-swept definition. `compile_set` now raises
+   `UnreadableFilterError` (422), naming the property, which is safe because a
+   predicate name is ontology; the values are what is protected. The check sits
+   on the `PropertyNode` branch of the compiler rather than as a pre-pass, so a
+   set that *composes* somebody else's definition is checked when that one is
+   resolved.
+
+   No route currently takes a predicate as a sort or filter parameter, so rules
+   2 and 3 are enforced where the predicate actually arrives — in a set
+   definition — and a route that later grows such a parameter inherits the rule
+   from this section, not from a memory of it.
 
 ## 7. Compartments (H-26, ADR-062)
 
@@ -547,31 +597,45 @@ field}.
 
 ### 12.1 API read surfaces
 
-| Surface | Route(s) | Filter path | Mode (§6.2) |
+The **surface id** is the binding key: `aegis/authz/modes.py` keys its policy
+table on it, and `tests/contract/test_response_modes.py` fails when this table
+and that one disagree in either direction — a surface with no policy, or a
+policy for a surface that is not here.
+
+| Surface id | Route(s) | Filter path | Mode (§6.2) |
 |---|---|---|---|
-| Entity object view | `GET /v1/entities/{id}` | `claim_filters` | `marked` |
-| Entity cases / identity history / why-connected | `GET /v1/entities/{id}/…` | `claim_filters` | `omit` |
-| Claim detail | `GET /v1/claims/{id}` | `claim_filters` | `omit` |
-| Provenance | `GET /v1/claims/{id}/provenance` | `claim_filters` | `omit` |
-| Search | `GET /v1/search` | `visible_entity_ids` + `claim_filters` | `omit` |
-| Graph expand / paths | `POST /v1/graph/*` | `claim_filters` (correlated EXISTS) | `omit` |
-| Analytics run / findings | `POST /v1/analytics/*`, `GET /v1/findings*` | `claim_filters`, `visible_entity_ids` | `omit` |
-| Object sets — definition | `GET /v1/object-sets/{id}` | `redact_definition` | `marked` |
-| Object sets — evaluation | `POST /v1/object-sets/{id}/evaluate` | `claim_filters` | `omit` |
-| Geo features | `GET /v1/geo/locations`, `/v1/geo/events` | `claim_filters` | `marked` |
-| Timeline | `GET /v1/timeline` | `claim_filters` | `omit` |
-| Alerts | `GET /v1/alerts` | claim-derived visibility | `omit` |
-| Watchlists | `GET /v1/watchlists` | owner-scoped | `omit` |
-| Cases, hypotheses, tasks | `GET /v1/cases…`, `/v1/hypotheses…`, `/v1/tasks` | FGA on the parent case | `omit` |
-| Source records & derivatives | `GET /v1/source-records…` | record handling + judicial state | `omit` |
-| Sources | `GET /v1/sources` | none today — a `source` row carries no handling code; its **records** do | `omit` |
-| Evidence | `GET /v1/evidence/{id}` | FGA on the case + custody | `omit` |
-| Review queue | `GET /v1/review-queue` | record handling code | `omit` |
-| Identity candidates | `GET /v1/identity/candidates` | `claim_filters` | `omit` |
-| Ontology vocabulary | `GET /v1/ontology/vocabulary` | none — schema, not content | n/a |
-| Audit | `GET /v1/audit` | auditor role + purpose | `marked` |
-| Disclosure preview | `POST /v1/disclosure/preview` | grant + `claim_filters` | `counts` |
-| Disclosure package | `POST /v1/disclosure/packages/{id}/export` | grant + `claim_filters` | `counts` |
+| `entity_object_view` | `GET /v1/entities/{id}` | `claim_filters` | `marked` |
+| `entity_related` | `GET /v1/entities/{id}/cases`, `/identity-history`, `/why-connected/{other}` | `claim_filters` | `omit` |
+| `claim_detail` | `GET /v1/claims/{id}` | `claim_filters` | `omit` |
+| `provenance` | `GET /v1/claims/{id}/provenance` | `claim_filters` | `omit` |
+| `search` | `GET /v1/search` | `visible_entity_ids` + `claim_filters` | `omit` |
+| `graph` | `POST /v1/graph/expand`, `/v1/graph/paths` | `claim_filters` (correlated EXISTS) | `omit` |
+| `analytics` | `POST /v1/analytics/{metric}`, `GET /v1/findings…` | `claim_filters`, `visible_entity_ids` | `omit` |
+| `object_set_definition` | `GET /v1/object-sets/{id}` | `redact_definition` | `marked` |
+| `object_set_evaluation` | `POST /v1/object-sets/{id}/evaluate` | `claim_filters` | `omit` |
+| `geo` | `GET /v1/geo/locations`, `/v1/geo/events` | `claim_filters` | `marked` |
+| `timeline` | `GET /v1/timeline` | `claim_filters` | `omit` |
+| `alerts` | `GET /v1/alerts` | claim-derived visibility | `omit` |
+| `watchlists` | `GET /v1/watchlists` | owner-scoped | `omit` |
+| `investigation` | `GET /v1/cases…`, `/v1/hypotheses…`, `/v1/tasks` | FGA on the parent case | `omit` |
+| `source_records` | `GET /v1/source-records…` | record handling + judicial state | `omit` |
+| `sources` | `GET /v1/sources` | none today — a `source` row carries no handling code; its **records** do | `omit` |
+| `evidence` | `GET /v1/evidence/{id}` | FGA on the case + custody | `omit` |
+| `review_queue` | `GET /v1/review-queue` | record handling code | `omit` |
+| `identity_candidates` | `GET /v1/identity/candidates` | `claim_filters` | `omit` |
+| `audit` | `GET /v1/audit` | auditor role + purpose | `marked` |
+| `disclosure_preview` | `POST /v1/disclosure/preview` | grant + `claim_filters` | `counts` |
+| `disclosure_package` | `POST /v1/disclosure/packages/{id}/export` | grant + `claim_filters` | `counts` |
+
+`GET /v1/ontology/vocabulary` is the one read route with **no** policy row and
+no filter: it returns the schema, which every caller may read, and which is
+what makes a schema-derived marker safe (§6.1, ADR-067).
+
+The last three rows are **declared ahead of their routes** — `audit`'s marked
+mode has nothing to mark until compartments exist (T80), and the two disclosure
+rows arrive with T83. Each carries its pending task in the policy table rather
+than being added later, so "declared but unrouted" is a stated fact instead of a
+gap somebody notices at the exit review.
 
 ### 12.2 Non-API egress (M-20)
 

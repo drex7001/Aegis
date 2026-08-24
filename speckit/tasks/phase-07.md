@@ -53,7 +53,8 @@ CLI entry point had never been executed by anything.
 for all 26, and a regression test that proves the migration reaches the database
 rather than dying in its own first three lines.
 
-**T79. ⛓ Response-mode policy** (specs/03 §6, ADR-061; G1, G2, G3) — **not**
+**T79. ⛓ Response-mode policy** (specs/03 §6, ADR-061, ADR-067; G1, G2, G3) —
+**DONE 2026-08-24.** **Not**
 "field-level sensitivity on reads": that shipped at P2 T24a in its `omit` mode
 and the Phase 1 debt is recorded closed in specs/03 §4.1. What this task builds
 is the **policy that chooses between the three modes** (H-25) and the two modes
@@ -65,12 +66,45 @@ One policy table, read from one place, applied per resource class: `omit`
 geo features, object-set definitions and audit records become `marked`; search,
 graph, timeline, findings and alerts stay `omit`; previews and packages are
 `counts`.
-AC: every surface in the T78 inventory resolves to a row in the policy table, and
-a contract test fails if one does not; on a `marked` surface a restricted
-predicate returns `{predicate, withheld: true}` and **nothing else** — no value,
-count, grading or id (ADR-061); on an `omit` surface the same claim is absent; a
-sort or filter on a predicate above the caller's clearance is **422**, not an
-empty list; the P5 withheld-geometry carryover is closed by the geo row.
+AC (met): every surface in the T78 inventory resolves to a row in the policy
+table, and `tests/contract/test_response_modes.py` fails if the two disagree in
+either direction; on a `marked` surface a restricted predicate returns
+`{predicate, withheld: true}` and **nothing else** — no value, count, grading or
+id (ADR-061); on an `omit` surface the same claim is absent; a filter on a
+property above the caller's clearance is **422**, not an empty list; the P5
+withheld-geometry carryover is closed by the `geo` row.
+
+**ADR-067 came out of building it.** A marker is derived from the **ontology**,
+never from the rows — the data-derived version would have made the marker a
+reliable oracle for "this person has a national identifier on file", which is
+the existence leak H-25 named. The test that proves it compares an entity *with*
+a restricted claim against one *without*: the marker lists must be identical, and
+a test asserting only that the marker appears would pass on the implementation
+the ADR rejects.
+
+**T79a. Object-set property filters name the wrong vocabulary** (found by T79) —
+`PropertyNode.property` is validated by `aegis/sets/grammar.py` against declared
+**property** names (`nic`, `aliases`) and compiled by `aegis/sets/compile.py` as
+`Claim.predicate == node.property`, a **predicate** name (`has_nic`, `known_as`).
+The two vocabularies share **no** strings in the current composition, so every
+validated property filter matches nothing — and through `absent`/`neq`, matches
+everything.
+
+It went unnoticed because the two halves are tested separately and never
+together: `test_object_set_grammar.py` uses property names with no database, and
+`test_set_evaluation.py` uses `has_role` — which is neither a property nor a
+predicate — through `parse()` with no ontology, against directly-inserted claims.
+
+The fix is a property→predicate resolution in the compiler (declared first,
+ADR-047), a `CompileError` when a property no predicate carries is filtered on,
+two additive ontology declarations (`known_as: property: aliases`,
+`born_on: property: date_of_birth`) through the P3 proposal workflow, and a
+rewrite of the evaluation fixtures onto real vocabulary. That is a task, not a
+paragraph in a response-mode task, which is why it is one.
+AC: a property filter on `nic` returns the people who have one; a filter on a
+property no predicate carries is refused at save with its path; the ontology bump
+carries a proposal and `check-release` is green; no test asserts membership
+through `has_role` any more.
 
 ## Milestone B — Compartments
 

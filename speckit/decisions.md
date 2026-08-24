@@ -2485,3 +2485,75 @@ as an assumption a pilot deployment discovers.
 **Revisit when** a second person exists to approve an elevation. Two-person
 break-glass is a better control and is currently unimplementable for the honest
 reason that there is one person.
+
+---
+
+## ADR-067: a redaction marker is derived from the ontology, never from the rows
+
+**Context.** ADR-061 fixed what a marker may *carry* — the predicate and the
+fact of withholding, and nothing else. Building T79 raised the question it did
+not answer: where does the marker come from?
+
+Two implementations were available and they are not equivalent.
+
+**Data-derived.** Query without the sensitivity filter, learn which predicates
+this entity actually has claims for, mark those. The reader is told "there is a
+value here you may not read".
+
+**Schema-derived.** Ask the ontology which predicates this entity's *type*
+declares whose property sensitivity exceeds the caller's clearance, and mark
+those. The reader is told "this kind of object has a field you may not read".
+
+The second discloses nothing. `GET /v1/ontology/vocabulary` already tells every
+caller that `person` has a `registered_identifier` and that it is `restricted`.
+The first discloses that *this person* has one, which is the existence leak H-25
+warned about in the sentence "an explicit marker reveals that a sensitive field
+exists".
+
+**Decision.** Schema-derived. `withheld_predicates(ontology, object_type,
+clearance)` is a function of its three arguments and of nothing in the database.
+Two entities of the same type produce the same list for the same reader, so a
+marker can never be read as evidence that one of them has such a claim.
+
+This splits the two withholding kinds, which had been treated as one thing:
+
+| Withheld because | Marked? |
+|---|---|
+| the **ontology** declares the property sensitive | **yes**, on marked surfaces |
+| a recorder gave **this claim** a handling code above the caller | **never** — absent, everywhere, for everyone below it |
+
+The second half is the Phase 1 rule and it is not softened. It is also the
+reason a marked surface needs no per-surface risk analysis before it ships: a
+schema marker cannot leak, so `marked` is a rendering decision rather than a
+disclosure decision.
+
+**The exception, named rather than hidden.** `geometry_state = 'none_permitted'`
+(P5 T59) is row-derived: it says a geometry is recorded that this caller may not
+read. It survives, for two reasons. `geometry` declares **no** sensitivity — the
+claim's handling code is what varies, which is what lets one place carry a
+`sensitive` building polygon and an `open` district polygon (spec 10 §7.2) — so
+there is no schema fact to derive a marker from, and the choice is this marker or
+none. And spec 10 §7.3's argument holds: on a map, *listed without a pin* and
+*nobody has located this* are conclusions a reader draws visually, and collapsing
+them tells a low-clearance viewer that nothing is known about where something is.
+
+It is written down in `aegis/authz/modes.GEOMETRY_EXISTENCE`, it is declared in
+the policy table for the `geo` surface alone, and it is not generalised. An
+exception with one member is a smell; an undocumented exception with one member
+is a defect, and it was one until this ADR.
+
+**Consequences.** The policy table (`aegis/authz/modes.POLICY`) carries a `marks`
+set per surface, not just a mode, so "which kinds of marker may this surface
+emit" is answerable without reading the route. A surface with mode `omit` and a
+non-empty `marks` set fails a contract test.
+
+`EntityDetail.withheld` is therefore constant for a type and a clearance, and the
+test that matters asserts exactly that: an entity **with** a restricted claim and
+an entity **without** one produce identical marker lists. A test that only
+checked "the marker appears" would pass on the data-derived implementation this
+ADR rejects.
+
+**Revisit when** an object type's property sensitivity becomes conditional on the
+row — a per-record classification rather than a per-property one. That is a
+different model of sensitivity and it would need its own decision, not an
+amendment to this one.

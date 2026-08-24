@@ -23,9 +23,11 @@ from aegis.api.schemas import (
     EntityCaseOut,
     EntityDetail,
     EntityOut,
+    WithheldOut,
 )
 from aegis.authz.fga import FGAClient, FGAError
 from aegis.authz.filters import claim_filters, hidden_entity_types
+from aegis.authz.modes import withheld_predicates
 from aegis.er.ledger import active_revision_id
 from aegis.queries.provenance import entity_provenance
 from aegis.store import CaseFile, CaseReference, Claim, Entity
@@ -66,6 +68,14 @@ def get_entity(
     What as-of does **not** restore: labels, source evaluations, grading,
     policy, projections, or the ontology. Those are current-state, and the
     banner in the workspace says so.
+
+    **This surface is `marked`** (spec 03 §6.2): `withheld` lists the predicates
+    this entity's *type* declares that the caller's clearance does not reach.
+    The list comes from the ontology and from nothing in the database
+    (ADR-067), so it is identical for every entity of the type and discloses
+    only what `/v1/ontology/vocabulary` already does. A claim withheld by its
+    **handling code** is not marked here and never will be — that one is
+    absence, for everyone below it, everywhere.
     """
     entity = session.get(Entity, entity_id)
     if entity is None or entity.entity_type in hidden_entity_types(
@@ -112,6 +122,12 @@ def get_entity(
             ),
             ontology_version=ontology.version,
         ),
+        withheld=[
+            WithheldOut(predicate=predicate)
+            for predicate in withheld_predicates(
+                ontology, entity.entity_type, auth.user.clearance
+            )
+        ],
     )
 
 

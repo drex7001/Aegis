@@ -66,6 +66,10 @@ export const PERSON = {
   // so, rather than disappearing.
   inbound_claims_by_predicate: {},
   stamp: STAMP,
+  // The `marked` mode (T79). Empty by default so the ordinary journeys keep
+  // asserting what they always asserted; `withheldPerson` below is the fixture
+  // for a low-clearance reader.
+  withheld: [] as Array<{ predicate: string; withheld: true }>,
   claims_by_predicate: {
     // A property: `known_as` has a literal object.
     known_as: [claim({ claim: { claim_id: "clm_name" } })],
@@ -195,5 +199,31 @@ export async function stubEntityRoutes(
         detail: "not found",
       }),
     }),
+  );
+}
+
+/** `PERSON` as a low-clearance reader sees it: the claim gone, the marker there.
+
+ * Both halves matter and the pair is the fixture. Dropping the claim without
+ * the marker is the old behaviour (a gap that reads as "nothing recorded");
+ * showing the marker with the claim still present would be no redaction at all.
+ */
+export const WITHHELD_PERSON = {
+  ...PERSON,
+  claims_by_predicate: { known_as: PERSON.claims_by_predicate.known_as },
+  withheld: [{ predicate: "has_nic", withheld: true as const }],
+};
+
+export async function stubWithheldEntity(page: Page): Promise<void> {
+  await page.route("**/v1/entities/*/cases", (route) =>
+    route.fulfill({ contentType: "application/json", body: JSON.stringify([]) }),
+  );
+  await page.route(
+    (url) => url.pathname === "/v1/entities/ent_person",
+    (route) =>
+      route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify(WITHHELD_PERSON),
+      }),
   );
 }

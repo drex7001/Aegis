@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import { stubGraphRoute, stubIdentityProvider } from "./oidc-stub";
-import { stubEntityRoutes } from "./object-view-stub";
+import { stubEntityRoutes, stubWithheldEntity } from "./object-view-stub";
 import { ONTOLOGY_VERSION, stubCases, stubVocabulary } from "./workspace-stub";
 
 /**
@@ -236,4 +236,48 @@ test("the object view reads no endpoint the P2 screens do not already have", asy
     "/v1/entities/ent_person/cases",
     "/v1/ontology/vocabulary",
   ]);
+});
+
+/**
+ * The `marked` response mode, on the screen a person actually reads (T79).
+ *
+ * The reason this needs a browser test rather than only an API one: the whole
+ * argument for marking is about what a *reader* concludes from a gap. An
+ * assertion that the JSON contains a marker does not tell you the page shows
+ * it, and the failure mode here — the marker silently not rendering — looks
+ * exactly like the old behaviour it was added to fix.
+ */
+test("a withheld predicate is named on the page, with no value beside it", async ({
+  page,
+}) => {
+  await stubWithheldEntity(page);
+  await page.goto("/entities/ent_person");
+
+  const properties = page.getByTestId("object-view-properties");
+  // The readable property is still rendered normally.
+  await expect(properties.getByTestId("predicate-known_as")).toBeVisible();
+  // The withheld one is named — and is not a claim group, because there is no
+  // claim.
+  await expect(properties.getByTestId("predicate-has_nic")).toHaveCount(0);
+  const marker = page.getByTestId("object-view-withheld");
+  await expect(marker).toBeVisible();
+  await expect(marker).toContainText("withheld at your clearance");
+  await expect(marker.locator("[data-predicate='has_nic']")).toBeVisible();
+});
+
+test("the empty-properties notice does not claim there is nothing when there is a marker", async ({
+  page,
+}) => {
+  /*
+   * The regression that would otherwise be invisible: "No property claims you
+   * are cleared to see" beside a marker saying a field exists is the page
+   * contradicting itself, and it is what the naive `properties.length === 0`
+   * check produced.
+   */
+  await stubWithheldEntity(page);
+  await page.goto("/entities/ent_person");
+
+  await expect(page.getByTestId("object-view-properties")).not.toContainText(
+    "No property claims you are cleared to see",
+  );
 });

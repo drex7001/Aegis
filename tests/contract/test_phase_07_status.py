@@ -131,8 +131,15 @@ def test_every_read_route_is_registered_in_the_inventory() -> None:
 
 
 def test_the_exempt_routes_are_still_exempt_for_the_stated_reason() -> None:
-    """An exemption list nobody re-checks is how the first leak gets in."""
+    """An exemption list nobody re-checks is how the first leak gets in.
+
+    T79 rewrote §12.1 and this assertion moved with it — which is the test
+    doing its job: the exemption has to be restated in the inventory every time
+    the inventory is rewritten, or it stops being a decision and becomes an
+    omission.
+    """
     assert NON_RECORD_ROUTES.keys() <= _route_families()
     inventory = _read("speckit/specs/03-security.md")
-    # The inventory carries the same exemption, with the same reason.
-    assert "schema, not content" in inventory
+    # The inventory names the route, and says why it is exempt.
+    assert "`GET /v1/ontology/vocabulary` is the one read route with **no**" in inventory
+    assert "it returns the schema, which every caller may read" in inventory

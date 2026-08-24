@@ -211,6 +211,36 @@ Therefore:
    and "read what the analyst was looking for" are different disclosures.
 3. Sharing a set is an audited action naming what was shared with whom.
 
+**Corrected at T79.** Rule 2 has one exception, and it was found by building the
+response-mode policy (spec 03 §6.3 rule 3). A `property` node above the
+evaluator's clearance cannot be *evaluated* either, because `claim_filters`
+removes the predicate during candidate generation and the answer that comes back
+is wrong in two different directions:
+
+* `eq`, `contains` and `exists` match nothing, and the evaluator reads that as
+  "nobody has one";
+* `absent` and `neq` compile to `not_(subquery)`, and a subquery empty for every
+  entity makes the negation true for every entity — the node imposes **no
+  constraint at all** and the saved definition silently evaluates *wider* than it
+  reads.
+
+The second is the serious one: it is exactly the failure `CompileError` exists to
+prevent ("an unhandled node evaluated as no constraint would widen the set
+silently"), arriving through the authorization filter rather than through an
+unhandled node, in a definition that is saved, shared, fed to analytics and swept
+by watchlists.
+
+So `compile_set` raises `UnreadableFilterError` — **422**, naming the property.
+Naming it is safe: a property name is ontology and the caller can already fetch
+it; the *value* is what §5.2 protects, and the redaction that hides the value is
+resolved through the same `property_sensitivity` this refusal uses. The
+definition you may not fully read is the definition you may not run.
+
+The check sits on the `PropertyNode` branch of the compiler rather than as a
+pre-pass over the AST, so a set that **composes** somebody else's definition is
+checked when that one is resolved, not skipped because it was invisible from the
+top.
+
 ---
 
 ## 6. Evaluation: one snapshot, one authorization context (M-16)
