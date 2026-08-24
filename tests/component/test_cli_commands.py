@@ -87,7 +87,17 @@ def test_the_arrest_migration_reaches_the_database(monkeypatch: pytest.MonkeyPat
 
 
 def test_the_arrest_migration_is_dry_by_default() -> None:
-    """`--apply` exists and is off unless asked for (spec 10 §2.4)."""
-    result = CliRunner().invoke(cli_app, ["migrate", "arrests-to-events", "--help"])
-    assert result.exit_code == 0
-    assert "--apply" in result.output
+    """`--apply` exists and is off unless asked for (spec 10 §2.4).
+
+    Asserted against the parsed command rather than against rendered help text,
+    which rich wraps to the terminal width — an 80-column CI runner splits
+    `--apply` across two lines and the substring check fails on the formatting
+    rather than on the interface.
+    """
+    from typer.main import get_command
+
+    command = get_command(cli_app).commands["migrate"].commands["arrests-to-events"]
+    apply_option = next(p for p in command.params if p.name == "apply")
+
+    assert "--apply" in apply_option.opts
+    assert apply_option.default is False
