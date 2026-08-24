@@ -51,6 +51,7 @@ scaffolding: **replace, never extend** (ADR-023, ADR-024).
 ```bash
 make up && make bootstrap        # compose stack: postgres+postgis, minio, keycloak, openfga
 aegis db upgrade                 # alembic migrations
+make lint                        # ruff (T78a) — run it before the suite
 make test-fast                   # unit + component + contract
 make test-integration            # dedicated PostgreSQL test database
 make test-system                 # real compose/OpenFGA behavior

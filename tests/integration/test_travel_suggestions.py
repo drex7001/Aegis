@@ -12,8 +12,6 @@ decided and the graph untouched.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from pathlib import Path
 
 import pytest
 import sqlalchemy as sa
@@ -24,7 +22,7 @@ from sqlalchemy.orm import Session
 from aegis.actions import ActionContext, ActionService, new_id
 from aegis.ingestion.travel import PRODUCER, PRODUCER_VERSION, run_travel_pass
 from aegis.ontology import load
-from aegis.store import AuditLog, Claim, Entity, ReviewQueue, Source, SourceRecord
+from aegis.store import AuditLog, Claim, Entity, Source, SourceRecord
 from tests.support.database import migrated_test_engine, truncate_domain_data
 from tests.support.paths import ONTOLOGY_PATH, REPO_ROOT
 

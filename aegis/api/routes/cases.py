@@ -21,7 +21,6 @@ from aegis.actions.service import CASE_MEMBER_RELATIONS
 from aegis.api.deps import (
     AuthContext,
     DbSession,
-    FGADep,
     OntologyDep,
     authorize,
     fga_check_or_404,

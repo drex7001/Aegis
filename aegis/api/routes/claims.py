@@ -20,7 +20,7 @@ from aegis.api.deps import (
 )
 from aegis.api.schemas import ClaimIn, ClaimOut, EventIn, EventOut, RelationIn, RetractIn
 from aegis.authz.filters import claim_filters
-from aegis.store import Claim, ClaimRelation
+from aegis.store import Claim
 
 router = APIRouter(tags=["claims"])
 

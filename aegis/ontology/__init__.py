@@ -47,4 +47,5 @@ __all__ = [
     "load",
     "load_composition",
     "load_dict",
+    "registry",
 ]

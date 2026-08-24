@@ -138,8 +138,8 @@ def build_graph(
         .join(Source, Source.source_id == SourceRecord.source_id)
         .where(IdentityMembership.closed_revision_id.is_(None))
     ).all()
-    for entity_id, norm_key, context, source_name in rows:
-        mention_info.setdefault(entity_id, (norm_key, context, source_name))
+    for entity_id, mention_key, context, source_name in rows:
+        mention_info.setdefault(entity_id, (mention_key, context, source_name))
 
     label_by_id = {e.entity_id: e.label for e in entities}
     slug_by_id = {

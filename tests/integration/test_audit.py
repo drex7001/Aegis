@@ -3,16 +3,13 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-import os
 
 import pytest
 import sqlalchemy as sa
-from alembic import command
 from alembic.config import Config
 from sqlalchemy.orm import Session
 
 from aegis.audit import append, verify
-from aegis.store import AuditLog
 from tests.support.database import migrated_test_engine
 
 

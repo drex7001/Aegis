@@ -29,7 +29,6 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from hashlib import sha256
 from pathlib import Path
-from statistics import median
 from time import perf_counter
 from typing import Literal, Sequence
 

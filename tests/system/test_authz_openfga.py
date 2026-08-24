@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import os
 
 import pytest
 import sqlalchemy as sa
-from alembic import command
 from alembic.config import Config
 from sqlalchemy import select
 from sqlalchemy.orm import Session

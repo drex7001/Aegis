@@ -161,7 +161,8 @@ def test_the_generated_descriptors_carry_what_the_screens_need(ontology) -> None
     constants = (UI_SRC / "api" / "ontology.ts").read_text(encoding="utf-8")
     for name, spec in ontology.object_types.items():
         entry = next(
-            (l for l in constants.splitlines() if l.strip().startswith(f'"{name}":')), None
+            (row for row in constants.splitlines() if row.strip().startswith(f'"{name}":')),
+            None,
         )
         assert entry is not None, name
         assert "display: " in entry, name

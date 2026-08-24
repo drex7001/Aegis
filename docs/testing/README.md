@@ -30,6 +30,7 @@ Cross-cutting markers do not replace correct placement.
 ## Commands
 
 ```bash
+make lint               # ruff — the cheapest failure in the loop (T78a)
 make test-fast          # unit + component + contract
 make test-integration   # requires AEGIS_TEST_DATABASE_URL
 make test-er-evaluation # T26 numeric ER gates + machine-readable report

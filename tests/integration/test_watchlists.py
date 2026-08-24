@@ -18,7 +18,7 @@ Fictional fixtures throughout, and no national-ID numbers even fictional ones â€
 from __future__ import annotations
 
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 
 import pytest
 import sqlalchemy as sa

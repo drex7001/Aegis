@@ -218,7 +218,8 @@ def _entry(rendered: str, name: str) -> str:
     fields it cares about and ignore the rest.
     """
     line = next(
-        (l for l in rendered.splitlines() if l.strip().startswith(f'"{name}":')), None
+        (row for row in rendered.splitlines() if row.strip().startswith(f'"{name}":')),
+        None,
     )
     assert line is not None, f"{name} is absent from the generated constants"
     return line

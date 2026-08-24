@@ -407,7 +407,7 @@ def serve(
         f"aegis API on http://{host}:{port}  (docs at /docs)", fg=typer.colors.GREEN
     )
     uvicorn.run(
-        "aegis.api:create_app" if not reload else "aegis.api:create_app",
+        "aegis.api:create_app",
         factory=True,
         host=host,
         port=port,
@@ -1177,7 +1177,9 @@ def migrate_arrests_to_events(
     the event it became, so an auditor still reads it and the record says why.
     """
     from aegis.actions import ActionContext
+    from aegis.config import get_settings
     from aegis.migration.arrests import migrate_co_arrests
+    from aegis.ontology import load
     from aegis.store import get_sessionmaker
 
     settings = get_settings()

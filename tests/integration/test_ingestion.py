@@ -7,12 +7,10 @@ a same-name/different-bytes artifact quarantines as a version conflict.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pytest
 import sqlalchemy as sa
-from alembic import command
 from alembic.config import Config
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -26,7 +24,7 @@ from aegis.ingestion import (
     run_structural_pass,
 )
 from aegis.er.ledger import active_entity_for_mention, open_membership
-from aegis.store import Claim, Entity, Mention, ReviewQueue, SourceRecord
+from aegis.store import Claim, Entity, Mention, ReviewQueue
 from tests.support.database import migrated_test_engine
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

@@ -1,5 +1,5 @@
 # Aegis dev workflow (speckit T1/T2). Run from repo root.
-.PHONY: up down nuke bootstrap ps logs install test test-fast test-integration test-mvp test-er-evaluation test-search-quality test-system test-coverage lint-ontology ontology-generate ui-install ui-build ui-test openapi check-contract
+.PHONY: up down nuke bootstrap ps logs install test test-fast test-integration test-mvp test-er-evaluation test-search-quality test-system test-coverage lint lint-fix lint-ontology ontology-generate ui-install ui-build ui-test openapi check-contract
 
 ENVFILE := $(wildcard .env)
 COMPOSE = docker compose $(if $(ENVFILE),--env-file $(ENVFILE)) -f infra/docker-compose.yml
@@ -62,6 +62,12 @@ test-coverage:
 	$(PYTEST) -q tests/unit tests/component tests/contract tests/integration tests/system \
 		--cov=aegis --cov-branch --cov-report=term-missing --cov-report=xml
 	uv run coverage report
+
+lint:              ## ruff over the platform core, tests and migrations (T78a)
+	uv run ruff check .
+
+lint-fix:          ## the same, applying the fixes ruff considers safe
+	uv run ruff check . --fix
 
 lint-ontology:     ## validate the composition + the second-domain fixture (Article XI/XIV)
 	uv run aegis ontology validate

@@ -201,7 +201,6 @@ def test_the_vocabulary_route_serves_labels_but_never_caveats() -> None:
 
 def test_the_served_labels_are_the_catalog_labels() -> None:
     """One source. A second list in the route would be a second thing to keep right."""
-    from aegis.api.routes.ontology import get_vocabulary
 
     source = (REPO_ROOT / "aegis" / "api" / "routes" / "ontology.py").read_text(
         encoding="utf-8"

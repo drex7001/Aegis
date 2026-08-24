@@ -15,7 +15,6 @@ being tested — the API has no domain knowledge to replace.
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta, timezone
 
 import pytest
 import sqlalchemy as sa
